@@ -1,11 +1,12 @@
 #include "main.h"
 #include "kobj.h"
+#include "shared_ptr.h"
 
 #include <memory.h>
 
 struct kernel_api g_kapi;
 
-struct kernel_api *cpp_get_kapi(void)
+struct kernel_api *get_kapi(void)
 {
 	return &g_kapi;
 }
@@ -13,14 +14,17 @@ struct kernel_api *cpp_get_kapi(void)
 int cpp_init(struct kernel_api *kapi)
 {
 	memcpy(&g_kapi, kapi, sizeof(*kapi));
-	g_kapi.printf("kcpp: cpp_init\n");
+	PRINTF("cpp_init\n");
 
 	KObj obj(2);
+
+	KObjRef pobj = KObjRef(new KObj(3));
+	PRINTF("pobj %p val %d\n", pobj.get(), pobj->GetValue());
 
 	return 0;
 }
 
 void cpp_deinit(void)
 {
-	g_kapi.printf("kcpp: cpp_deinit\n");
+	PRINTF("cpp_deinit\n");
 }

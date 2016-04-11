@@ -6,6 +6,11 @@ KObj::KObj(int value)
 	PRINTF("ctor %p value %d\n", this, Value);
 }
 
+int KObj::GetValue()
+{
+	return Value;
+}
+
 KObj::~KObj()
 {
 	PRINTF("dtor %p value %d\n", this, Value);
