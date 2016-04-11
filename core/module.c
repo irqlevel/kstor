@@ -3,15 +3,18 @@
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/atomic.h>
-
-#include <cpp/main.h>
+#include <linux/completion.h>
+#include <linux/kthread.h>
+#include <linux/delay.h>
 
 #include <stdarg.h>
+
+#include <cpp/main.h>
 
 MODULE_LICENSE("GPL");
 
 #define PRINTK(fmt, ...)	\
-    printk("kcpp: " fmt, ##__VA_ARGS__)
+    printk(KCPP ": " fmt, ##__VA_ARGS__)
 
 static void *kapi_malloc(size_t size)
 {
@@ -44,7 +47,7 @@ static void *kapi_atomic_create(int value)
 {
     atomic_t *atomic;
 
-    atomic = kmalloc(sizeof(*atomic), GFP_NOIO);
+    atomic = kapi_malloc(sizeof(*atomic));
     if (!atomic)
         return NULL;
     atomic_set(atomic, value);
@@ -53,7 +56,7 @@ static void *kapi_atomic_create(int value)
 
 static void kapi_atomic_delete(void *atomic)
 {
-    kfree(atomic);
+    kapi_free(atomic);
 }
 
 static void kapi_atomic_inc(void *atomic)
@@ -71,6 +74,83 @@ static int kapi_atomic_read(void *atomic)
     return atomic_read((atomic_t *)atomic);
 }
 
+static void *kapi_completion_create(void)
+{
+    struct completion *comp;
+
+    comp = kapi_malloc(sizeof(*comp));
+    if (!comp)
+        return NULL;
+    init_completion(comp);
+    return comp;
+}
+
+static void kapi_completion_wait(void *comp)
+{
+    wait_for_completion((struct completion *)comp);
+}
+
+static void kapi_completion_complete(void *comp)
+{
+    complete((struct completion *)comp);
+}
+
+static void kapi_completion_complete_all(void *comp)
+{
+    complete((struct completion *)comp);
+}
+
+static void kapi_completion_delete(void *comp)
+{
+    kapi_free(comp);
+}
+
+static void *kapi_task_create(int (*task_fn)(void *data), void *data,
+                              const char *name)
+{
+    struct task_struct *thread;
+
+    thread = kthread_create(task_fn, data, "%s", name);
+    if (IS_ERR(thread))
+        return NULL;
+    return thread;
+}
+
+static void kapi_task_wakeup(void *task)
+{
+    wake_up_process((struct task_struct *)task);
+}
+
+static void kapi_task_stop(void *task)
+{
+    kthread_stop((struct task_struct *)task);
+}
+
+static bool kapi_task_should_stop(void)
+{
+    return kthread_should_stop();
+}
+
+static void kapi_task_get(void *task)
+{
+    get_task_struct((struct task_struct *)task);
+}
+
+static void kapi_task_put(void *task)
+{
+    put_task_struct((struct task_struct *)task);
+}
+
+static void *kapi_task_current(void)
+{
+    return current;
+}
+
+static void kapi_msleep(unsigned int msecs)
+{
+    msleep(msecs);
+}
+
 static struct kernel_api g_kapi =
 {
     .malloc = kapi_malloc,
@@ -81,7 +161,20 @@ static struct kernel_api g_kapi =
     .atomic_delete = kapi_atomic_delete,
     .atomic_inc = kapi_atomic_inc,
     .atomic_dec_and_test = kapi_atomic_dec_and_test,
-    .atomic_read = kapi_atomic_read
+    .atomic_read = kapi_atomic_read,
+    .completion_create = kapi_completion_create,
+    .completion_delete = kapi_completion_delete,
+    .completion_wait = kapi_completion_wait,
+    .completion_complete = kapi_completion_complete,
+    .completion_complete_all = kapi_completion_complete_all,
+    .task_create = kapi_task_create,
+    .task_wakeup = kapi_task_wakeup,
+    .task_stop = kapi_task_stop,
+    .task_should_stop = kapi_task_should_stop,
+    .task_put = kapi_task_put,
+    .task_get = kapi_task_get,
+    .task_current = kapi_task_current,
+    .msleep = kapi_msleep
 };
 
 static int __init kcpp_init(void)
