@@ -3,12 +3,12 @@
 
 void *newFunc(size_t size)
 {
-	return get_kapi()->malloc(size);
+    return get_kapi()->malloc(size);
 }
 
 void deleteFunc(void *ptr)
 {
-	get_kapi()->free(ptr);
+    get_kapi()->free(ptr);
 }
 
 void* operator new(size_t size)
@@ -23,10 +23,10 @@ void* operator new[](size_t size)
 
 void operator delete(void* ptr)
 {
-	deleteFunc(ptr);
+    deleteFunc(ptr);
 }
 
 void operator delete[](void* ptr)
 {
-	deleteFunc(ptr);
+    deleteFunc(ptr);
 }

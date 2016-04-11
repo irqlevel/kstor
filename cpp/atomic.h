@@ -5,11 +5,11 @@
 class Atomic
 {
 public:
-	Atomic(int value, int& err);
-	void Inc();
-	bool DecAndTest(); 
-	int Get();
-	~Atomic();
+    Atomic(int value, int& err);
+    void Inc();
+    bool DecAndTest();
+    int Get();
+    ~Atomic();
 private:
-	void *pAtomic;
+    void *pAtomic;
 };

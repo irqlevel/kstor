@@ -6,11 +6,11 @@
 class KObj
 {
 public:
-	KObj(int value);
-	int GetValue();
-	virtual ~KObj();
+  KObj(int value);
+  int GetValue();
+  virtual ~KObj();
 private:
-	int Value;
+  int Value;
 };
 
 typedef shared_ptr<KObj> KObjRef;
