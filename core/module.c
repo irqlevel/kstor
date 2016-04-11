@@ -31,11 +31,20 @@ static void kapi_printf(const char *fmt, ...)
 	va_end(args);
 }
 
+static void kapi_bug_on(bool condition)
+{
+	if (condition)
+	{
+		BUG();
+	}
+}
+
 static struct kernel_api g_kapi =
 {
 	.malloc = kapi_malloc,
 	.free = kapi_free,
-	.printf = kapi_printf 
+	.printf = kapi_printf, 
+	.bug_on = kapi_bug_on
 };
 
 static int __init kcpp_init(void)
