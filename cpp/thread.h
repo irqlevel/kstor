@@ -7,8 +7,8 @@ class Thread : public Threadable
 {
 public:
     Thread();
-    Thread(const RunnableRef& routine, int& err);
-    void Start(const RunnableRef& routine, int& err);
+    Thread(const RunnableRef routine, int& err);
+    void Start(const RunnableRef routine, int& err);
     void Stop();
     void Wait();
     void StopAndWait();

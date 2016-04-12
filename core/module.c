@@ -1,4 +1,3 @@
-#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -151,6 +150,32 @@ static void kapi_msleep(unsigned int msecs)
     msleep(msecs);
 }
 
+static void* kapi_spinlock_create(void)
+{
+    spinlock_t *lock;
+
+    lock = kapi_malloc(sizeof(*lock));
+    if (!lock)
+        return NULL;
+    spin_lock_init(lock);
+    return lock;
+}
+
+static void kapi_spinlock_delete(void *lock)
+{
+    kapi_free(lock);
+}
+
+static void kapi_spinlock_lock(void *lock)
+{
+    spin_lock((spinlock_t *)lock);
+}
+
+static void kapi_spinlock_unlock(void *lock)
+{
+    spin_unlock((spinlock_t *)lock);
+}
+
 static struct kernel_api g_kapi =
 {
     .malloc = kapi_malloc,
@@ -174,7 +199,11 @@ static struct kernel_api g_kapi =
     .task_put = kapi_task_put,
     .task_get = kapi_task_get,
     .task_current = kapi_task_current,
-    .msleep = kapi_msleep
+    .msleep = kapi_msleep,
+    .spinlock_create = kapi_spinlock_create,
+    .spinlock_delete = kapi_spinlock_delete,
+    .spinlock_lock = kapi_spinlock_lock,
+    .spinlock_unlock = kapi_spinlock_unlock
 };
 
 static int __init kcpp_init(void)

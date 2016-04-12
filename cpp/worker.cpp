@@ -1,4 +1,5 @@
 #include "worker.h"
+#include "auto_lock.h"
 
 bool Worker::Execute(RunnableRef task)
 {
@@ -14,17 +15,17 @@ bool Worker::Execute(RunnableRef task)
     return result;
 }
 
-bool Worker::ExecuteAndWait(RunnableRef task, NTSTATUS& status)
+bool Worker::ExecuteAndWait(RunnableRef task, int& err)
 {
-    if (!Exec(task))
+    if (!Execute(task))
         return false;
 
     task.get()->Wait();
-    status = task.get()->GetStatus();
+    err = task.get()->GetError();
     return true;
 }
 
-NTSTATUS Worker::Run(const Threadable& thread)
+int Worker::Run(const Threadable& thread)
 {
     while (!thread.IsStopping())
     {
@@ -38,29 +39,38 @@ NTSTATUS Worker::Run(const Threadable& thread)
             }
         }
         if (task.get())
-            task->Exec(thread);
+            task->Execute(thread);
     }
 
-    return STATUS_SUCCESS;
+    return E_OK;
 }
 
-Worker::Worker(NTSTATUS& status)
-    : Thread(*this, status), Stopping(false)
+Worker::Worker(int& err)
+    : Runnable(err), Lock(err), TaskEvent(err), Stopping(false),
+      WorkerThread(RunnableRef(this), err)
 {
 }
 
 Worker::~Worker()
 {
     Stopping = true;
-    Thread.Stop();
+    WorkerThread.Stop();
     TaskEvent.Set();
-    Thread.StopAndWait();
+    WorkerThread.StopAndWait();
 
-    RunnableRef task;
-    AutoLock lock(Lock);
-    while (!TaskList.IsEmpty())
-    {
-        task = TaskList.PopHead();
-        task.get()->Cancel();
-    }
+    bool bHasTasks;
+    do {
+        RunnableRef task;
+        {
+            AutoLock lock(Lock);
+            bHasTasks = !TaskList.IsEmpty();
+            if (bHasTasks)
+            {
+                task = TaskList.PopHead();
+                bHasTasks = !TaskList.IsEmpty();
+            }
+        }
+        if (task.get())
+            task->Cancel();
+    } while (bHasTasks);
 }

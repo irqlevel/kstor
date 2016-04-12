@@ -7,13 +7,15 @@ extern "C"
 {
 #endif
 
-
-typedef struct _LIST_ENTRY
+struct LIST_ENTRY
 {
-    struct _LIST_ENTRY *Flink;
-    struct _LIST_ENTRY *Blink;
-} LIST_ENTRY, *PLIST_ENTRY;
+    struct LIST_ENTRY *Flink;
+    struct LIST_ENTRY *Blink;
+};
 
+typedef struct LIST_ENTRY* PLIST_ENTRY;
+
+static inline
 void
 InitializeListHead(
     PLIST_ENTRY ListHead
@@ -54,7 +56,6 @@ RemoveEntryList(
 
 static inline
 void
-VOID
 RemoveInitEntryList(
     PLIST_ENTRY Entry
     )
@@ -65,7 +66,6 @@ RemoveInitEntryList(
 }
 
 static inline
-void
 PLIST_ENTRY
 RemoveHeadList(
     PLIST_ENTRY ListHead
@@ -84,7 +84,6 @@ RemoveHeadList(
 }
 
 static inline
-void
 PLIST_ENTRY
 RemoveTailList(
     PLIST_ENTRY ListHead
@@ -101,7 +100,6 @@ RemoveTailList(
     Blink->Flink = ListHead;
     return Entry;
 }
-
 
 static inline
 void

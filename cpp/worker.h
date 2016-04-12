@@ -4,8 +4,11 @@
 #include "list.h"
 #include "thread.h"
 #include "event.h"
+#include "runnable.h"
+#include "spinlock.h"
+#include "shared_ptr.h"
 
-class Worker
+class Worker : public Runnable
 {
 public:
     Worker(int& err);
@@ -14,7 +17,11 @@ public:
     bool ExecuteAndWait(RunnableRef task, int& err);
     int Run(const Threadable& thread);
 private:
+    SpinLock Lock;
     LinkedList<RunnableRef> TaskList;
-    Thread Thread;
+    Event TaskEvent;
     bool Stopping;
+    Thread WorkerThread;
 };
+
+typedef shared_ptr<Worker> WorkerRef;

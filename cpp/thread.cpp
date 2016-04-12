@@ -5,7 +5,7 @@ Thread::Thread()
 {
 }
 
-Thread::Thread(const RunnableRef& routine, int& err)
+Thread::Thread(const RunnableRef routine, int& err)
     : Thread()
 {
     if (err)
@@ -28,13 +28,17 @@ int Thread::ExecuteRoutine()
     return err;
 }
 
-void Thread::Start(const RunnableRef& routine, int& err)
+void Thread::Start(const RunnableRef routine, int& err)
 {
     if (err)
     {
         return;
     }
-
+    if (!routine.get())
+    {
+        err = E_INVAL;
+        return;
+    }
     CompEvent = Event(err);
     if (err)
     {

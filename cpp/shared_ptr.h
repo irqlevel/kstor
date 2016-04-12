@@ -50,7 +50,7 @@ public:
         }
         return *this;
     }
-    shared_ptr<T>& operator=(const shared_ptr<T>&& other)
+    shared_ptr<T>& operator=(shared_ptr<T>&& other)
     {
         Reset();
         Counter = other.Counter;
@@ -59,7 +59,7 @@ public:
         other.Ptr = nullptr;
         return *this;
     }
-    T* get()
+    T* get() const
     {
         return Ptr;
     }

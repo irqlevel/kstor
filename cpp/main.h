@@ -36,6 +36,10 @@ struct kernel_api
     void (*task_put)(void *task);
     void *(*task_current)(void);
     void (*msleep)(unsigned int msecs);
+    void* (*spinlock_create)(void);
+    void (*spinlock_delete)(void* spinlock);
+    void (*spinlock_lock)(void* spinlock);
+    void (*spinlock_unlock)(void* spinlock);
 };
 
 int cpp_init(struct kernel_api *kapi);
@@ -51,7 +55,7 @@ struct kernel_api *get_kapi(void);
     get_kapi()->bug_on(cond)
 
 #define CONTAINING_RECORD(addr, type, field)    \
-            ((type) *)((unsigned long)(addr) - &(((type) *)0)->(field))
+            (type*)((unsigned long)(addr) - (unsigned long)&((type*)0)->field)
 
 #ifdef __cplusplus
 }

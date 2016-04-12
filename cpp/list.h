@@ -7,10 +7,10 @@ template <class T> class LinkedList
 {
 public:
 
-    template <class T> class Iterator
+    class Iterator
     {
     public:
-        Iterator(LinkedList<T>& List)
+        Iterator(LinkedList& List)
         {
             CurrListEntry = List.ListHead.Flink;
             EndList = &List.ListHead;
@@ -18,9 +18,9 @@ public:
         T Get()
         {
             KBUG_ON(CurrListEntry == EndList);
-            LinkedListNode<T>* node = CONTAINING_RECORD(CurrListEntry,
-                                                        LinkedListNode<T>,
-                                                        ListEntry);
+            LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
+                                                     LinkedListNode,
+                                                     ListEntry);
             return node->Value;
         }
 
@@ -52,7 +52,7 @@ public:
     }
     bool AddHead(T value)
     {
-        LinkedListNode<T>* node = new LinkedListNode<T>(value);
+        LinkedListNode* node = new LinkedListNode(value);
 
         if (!node)
         {
@@ -64,7 +64,7 @@ public:
 
     bool AddTail(T value)
     {
-        LinkedListNode<T>* node = new LinkedListNode<T>(value);
+        LinkedListNode* node = new LinkedListNode(value);
 
         if (!node)
         {
@@ -76,10 +76,10 @@ public:
 
     T PopHead()
     {
-        LinkedListNode<T>* node;
+        LinkedListNode* node;
 
         KBUG_ON(IsListEmpty(&ListHead));
-        node = CONTAINING_RECORD(RemoveHeadList(&ListHead), LinkedListNode<T>,
+        node = CONTAINING_RECORD(RemoveHeadList(&ListHead), LinkedListNode,
                                  ListEntry);
         T value = node->Value;
         delete node;
@@ -88,10 +88,10 @@ public:
 
     T PopTail()
     {
-        LinkedListNode<T>* node;
+        LinkedListNode* node;
 
         KBUG_ON(IsListEmpty(&ListHead));
-        node = CONTAINING_RECORD(RemoveTailList(&ListHead), LinkedListNode<T>,
+        node = CONTAINING_RECORD(RemoveTailList(&ListHead), LinkedListNode,
                                  ListEntry);
         T value = node->Value;
         delete node;
@@ -105,16 +105,16 @@ public:
 
     virtual ~LinkedList()
     {
-        LinkedListNode<T>* node;
+        LinkedListNode* node;
         while (!IsListEmpty(&ListHead))
         {
             node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
-                                     LinkedListNode<T>, ListEntry);
+                                     LinkedListNode, ListEntry);
             delete node;
         }
     }
 private:
-    template <class T> class LinkedListNode
+    class LinkedListNode
     {
     public:
         LinkedListNode(T value)
