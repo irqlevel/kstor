@@ -49,7 +49,7 @@ struct kernel_api *get_kapi(void);
 #define KCPP "kcpp"
 
 #define PRINTF(fmt, ...)	\
-    get_kapi()->printf(KCPP ": " fmt, ##__VA_ARGS__)
+    get_kapi()->printf(KCPP ": %s(),%d:" fmt, __func__, __LINE__, ##__VA_ARGS__)
 
 #define KBUG_ON(cond)   \
     get_kapi()->bug_on(cond)

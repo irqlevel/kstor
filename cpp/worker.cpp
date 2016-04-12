@@ -29,14 +29,17 @@ int Worker::Run(const Threadable& thread)
 {
     while (!thread.IsStopping())
     {
+        PRINTF("Run\n");
         TaskEvent.Wait();
         RunnableRef task;
         {
             AutoLock lock(Lock);
+            PRINTF("Locked\n");
             if (!TaskList.IsEmpty())
             {
                 task = TaskList.PopHead();
             }
+            PRINTF("De-locking\n");
         }
         if (task.get())
             task->Execute(thread);
@@ -53,6 +56,7 @@ Worker::Worker(int& err)
 
 Worker::~Worker()
 {
+    PRINTF("die %p\n", this);
     Stopping = true;
     WorkerThread.Stop();
     TaskEvent.Set();

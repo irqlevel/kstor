@@ -15,19 +15,19 @@ struct kernel_api *get_kapi(void)
     return &g_kapi;
 }
 
-class TWorker : public Runnable
+class TJob : public Runnable
 {
 public:
-    TWorker(int& err)
+    TJob(int& err)
         : Runnable(err)
     {
     }
-    virtual ~TWorker()
+    virtual ~TJob()
     {
     }
     int Run(const Threadable& thread)
     {
-        PRINTF("Hello\n");
+        PRINTF("Hello from job\n");
         return E_OK;
     }
 };
@@ -35,16 +35,15 @@ public:
 void test_worker()
 {
     int err = E_OK;
-
     WorkerRef worker = WorkerRef(new Worker(err));
     if (!worker.get() || err)
         return;
 
     err = E_OK;
-   if (!worker->ExecuteAndWait(RunnableRef(new TWorker(err)), err))
+    if (!worker->ExecuteAndWait(RunnableRef(new TJob(err)), err))
         return;
 
-    PRINTF("waited err %d\n", err);
+    PRINTF("Waited job err %d\n", err);
 }
 
 int cpp_init(struct kernel_api *kapi)
