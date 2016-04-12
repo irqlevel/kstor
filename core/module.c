@@ -96,7 +96,7 @@ static void kapi_completion_complete(void *comp)
 
 static void kapi_completion_complete_all(void *comp)
 {
-    complete((struct completion *)comp);
+    complete_all((struct completion *)comp);
 }
 
 static void kapi_completion_delete(void *comp)
@@ -143,6 +143,11 @@ static void kapi_task_put(void *task)
 static void *kapi_task_current(void)
 {
     return current;
+}
+
+static int kapi_task_get_id(void *task)
+{
+    return ((struct task_struct *)task)->pid;
 }
 
 static void kapi_msleep(unsigned int msecs)
@@ -198,6 +203,7 @@ static struct kernel_api g_kapi =
     .task_should_stop = kapi_task_should_stop,
     .task_put = kapi_task_put,
     .task_get = kapi_task_get,
+    .task_get_id = kapi_task_get_id,
     .task_current = kapi_task_current,
     .msleep = kapi_msleep,
     .spinlock_create = kapi_spinlock_create,

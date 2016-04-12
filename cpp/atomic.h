@@ -5,6 +5,7 @@
 class Atomic
 {
 public:
+    Atomic();
     Atomic(int value, int& err);
     void Inc();
     bool DecAndTest();

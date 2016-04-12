@@ -1,12 +1,7 @@
 #include "thread.h"
 
-Thread::Thread()
-    : Routine(nullptr), Task(nullptr), Stopping(false)
-{
-}
-
 Thread::Thread(const RunnableRef routine, int& err)
-    : Thread()
+   : Routine(nullptr), Task(nullptr), Stopping(false), CompEvent(err)
 {
     if (err)
     {
@@ -39,7 +34,6 @@ void Thread::Start(const RunnableRef routine, int& err)
         err = E_INVAL;
         return;
     }
-    CompEvent = Event(err);
     if (err)
     {
         return;
@@ -59,10 +53,12 @@ void Thread::Start(const RunnableRef routine, int& err)
 void Thread::Stop()
 {
     Stopping = true;
+    PRINTF("Set thread %p stopping\n", this, Stopping);
 }
 
 bool Thread::IsStopping() const
 {
+    PRINTF("Is thread %p stopping %d\n", this, Stopping);
     return Stopping;
 }
 

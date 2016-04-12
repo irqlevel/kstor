@@ -45,11 +45,12 @@ int Worker::Run(const Threadable& thread)
             task->Execute(thread);
     }
 
+    PRINTF("Stopping\n");
     return E_OK;
 }
 
 Worker::Worker(int& err)
-    : Runnable(err), Lock(err), TaskEvent(err), Stopping(false),
+    : Runnable(err), Stopping(false), Lock(err), TaskEvent(err),
       WorkerThread(RunnableRef(this), err)
 {
 }

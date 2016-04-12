@@ -10,30 +10,39 @@ class shared_ptr
 public:
     shared_ptr()
     {
+        PRINTF("this %p\n", this);
         Ptr = nullptr;
         Counter = nullptr;
     }
     shared_ptr(T *ptr)
     {
+        PRINTF("this %p Ptr %p\n", this, ptr);
+        if (ptr == nullptr)
+            return;
+
         Ptr = nullptr;
+        Counter = nullptr;
         int err = E_OK;
-        Counter = new Atomic(0, err);
-        if (Counter == nullptr)
+        Atomic* counter = new Atomic(0, err);
+        if (counter == nullptr)
         {
             return;
         }
         if (err)
         {
-            delete Counter;
+            delete counter;
             return;
         }
         Ptr = ptr;
+        Counter = counter;
         Counter->Inc();
     }
     shared_ptr(const shared_ptr<T>& other)
     {
         Counter = other.Counter;
         Ptr = other.Ptr;
+        PRINTF("this %p Ptr %p Counter %p other %p\n",
+               this, Ptr, Counter, &other);
         if (Counter != nullptr)
         {
             Acquire();
@@ -44,6 +53,7 @@ public:
         Reset();
         Counter = other.Counter;
         Ptr = other.Ptr;
+        PRINTF("this %p Ptr %p Counter %p\n", this, Ptr, Counter);
         if (Counter != nullptr)
         {
             Acquire();
@@ -55,6 +65,7 @@ public:
         Reset();
         Counter = other.Counter;
         Ptr = other.Ptr;
+        PRINTF("this %p Ptr %p Counter %p\n", this, Ptr, Counter);
         other.Counter = nullptr;
         other.Ptr = nullptr;
         return *this;
@@ -89,6 +100,8 @@ private:
     void Acquire()
     {
         Counter->Inc();
+        PRINTF("this %p Ptr %p Counter %p %d\n",
+               this, Ptr, Counter, Counter->Get());
     }
     void Release()
     {
@@ -96,6 +109,10 @@ private:
             return;
         if (Counter->DecAndTest())
         {
+            PRINTF("this %p Deleting Ptr %p Counter %p %d\n",
+                   this, Ptr, Counter, Counter->Get());
+            KBUG_ON(!Ptr);
+            KBUG_ON(!Counter);
             delete Ptr;
             delete Counter;
         }

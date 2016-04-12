@@ -6,7 +6,6 @@
 class Thread : public Threadable
 {
 public:
-    Thread();
     Thread(const RunnableRef routine, int& err);
     void Start(const RunnableRef routine, int& err);
     void Stop();
@@ -20,7 +19,7 @@ private:
     static int StartRoutine(void* context);
     int ExecuteRoutine();
     RunnableRef Routine;
-    Event CompEvent;
     void* Task;
     bool Stopping;
+    Event CompEvent;
 };

@@ -1,6 +1,10 @@
 #include "atomic.h"
 #include "error.h"
 
+Atomic::Atomic()
+{
+}
+
 Atomic::Atomic(int value, int& err)
 {
     if (err)

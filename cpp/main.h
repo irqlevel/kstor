@@ -35,6 +35,7 @@ struct kernel_api
     void (*task_get)(void *task);
     void (*task_put)(void *task);
     void *(*task_current)(void);
+    int (*task_get_id)(void *task);
     void (*msleep)(unsigned int msecs);
     void* (*spinlock_create)(void);
     void (*spinlock_delete)(void* spinlock);
@@ -48,8 +49,10 @@ struct kernel_api *get_kapi(void);
 
 #define KCPP "kcpp"
 
-#define PRINTF(fmt, ...)	\
-    get_kapi()->printf(KCPP ": %s(),%d:" fmt, __func__, __LINE__, ##__VA_ARGS__)
+#define PRINTF(fmt, ...)    \
+    get_kapi()->printf(KCPP ": t%d %s(),%d:" fmt,   \
+                       get_kapi()->task_get_id(get_kapi()->task_current()), \
+                       __func__, __LINE__, ##__VA_ARGS__)
 
 #define KBUG_ON(cond)   \
     get_kapi()->bug_on(cond)

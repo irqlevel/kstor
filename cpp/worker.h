@@ -17,10 +17,10 @@ public:
     bool ExecuteAndWait(RunnableRef task, int& err);
     int Run(const Threadable& thread);
 private:
+    bool Stopping;
     SpinLock Lock;
     LinkedList<RunnableRef> TaskList;
     Event TaskEvent;
-    bool Stopping;
     Thread WorkerThread;
 };
 

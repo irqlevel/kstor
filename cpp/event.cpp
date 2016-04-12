@@ -22,16 +22,19 @@ Event::Event(int& err)
 
 void Event::Set()
 {
+    PRINTF("Set %p\n", this);
     get_kapi()->completion_complete(Completion);
 }
 
 void Event::SetAll()
 {
+    PRINTF("SetAll %p\n", this);
     get_kapi()->completion_complete_all(Completion);
 }
 
 void Event::Wait()
 {
+    PRINTF("Wait %p %u\n", this, *((unsigned int *)Completion));
     get_kapi()->completion_wait(Completion);
 }
 

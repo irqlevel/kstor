@@ -35,7 +35,7 @@ public:
 void test_worker()
 {
     int err = E_OK;
-    WorkerRef worker = WorkerRef(new Worker(err));
+    WorkerRef worker(new Worker(err));
     if (!worker.get() || err)
         return;
 
