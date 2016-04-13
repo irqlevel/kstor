@@ -104,7 +104,7 @@ private:
     void Release()
     {
         PRINTF("this %p Ptr %p Counter %p %d\n",
-               this, Ptr, Counter, Counter->Get());
+               this, Ptr, Counter, (Counter) ? Counter->Get() : 0);
         if (Counter == nullptr)
             return;
         if (Counter->DecAndTest())
