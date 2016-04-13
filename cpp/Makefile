@@ -1,6 +1,6 @@
 include $(PROJ_ROOT)/Makefile.inc
 
-CFLAGS= $(COMMON_CFLAGS) -std=c++11 -mcmodel=kernel -D__CPP__ -ffreestanding -fno-exceptions -fno-rtti
+CFLAGS= $(COMMON_CFLAGS) -std=c++11 -mcmodel=kernel -D__CPP__ -ffreestanding -fno-inline -fno-exceptions -fno-rtti
 LIB_OUT = cpp.a
 
 LIB_SRC = main.cpp new_delete.cpp kobj.cpp atomic.cpp thread.cpp event.cpp\

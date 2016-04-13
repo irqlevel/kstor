@@ -17,9 +17,6 @@ public:
     shared_ptr(T *ptr)
     {
         PRINTF("this %p Ptr %p\n", this, ptr);
-        if (ptr == nullptr)
-            return;
-
         Ptr = nullptr;
         Counter = nullptr;
         int err = E_OK;
@@ -88,6 +85,7 @@ public:
     }
     virtual ~shared_ptr()
     {
+        PRINTF("dtor %p\n", this);
         Reset();
     }
     void Reset()
@@ -105,15 +103,17 @@ private:
     }
     void Release()
     {
+        PRINTF("this %p Ptr %p Counter %p %d\n",
+               this, Ptr, Counter, Counter->Get());
         if (Counter == nullptr)
             return;
         if (Counter->DecAndTest())
         {
             PRINTF("this %p Deleting Ptr %p Counter %p %d\n",
                    this, Ptr, Counter, Counter->Get());
-            KBUG_ON(!Ptr);
             KBUG_ON(!Counter);
-            delete Ptr;
+            if (Ptr)
+                delete Ptr;
             delete Counter;
         }
     }

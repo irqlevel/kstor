@@ -1,6 +1,6 @@
 #include "thread.h"
 
-Thread::Thread(const RunnableRef routine, int& err)
+Thread::Thread(Runnable* routine, int& err)
    : Routine(nullptr), Task(nullptr), Stopping(false), CompEvent(err)
 {
     if (err)
@@ -23,13 +23,13 @@ int Thread::ExecuteRoutine()
     return err;
 }
 
-void Thread::Start(const RunnableRef routine, int& err)
+void Thread::Start(Runnable* routine, int& err)
 {
     if (err)
     {
         return;
     }
-    if (!routine.get())
+    if (!routine)
     {
         err = E_INVAL;
         return;

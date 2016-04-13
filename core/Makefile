@@ -6,7 +6,7 @@ KMOD_KO = $(KMOD).ko
 obj-m = $(KMOD).o
 $(KMOD)-objs := module.o ../lib/cpp.a
 
-ccflags-y := -I$(src) -I.. -D __KERNEL__ $(COMMON_CFLAGS)
+ccflags-y := -I$(src) -I.. -D __KERNEL__ $(COMMON_CFLAGS) -fno-inline
 
 ifndef KERNEL_PATH
 KERNEL_PATH=/lib/modules/$(shell uname -r)/build

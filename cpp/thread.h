@@ -6,8 +6,8 @@
 class Thread : public Threadable
 {
 public:
-    Thread(const RunnableRef routine, int& err);
-    void Start(const RunnableRef routine, int& err);
+    Thread(Runnable *routine, int& err);
+    void Start(Runnable *routine, int& err);
     void Stop();
     void Wait();
     void StopAndWait();
@@ -18,7 +18,7 @@ public:
 private:
     static int StartRoutine(void* context);
     int ExecuteRoutine();
-    RunnableRef Routine;
+    Runnable* Routine;
     void* Task;
     bool Stopping;
     Event CompEvent;

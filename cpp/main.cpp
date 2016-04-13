@@ -21,26 +21,33 @@ public:
     TJob(int& err)
         : Runnable(err)
     {
+        PRINTF("job %p ctor\n", this);
     }
     virtual ~TJob()
     {
+        PRINTF("job %p dtor\n", this);
     }
     int Run(const Threadable& thread)
     {
-        PRINTF("Hello from job\n");
+        PRINTF("Hello from job %p\n", this);
         return E_OK;
     }
 };
 
 void test_worker()
 {
+    PRINTF("Test worker!!!\n");
     int err = E_OK;
     WorkerRef worker(new Worker(err));
     if (!worker.get() || err)
         return;
 
     err = E_OK;
-    if (!worker->ExecuteAndWait(RunnableRef(new TJob(err)), err))
+    RunnableRef job(new TJob(err));
+    if (!job.get() || err)
+        return;
+
+    if (!worker->ExecuteAndWait(job, err))
         return;
 
     PRINTF("Waited job err %d\n", err);

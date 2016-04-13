@@ -51,8 +51,9 @@ int Worker::Run(const Threadable& thread)
 
 Worker::Worker(int& err)
     : Runnable(err), Stopping(false), Lock(err), TaskEvent(err),
-      WorkerThread(RunnableRef(this), err)
+      WorkerThread(this, err)
 {
+    PRINTF("create %p\n", this);
 }
 
 Worker::~Worker()
