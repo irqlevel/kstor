@@ -3,6 +3,7 @@
 #include "main.h"
 #include "atomic.h"
 #include "error.h"
+#include "trace.h"
 
 template<class T>
 class shared_ptr
@@ -10,13 +11,13 @@ class shared_ptr
 public:
     shared_ptr()
     {
-        PRINTF("this %p\n", this);
+        trace(255, "this %p", this);
         Ptr = nullptr;
         Counter = nullptr;
     }
     shared_ptr(T *ptr)
     {
-        PRINTF("this %p Ptr %p\n", this, ptr);
+        trace(255, "this %p Ptr %p", this, ptr);
         Ptr = nullptr;
         Counter = nullptr;
         int err = E_OK;
@@ -38,8 +39,8 @@ public:
     {
         Counter = other.Counter;
         Ptr = other.Ptr;
-        PRINTF("this %p Ptr %p Counter %p other %p\n",
-               this, Ptr, Counter, &other);
+        trace(255, "this %p Ptr %p Counter %p other %p",
+              this, Ptr, Counter, &other);
         if (Counter != nullptr)
         {
             Acquire();
@@ -50,7 +51,7 @@ public:
         Reset();
         Counter = other.Counter;
         Ptr = other.Ptr;
-        PRINTF("this %p Ptr %p Counter %p\n", this, Ptr, Counter);
+        trace(255, "this %p Ptr %p Counter %p", this, Ptr, Counter);
         if (Counter != nullptr)
         {
             Acquire();
@@ -62,7 +63,7 @@ public:
         Reset();
         Counter = other.Counter;
         Ptr = other.Ptr;
-        PRINTF("this %p Ptr %p Counter %p\n", this, Ptr, Counter);
+        trace(255, "this %p Ptr %p Counter %p", this, Ptr, Counter);
         other.Counter = nullptr;
         other.Ptr = nullptr;
         return *this;
@@ -85,7 +86,7 @@ public:
     }
     virtual ~shared_ptr()
     {
-        PRINTF("dtor %p\n", this);
+        trace(255, "dtor %p", this);
         Reset();
     }
     void Reset()
@@ -98,19 +99,19 @@ private:
     void Acquire()
     {
         Counter->Inc();
-        PRINTF("this %p Ptr %p Counter %p %d\n",
+        trace(255, "this %p Ptr %p Counter %p %d",
                this, Ptr, Counter, Counter->Get());
     }
     void Release()
     {
-        PRINTF("this %p Ptr %p Counter %p %d\n",
-               this, Ptr, Counter, (Counter) ? Counter->Get() : 0);
+        trace(255, "this %p Ptr %p Counter %p %d",
+              this, Ptr, Counter, (Counter) ? Counter->Get() : 0);
         if (Counter == nullptr)
             return;
         if (Counter->DecAndTest())
         {
-            PRINTF("this %p Deleting Ptr %p Counter %p %d\n",
-                   this, Ptr, Counter, Counter->Get());
+            trace(255, "this %p Deleting Ptr %p Counter %p %d",
+                  this, Ptr, Counter, Counter->Get());
             KBUG_ON(!Counter);
             if (Ptr)
                 delete Ptr;

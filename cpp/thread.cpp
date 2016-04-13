@@ -1,4 +1,5 @@
 #include "thread.h"
+#include "trace.h"
 
 Thread::Thread(Runnable* routine, int& err)
    : Routine(nullptr), Task(nullptr), Stopping(false), CompEvent(err)
@@ -53,12 +54,12 @@ void Thread::Start(Runnable* routine, int& err)
 void Thread::Stop()
 {
     Stopping = true;
-    PRINTF("Set thread %p stopping\n", this, Stopping);
+    trace(1, "Set thread %p stopping", this, Stopping);
 }
 
 bool Thread::IsStopping() const
 {
-    PRINTF("Is thread %p stopping %d\n", this, Stopping);
+    trace(1, "Is thread %p stopping %d", this, Stopping);
     return Stopping;
 }
 

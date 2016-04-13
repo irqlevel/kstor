@@ -2,6 +2,7 @@
 
 #include "main.h"
 #include "lockable.h"
+#include "trace.h"
 
 class AutoLock
 {
@@ -10,13 +11,13 @@ public:
     {
         Lock = &lock;
         Lock->Acquire();
-        PRINTF("lock %p acquired\n", Lock);
+        trace(255,"lock %p acquired", Lock);
     }
 
     virtual ~AutoLock()
     {
         Lock->Release();
-        PRINTF("lock %p released\n", Lock);
+        trace(255,"lock %p released", Lock);
     }
 private:
     Lockable* Lock;

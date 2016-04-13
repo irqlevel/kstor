@@ -1,5 +1,6 @@
 #include "worker.h"
 #include "auto_lock.h"
+#include "trace.h"
 
 bool Worker::Execute(RunnableRef task)
 {
@@ -29,23 +30,23 @@ int Worker::Run(const Threadable& thread)
 {
     while (!thread.IsStopping())
     {
-        PRINTF("Run\n");
+        trace(255, "Run");
         TaskEvent.Wait();
         RunnableRef task;
         {
             AutoLock lock(Lock);
-            PRINTF("Locked\n");
+            trace(255, "Locked");
             if (!TaskList.IsEmpty())
             {
                 task = TaskList.PopHead();
             }
-            PRINTF("De-locking\n");
+            trace(255, "De-locking");
         }
         if (task.get())
             task->Execute(thread);
     }
 
-    PRINTF("Stopping\n");
+    trace(255, "Stopping");
     return E_OK;
 }
 
@@ -53,12 +54,12 @@ Worker::Worker(int& err)
     : Runnable(err), Stopping(false), Lock(err), TaskEvent(err),
       WorkerThread(this, err)
 {
-    PRINTF("create %p\n", this);
+    trace(255, "create %p", this);
 }
 
 Worker::~Worker()
 {
-    PRINTF("die %p\n", this);
+    trace(255, "die %p", this);
     Stopping = true;
     WorkerThread.Stop();
     TaskEvent.Set();

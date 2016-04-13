@@ -1,4 +1,5 @@
 #include "event.h"
+#include "trace.h"
 
 Event::Event()
 {
@@ -22,19 +23,19 @@ Event::Event(int& err)
 
 void Event::Set()
 {
-    PRINTF("Set %p\n", this);
+    trace(255, "Set %p", this);
     get_kapi()->completion_complete(Completion);
 }
 
 void Event::SetAll()
 {
-    PRINTF("SetAll %p\n", this);
+    trace(255, "SetAll %p", this);
     get_kapi()->completion_complete_all(Completion);
 }
 
 void Event::Wait()
 {
-    PRINTF("Wait %p %u\n", this, *((unsigned int *)Completion));
+    trace(255, "Wait %p %u", this, *((unsigned int *)Completion));
     get_kapi()->completion_wait(Completion);
 }
 

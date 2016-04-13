@@ -1,11 +1,12 @@
 #include "main.h"
-#include "kobj.h"
 #include "shared_ptr.h"
 #include "list_entry.h"
 #include "list.h"
 #include "auto_lock.h"
 #include "spinlock.h"
 #include "worker.h"
+#include "trace.h"
+
 #include <memory.h>
 
 struct kernel_api g_kapi;
@@ -21,22 +22,22 @@ public:
     TJob(int& err)
         : Runnable(err)
     {
-        PRINTF("job %p ctor\n", this);
+        trace(1,"job %p ctor", this);
     }
     virtual ~TJob()
     {
-        PRINTF("job %p dtor\n", this);
+        trace(1,"job %p dtor", this);
     }
     int Run(const Threadable& thread)
     {
-        PRINTF("Hello from job %p\n", this);
+        trace(1,"Hello from job %p", this);
         return E_OK;
     }
 };
 
 void test_worker()
 {
-    PRINTF("Test worker!!!\n");
+    trace(1,"Test worker!!!");
     int err = E_OK;
     WorkerRef worker(new Worker(err));
     if (!worker.get() || err)
@@ -50,24 +51,21 @@ void test_worker()
     if (!worker->ExecuteAndWait(job, err))
         return;
 
-    PRINTF("Waited job err %d\n", err);
+    trace(1,"Waited job err %d", err);
 }
 
 int cpp_init(struct kernel_api *kapi)
 {
     memcpy(&g_kapi, kapi, sizeof(*kapi));
-    PRINTF("cpp_init\n");
-
-    KObj obj(2);
-
-    KObjRef pobj = KObjRef(new KObj(3));
-    PRINTF("pobj %p val %d\n", pobj.get(), pobj->GetValue());
+    trace(1,"cpp_init");
 
     test_worker();
+
+    trace(1, "cpp_init completed");
     return 0;
 }
 
 void cpp_deinit(void)
 {
-    PRINTF("cpp_deinit\n");
+    trace(1,"cpp_deinit");
 }
