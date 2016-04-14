@@ -4,7 +4,7 @@ KMOD = kcpp
 KMOD_KO = $(KMOD).ko
 
 obj-m = $(KMOD).o
-$(KMOD)-objs := module.o ../lib/cpp.a
+$(KMOD)-objs := module.o kapi.o ../lib/cpp.a
 
 ccflags-y := -I$(src) -I.. -D __KERNEL__ $(COMMON_CFLAGS) -fno-inline
 

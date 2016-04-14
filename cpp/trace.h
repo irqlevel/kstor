@@ -15,7 +15,7 @@ private:
 };
 
 #define trace(level, fmt, ...)   \
-            Trace::Output(level, KCPP,  \
+            Trace::Output(level, MOD_NAME,  \
                           __FILE__, __PRETTY_FUNCTION__, __LINE__,  \
                           get_kapi()->task_get_id(get_kapi()->task_current()), \
                           fmt, ##__VA_ARGS__)
