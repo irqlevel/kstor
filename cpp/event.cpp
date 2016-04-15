@@ -5,14 +5,14 @@ Event::Event()
 {
 }
 
-Event::Event(int& err)
+Event::Event(int& err, MemType memType)
 {
     if (err)
     {
         return;
     }
 
-    Completion = get_kapi()->completion_create();
+    Completion = get_kapi()->completion_create(get_kapi_mem_flag(memType));
     if (!Completion)
     {
         err = E_NO_MEM;

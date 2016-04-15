@@ -6,7 +6,7 @@
 class Event
 {
 public:
-    Event(int& err);
+    Event(int& err, MemType memType = MemType::Kernel);
     Event();
     void Set();
     void SetAll();

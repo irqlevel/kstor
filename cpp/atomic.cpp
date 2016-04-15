@@ -5,12 +5,12 @@ Atomic::Atomic()
 {
 }
 
-Atomic::Atomic(int value, int& err)
+Atomic::Atomic(int value, int& err, MemType memType)
 {
     if (err)
         return;
 
-    pAtomic = get_kapi()->atomic_create(value);
+    pAtomic = get_kapi()->atomic_create(value, get_kapi_mem_flag(memType));
     if (!pAtomic)
     {
         err = E_NO_MEM;

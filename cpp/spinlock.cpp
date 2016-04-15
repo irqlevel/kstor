@@ -1,11 +1,11 @@
 #include "spinlock.h"
 
-SpinLock::SpinLock(int& err)
+SpinLock::SpinLock(int& err, MemType memType)
 {
     if (err)
         return;
 
-    Lock = get_kapi()->spinlock_create();
+    Lock = get_kapi()->spinlock_create(get_kapi_mem_flag(memType));
     if (!Lock)
     {
         err = E_NO_MEM;

@@ -10,9 +10,31 @@
 
 #include "kapi_internal.h"
 
-static void *kapi_malloc(size_t size)
+static void *kapi_malloc(size_t size, unsigned long mem_flag)
 {
-    return kmalloc(size, GFP_NOIO);
+    gfp_t flags;
+
+    switch (mem_flag)
+    {
+    case KAPI_MEM_ATOMIC:
+        flags = GFP_ATOMIC;
+        break;
+    case KAPI_MEM_KERNEL:
+        flags = GFP_KERNEL;
+        break;
+    case KAPI_MEM_NOIO:
+        flags = GFP_NOIO;
+        break;
+    case KAPI_MEM_NOFS:
+        flags = GFP_NOFS;
+        break;
+    case KAPI_MEM_USER:
+        flags = GFP_USER;
+        break;
+    default:
+        BUG();
+    }
+    return kmalloc(size, flags);
 }
 
 static void kapi_free(void *ptr)
@@ -37,11 +59,11 @@ static void kapi_bug_on(bool condition)
     }
 }
 
-static void *kapi_atomic_create(int value)
+static void *kapi_atomic_create(int value, unsigned long mem_flag)
 {
     atomic_t *atomic;
 
-    atomic = kapi_malloc(sizeof(*atomic));
+    atomic = kapi_malloc(sizeof(*atomic), mem_flag);
     if (!atomic)
         return NULL;
     atomic_set(atomic, value);
@@ -68,11 +90,11 @@ static int kapi_atomic_read(void *atomic)
     return atomic_read((atomic_t *)atomic);
 }
 
-static void *kapi_completion_create(void)
+static void *kapi_completion_create(unsigned long mem_flag)
 {
     struct completion *comp;
 
-    comp = kapi_malloc(sizeof(*comp));
+    comp = kapi_malloc(sizeof(*comp), mem_flag);
     if (!comp)
         return NULL;
     init_completion(comp);
@@ -150,11 +172,11 @@ static void kapi_msleep(unsigned int msecs)
     msleep(msecs);
 }
 
-static void* kapi_spinlock_create(void)
+static void* kapi_spinlock_create(unsigned long mem_flag)
 {
     spinlock_t *lock;
 
-    lock = kapi_malloc(sizeof(*lock));
+    lock = kapi_malloc(sizeof(*lock), mem_flag);
     if (!lock)
         return NULL;
     spin_lock_init(lock);

@@ -6,7 +6,7 @@ class Atomic
 {
 public:
     Atomic();
-    Atomic(int value, int& err);
+    Atomic(int value, int& err, MemType memType = MemType::Kernel);
     void Inc();
     bool DecAndTest();
     int Get();

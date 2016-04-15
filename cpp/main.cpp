@@ -6,7 +6,7 @@
 #include "spinlock.h"
 #include "worker.h"
 #include "trace.h"
-#include "ext.h"
+#include "public.h"
 
 #include <memory.h>
 

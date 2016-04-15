@@ -5,7 +5,7 @@ extern "C"
 {
 #endif
 
-#include "main.h"
+#include "../core/kapi.h"
 
 int cpp_init(struct kernel_api *kapi);
 void cpp_deinit(void);

@@ -1,9 +1,9 @@
 #include "main.h"
 #include "new_delete.h"
 
-void *newFunc(size_t size)
+void *newFunc(size_t size, MemType memType)
 {
-    return get_kapi()->malloc(size);
+    return get_kapi()->malloc(size, get_kapi_mem_flag(memType));
 }
 
 void deleteFunc(void *ptr)
@@ -13,12 +13,22 @@ void deleteFunc(void *ptr)
 
 void* operator new(size_t size)
 {
-    return newFunc(size);
+    return newFunc(size, MemType::Kernel);
 }
 
 void* operator new[](size_t size)
 {
-    return newFunc(size);
+    return newFunc(size, MemType::Kernel);
+}
+
+void* operator new(size_t size, MemType memType)
+{
+    return newFunc(size, memType);
+}
+
+void* operator new[](size_t size, MemType memType)
+{
+    return newFunc(size, memType);
 }
 
 void operator delete(void* ptr)
