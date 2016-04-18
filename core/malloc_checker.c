@@ -33,6 +33,8 @@ int malloc_checker_init(void)
     struct malloc_checker *checker = &g_malloc_checker;
     unsigned long i;
 
+    PRINTK("malloc checker init\n");
+
     for (i = 0; i < ARRAY_SIZE(checker->entries_list); i++)
     {
         INIT_LIST_HEAD(&checker->entries_list[i]);
@@ -120,7 +122,7 @@ void check_and_release_entry(struct malloc_checker *checker,
     PRINTK("Free entry %p ptr %p\n", entry, entry->ptr);
 #endif
 
-    kfree(entry->ptr);
+    kfree(psign1);
     kfree(entry);
 }
 
@@ -159,6 +161,8 @@ void malloc_checker_deinit(void)
     struct list_head entries_list;
     struct malloc_entry *curr, *tmp;
     struct malloc_checker *checker = &g_malloc_checker;
+
+    PRINTK("malloc checker deinit\n");
 
     for (i = 0; i < ARRAY_SIZE(checker->entries_list); i++)
     {
