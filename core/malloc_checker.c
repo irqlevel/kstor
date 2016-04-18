@@ -5,6 +5,8 @@
 #include <linux/spinlock.h>
 #include <linux/crc32.h>
 #include <linux/stacktrace.h>
+#include <linux/kthread.h>
+#include <linux/delay.h>
 
 #include "base.h"
 
@@ -19,10 +21,13 @@ struct malloc_entry
     gfp_t flags;
     void *ptr;
     size_t size;
-    unsigned long crc32;
 #ifdef __MALLOC_CHECKER_STACK_TRACE__
     struct stack_trace stack;
     unsigned long stack_entries[MALLOC_CHECKER_STACK_ENTRIES];
+#endif
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+    u32 crc32;
+    ktime_t time_to_live;
 #endif
 };
 
@@ -30,9 +35,100 @@ struct malloc_checker
 {
     struct list_head entries_list[MALLOC_CHECKER_NR_LISTS];
     spinlock_t       entries_list_lock[MALLOC_CHECKER_NR_LISTS];
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+    struct task_struct *delay_check_thread;
+    struct list_head delay_entries_list[MALLOC_CHECKER_NR_LISTS];
+    spinlock_t       delay_entries_list_lock[MALLOC_CHECKER_NR_LISTS];
+#endif
 };
 
 static struct malloc_checker g_malloc_checker;
+
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+
+void release_entry(struct malloc_checker *checker,
+                   struct malloc_entry *entry)
+{
+    unsigned long *psign1, *psign2;
+    void *ptr = entry->ptr;
+
+    psign1 = (unsigned long *)((unsigned long)ptr - sizeof(unsigned long));
+    psign2 = (unsigned long *)((unsigned long)ptr + entry->size);
+
+    BUG_ON(*psign1 != MALLOC_CHECKER_SIGN1);
+    BUG_ON(*psign2 != MALLOC_CHECKER_SIGN2);
+
+#ifdef __MALLOC_CHECKER_FILL_CC__
+    memset(entry->ptr, 0xCC, entry->size);
+#endif
+
+#ifdef __MALLOC_CHECKER_PRINTK__
+    PRINTK("Free entry %p ptr %p\n", entry, entry->ptr);
+#endif
+
+    kfree(psign1);
+    kfree(entry);
+}
+
+void delay_check(struct malloc_checker *checker,
+                 struct malloc_entry *entry)
+{
+    unsigned long *psign1, *psign2;
+    void *ptr = entry->ptr;
+
+    psign1 = (unsigned long *)((unsigned long)ptr - sizeof(unsigned long));
+    psign2 = (unsigned long *)((unsigned long)ptr + entry->size);
+
+    BUG_ON(*psign1 != MALLOC_CHECKER_SIGN1);
+    BUG_ON(*psign2 != MALLOC_CHECKER_SIGN2);
+    BUG_ON(entry->crc32 != crc32_le(~0, entry->ptr, entry->size));
+
+#ifdef __MALLOC_CHECKER_PRINTK__
+    PRINTK("Delay check entry %p ptr %p\n", entry, entry->ptr);
+#endif
+}
+
+int malloc_checker_delay_thread(void *data)
+{
+    struct malloc_checker *checker = (struct malloc_checker *)data;
+    unsigned long irq_flags;
+    struct list_head free_list;
+    struct malloc_entry *curr, *tmp;
+    unsigned long i;
+
+    while (!kthread_should_stop())
+    {
+        msleep(100);
+
+        INIT_LIST_HEAD(&free_list);
+        for (i = 0; i < ARRAY_SIZE(checker->delay_entries_list); i++)
+        {
+
+            INIT_LIST_HEAD(&free_list);
+            spin_lock_irqsave(&checker->delay_entries_list_lock[i], irq_flags);
+            list_for_each_entry_safe(curr, tmp, &checker->delay_entries_list[i],
+                                    link)
+            {
+                delay_check(checker, curr);
+                if (ktime_compare(curr->time_to_live, ktime_get()) >= 0)
+                {
+                    list_del(&curr->link);
+                    list_add(&curr->link, &free_list);
+                }
+            }
+            spin_unlock_irqrestore(&checker->delay_entries_list_lock[i],
+                                   irq_flags);
+        }
+
+        list_for_each_entry_safe(curr, tmp, &free_list, link)
+        {
+            list_del_init(&curr->link);
+            release_entry(checker, curr);
+        }
+    }
+    return 0;
+}
+#endif
 
 int malloc_checker_init(void)
 {
@@ -47,6 +143,27 @@ int malloc_checker_init(void)
         spin_lock_init(&checker->entries_list_lock[i]);
     }
 
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+    {
+        struct task_struct *thread;
+
+        for (i = 0; i < ARRAY_SIZE(checker->delay_entries_list); i++)
+        {
+            INIT_LIST_HEAD(&checker->delay_entries_list[i]);
+            spin_lock_init(&checker->delay_entries_list_lock[i]);
+        }
+
+        thread = kthread_create(malloc_checker_delay_thread, checker,
+                                "%s", "malloc-checker-thread");
+        if (IS_ERR(thread))
+        {
+            return PTR_ERR(thread);
+        }
+        get_task_struct(thread);
+        checker->delay_check_thread = thread;
+        wake_up_process(thread);
+    }
+#endif
     return 0;
 }
 
@@ -97,7 +214,6 @@ void *malloc_checker_kmalloc(size_t size, gfp_t flags)
     entry->ptr = ptr;
     entry->size = size;
     entry->flags = flags;
-    entry->crc32 = 0;
     INIT_LIST_HEAD(&entry->link);
 
 #ifdef __MALLOC_CHECKER_STACK_TRACE__
@@ -132,14 +248,30 @@ void check_and_release_entry(struct malloc_checker *checker,
     BUG_ON(*psign1 != MALLOC_CHECKER_SIGN1);
     BUG_ON(*psign2 != MALLOC_CHECKER_SIGN2);
 
+#ifdef __MALLOC_CHECKER_FILL_CC__
     memset(entry->ptr, 0xCC, entry->size);
+#endif
 
 #ifdef __MALLOC_CHECKER_PRINTK__
     PRINTK("Free entry %p ptr %p\n", entry, entry->ptr);
 #endif
 
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+    entry->crc32 = crc32_le(~0, entry->ptr, entry->size);
+    entry->time_to_live = ktime_add_ns(ktime_get(), 1000000000);
+    {
+        unsigned long irq_flags;
+        unsigned long i;
+
+        i = hash_ptr(ptr) % ARRAY_SIZE(checker->delay_entries_list);
+        spin_lock_irqsave(&checker->delay_entries_list_lock[i], irq_flags);
+        list_add(&entry->link, &checker->delay_entries_list[i]);
+        spin_unlock_irqrestore(&checker->delay_entries_list_lock[i], irq_flags);
+    }
+#else
     kfree(psign1);
     kfree(entry);
+#endif
 }
 
 void malloc_checker_kfree(void *ptr)
@@ -180,6 +312,11 @@ void malloc_checker_deinit(void)
 
     PRINTK("Malloc checker deinit\n");
 
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+    kthread_stop(checker->delay_check_thread);
+    put_task_struct(checker->delay_check_thread);
+#endif
+
     for (i = 0; i < ARRAY_SIZE(checker->entries_list); i++)
     {
         INIT_LIST_HEAD(&entries_list);
@@ -208,4 +345,26 @@ void malloc_checker_deinit(void)
             check_and_release_entry(checker, curr);
         }
     }
+
+#ifdef __MALLOC_CHECKER_DELAY_FREE__
+    for (i = 0; i < ARRAY_SIZE(checker->delay_entries_list); i++)
+    {
+        INIT_LIST_HEAD(&entries_list);
+        spin_lock_irqsave(&checker->delay_entries_list_lock[i], irq_flags);
+        list_for_each_entry_safe(curr, tmp, &checker->delay_entries_list[i],
+                                 link)
+        {
+            list_del(&curr->link);
+            list_add(&curr->link, &entries_list);
+        }
+        spin_unlock_irqrestore(&checker->delay_entries_list_lock[i], irq_flags);
+
+        list_for_each_entry_safe(curr, tmp, &entries_list, link)
+        {
+            list_del_init(&curr->link);
+            delay_check(checker, curr);
+            release_entry(checker, curr);
+        }
+    }
+#endif
 }
