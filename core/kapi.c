@@ -10,6 +10,8 @@
 
 #include "kapi_internal.h"
 
+#include "malloc_checker.h"
+
 static void *kapi_kmalloc(size_t size, unsigned long mem_flag)
 {
     gfp_t flags;
@@ -34,12 +36,20 @@ static void *kapi_kmalloc(size_t size, unsigned long mem_flag)
     default:
         BUG();
     }
+#ifdef __MALLOC_CHECKER__
+    return malloc_checker_kmalloc(size, flags);
+#else
     return kmalloc(size, flags);
+#endif
 }
 
 static void kapi_kfree(void *ptr)
 {
-    return kfree(ptr);
+#ifdef __MALLOC_CHECKER__
+    malloc_checker_kfree(ptr);
+#else
+    kfree(ptr);
+#endif
 }
 
 static void kapi_printk(const char *fmt, ...)
@@ -231,11 +241,21 @@ static struct kernel_api g_kapi =
 
 int kapi_init(void)
 {
-    return 0;
+    int r;
+
+#ifdef __MALLOC_CHECKER__
+    r = malloc_checker_init();
+#else
+    r = 0;
+#endif
+    return r;
 }
 
 void kapi_deinit(void)
 {
+#ifdef __MALLOC_CHECKER__
+    malloc_checker_deinit();
+#endif
 }
 
 struct kernel_api *kapi_get(void)
