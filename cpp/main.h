@@ -5,14 +5,12 @@ extern "C"
 {
 #endif
 
-#include <stddef.h>
-#include <stdbool.h>
-
 #include "error.h"
 #include "mem_type.h"
 
 #include "../inc/consts.h"
 #include "../core/kapi.h"
+#include "new_delete.h"
 
 struct kernel_api *get_kapi(void);
 

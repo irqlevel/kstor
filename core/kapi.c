@@ -10,7 +10,7 @@
 
 #include "kapi_internal.h"
 
-static void *kapi_malloc(size_t size, unsigned long mem_flag)
+static void *kapi_kmalloc(size_t size, unsigned long mem_flag)
 {
     gfp_t flags;
 
@@ -37,12 +37,12 @@ static void *kapi_malloc(size_t size, unsigned long mem_flag)
     return kmalloc(size, flags);
 }
 
-static void kapi_free(void *ptr)
+static void kapi_kfree(void *ptr)
 {
     return kfree(ptr);
 }
 
-static void kapi_printf(const char *fmt, ...)
+static void kapi_printk(const char *fmt, ...)
 {
     va_list args;
 
@@ -63,7 +63,7 @@ static void *kapi_atomic_create(int value, unsigned long mem_flag)
 {
     atomic_t *atomic;
 
-    atomic = kapi_malloc(sizeof(*atomic), mem_flag);
+    atomic = kapi_kmalloc(sizeof(*atomic), mem_flag);
     if (!atomic)
         return NULL;
     atomic_set(atomic, value);
@@ -72,7 +72,7 @@ static void *kapi_atomic_create(int value, unsigned long mem_flag)
 
 static void kapi_atomic_delete(void *atomic)
 {
-    kapi_free(atomic);
+    kapi_kfree(atomic);
 }
 
 static void kapi_atomic_inc(void *atomic)
@@ -94,7 +94,7 @@ static void *kapi_completion_create(unsigned long mem_flag)
 {
     struct completion *comp;
 
-    comp = kapi_malloc(sizeof(*comp), mem_flag);
+    comp = kapi_kmalloc(sizeof(*comp), mem_flag);
     if (!comp)
         return NULL;
     init_completion(comp);
@@ -118,7 +118,7 @@ static void kapi_completion_complete_all(void *comp)
 
 static void kapi_completion_delete(void *comp)
 {
-    kapi_free(comp);
+    kapi_kfree(comp);
 }
 
 static void *kapi_task_create(int (*task_fn)(void *data), void *data,
@@ -176,7 +176,7 @@ static void* kapi_spinlock_create(unsigned long mem_flag)
 {
     spinlock_t *lock;
 
-    lock = kapi_malloc(sizeof(*lock), mem_flag);
+    lock = kapi_kmalloc(sizeof(*lock), mem_flag);
     if (!lock)
         return NULL;
     spin_lock_init(lock);
@@ -185,7 +185,7 @@ static void* kapi_spinlock_create(unsigned long mem_flag)
 
 static void kapi_spinlock_delete(void *lock)
 {
-    kapi_free(lock);
+    kapi_kfree(lock);
 }
 
 static void kapi_spinlock_lock(void *lock)
@@ -200,9 +200,9 @@ static void kapi_spinlock_unlock(void *lock)
 
 static struct kernel_api g_kapi =
 {
-    .malloc = kapi_malloc,
-    .free = kapi_free,
-    .printf = kapi_printf,
+    .kmalloc = kapi_kmalloc,
+    .kfree = kapi_kfree,
+    .printk = kapi_printk,
     .bug_on = kapi_bug_on,
     .atomic_create = kapi_atomic_create,
     .atomic_delete = kapi_atomic_delete,

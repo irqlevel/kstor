@@ -2,8 +2,6 @@
 
 #include "mem_type.h"
 
-void* operator new(size_t size);
-void* operator new[](size_t size);
 void* operator new(size_t size, MemType memType);
 void* operator new[](size_t size, MemType memType);
 void operator delete(void* ptr);

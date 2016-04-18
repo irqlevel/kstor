@@ -1,4 +1,5 @@
 #include "trace.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -37,5 +38,5 @@ void Trace::Output(int level, const char *prefix, const char *file,
 
     output[sizeof(output)-1] = '\0';
 
-    get_kapi()->printf("%s\n", output);
+    get_kapi()->printk("%s\n", output);
 }

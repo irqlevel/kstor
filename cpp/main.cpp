@@ -8,8 +8,6 @@
 #include "trace.h"
 #include "public.h"
 
-#include <memory.h>
-
 struct kernel_api g_kapi;
 
 struct kernel_api *get_kapi(void)
@@ -40,7 +38,7 @@ void test_worker()
 {
     trace(1,"Test worker!!!");
     int err = E_OK;
-    WorkerRef worker(new Worker(err));
+    WorkerRef worker(new (MemType::Atomic) Worker(err));
     if (!worker.get() || err)
         return;
 
@@ -57,7 +55,7 @@ void test_worker()
 
 int cpp_init(struct kernel_api *kapi)
 {
-    memcpy(&g_kapi, kapi, sizeof(*kapi));
+    g_kapi = *kapi;
     trace(1,"cpp_init");
 
     test_worker();

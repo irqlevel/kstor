@@ -17,10 +17,9 @@ extern "C"
 
 struct kernel_api
 {
-    void *(*malloc)(size_t size, unsigned long mem_flag);
-    void (*memcpy)(void *dst, void *src, size_t size);
-    void (*free)(void *ptr);
-    void (*printf)(const char *fmt, ...);
+    void *(*kmalloc)(size_t size, unsigned long mem_flag);
+    void (*kfree)(void *ptr);
+    void (*printk)(const char *fmt, ...);
     void (*bug_on)(bool condition);
     void* (*atomic_create)(int value, unsigned long mem_flag);
     void (*atomic_inc)(void *atomic);
