@@ -4,8 +4,14 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/crc32.h>
+#include <linux/stacktrace.h>
 
 #include "base.h"
+
+#define MALLOC_CHECKER_STACK_ENTRIES 10
+#define MALLOC_CHECKER_NR_LISTS 9973
+#define MALLOC_CHECKER_SIGN1 0xBEDABEDA
+#define MALLOC_CHECKER_SIGN2 0xCBDACBDA
 
 struct malloc_entry
 {
@@ -14,11 +20,11 @@ struct malloc_entry
     void *ptr;
     size_t size;
     unsigned long crc32;
+#ifdef __MALLOC_CHECKER_STACK_TRACE__
+    struct stack_trace stack;
+    unsigned long stack_entries[MALLOC_CHECKER_STACK_ENTRIES];
+#endif
 };
-
-#define MALLOC_CHECKER_NR_LISTS 9973
-#define MALLOC_CHECKER_SIGN1 0xBEDABEDA
-#define MALLOC_CHECKER_SIGN2 0xCBDACBDA
 
 struct malloc_checker
 {
@@ -33,7 +39,7 @@ int malloc_checker_init(void)
     struct malloc_checker *checker = &g_malloc_checker;
     unsigned long i;
 
-    PRINTK("malloc checker init\n");
+    PRINTK("Malloc checker init\n");
 
     for (i = 0; i < ARRAY_SIZE(checker->entries_list); i++)
     {
@@ -74,6 +80,8 @@ void *malloc_checker_kmalloc(size_t size, gfp_t flags)
     if (!entry)
         return NULL;
 
+    memset(entry, 0, sizeof(*entry));
+
     psign1 = kmalloc(size + 2*sizeof(unsigned long), flags);
     if (!psign1)
     {
@@ -91,6 +99,14 @@ void *malloc_checker_kmalloc(size_t size, gfp_t flags)
     entry->flags = flags;
     entry->crc32 = 0;
     INIT_LIST_HEAD(&entry->link);
+
+#ifdef __MALLOC_CHECKER_STACK_TRACE__
+    entry->stack.nr_entries = 0;
+    entry->stack.max_entries = ARRAY_SIZE(entry->stack_entries);
+    entry->stack.entries = entry->stack_entries;
+    entry->stack.skip = 2;
+    save_stack_trace(&entry->stack);
+#endif
 
     i = hash_ptr(ptr) % ARRAY_SIZE(checker->entries_list);
     spin_lock_irqsave(&checker->entries_list_lock[i], irq_flags);
@@ -162,7 +178,7 @@ void malloc_checker_deinit(void)
     struct malloc_entry *curr, *tmp;
     struct malloc_checker *checker = &g_malloc_checker;
 
-    PRINTK("malloc checker deinit\n");
+    PRINTK("Malloc checker deinit\n");
 
     for (i = 0; i < ARRAY_SIZE(checker->entries_list); i++)
     {
@@ -178,8 +194,17 @@ void malloc_checker_deinit(void)
         list_for_each_entry_safe(curr, tmp, &entries_list, link)
         {
             list_del_init(&curr->link);
-            PRINTK("Memory leak entry %p ptr %p size %lu\n",
-                   curr, curr->ptr, curr->size);
+            PRINTK("Leak entry %p ptr %p size %lu flags 0x%x\n",
+                   curr, curr->ptr, curr->size, curr->flags);
+#ifdef __MALLOC_CHECKER_STACK_TRACE__
+            {
+                char stack[512];
+
+                snprint_stack_trace(stack, sizeof(stack), &curr->stack, 0);
+                stack[ARRAY_SIZE(stack)-1] = '\0';
+                PRINTK("Stack %s\n", stack);
+            }
+#endif
             check_and_release_entry(checker, curr);
         }
     }

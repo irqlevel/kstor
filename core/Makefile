@@ -6,8 +6,9 @@ KMOD_KO = $(KMOD).ko
 obj-m = $(KMOD).o
 $(KMOD)-objs := module.o kapi.o malloc_checker.o ../lib/cpp.a
 
-ccflags-y := -I$(src) -I.. -D __KERNEL__ -D __MALLOC_CHECKER__\
-                $(COMMON_CFLAGS) -fno-inline
+ccflags-y := -I$(src) -I.. $(COMMON_CFLAGS) -fno-inline    \
+            -D __KERNEL__ -D __MALLOC_CHECKER__ \
+            -D __MALLOC_CHECKER_STACK_TRACE__
 
 ifndef KERNEL_PATH
 KERNEL_PATH=/lib/modules/$(shell uname -r)/build
