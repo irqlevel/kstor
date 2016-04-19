@@ -65,7 +65,7 @@ public:
     {
         if (Size == Capacity)
         {
-            if (!Reserve(2*2*2*2*2*2*2*2*Size + 1))
+            if (!Reserve(2*Size + 1))
                 return false;
         }
         Arr[Size++] = e;
