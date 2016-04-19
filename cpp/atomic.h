@@ -11,6 +11,12 @@ public:
     bool DecAndTest();
     int Get();
     ~Atomic();
+
+    Atomic& operator=(Atomic&& other);
+    Atomic(Atomic&& other);
+
 private:
+    Atomic(const Atomic& other) = delete;
+    Atomic& operator=(const Atomic& other) = delete;
     void *pAtomic;
 };

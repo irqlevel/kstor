@@ -26,5 +26,22 @@ void SpinLock::Release()
 
 SpinLock::~SpinLock()
 {
-    get_kapi()->spinlock_delete(Lock);
+    if (Lock)
+        get_kapi()->spinlock_delete(Lock);
+}
+
+SpinLock::SpinLock(SpinLock&& other)
+{
+    Lock = other.Lock;
+    other.Lock = nullptr;
+}
+
+SpinLock& SpinLock::operator=(SpinLock&& other)
+{
+    if (Lock)
+        get_kapi()->spinlock_delete(Lock);
+
+    Lock = other.Lock;
+    other.Lock = nullptr;
+    return *this;
 }

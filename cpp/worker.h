@@ -17,6 +17,11 @@ public:
     bool ExecuteAndWait(RunnableRef task, int& err);
     int Run(const Threadable& thread);
 private:
+    Worker() = delete;
+    Worker(const Worker& other) = delete;
+    Worker& operator=(const Worker& other) = delete;
+    Worker& operator=(Worker&& other) = delete;
+
     bool Stopping;
     SpinLock Lock;
     LinkedList<RunnableRef> TaskList;

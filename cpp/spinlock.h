@@ -10,6 +10,13 @@ public:
     virtual ~SpinLock();
     void Acquire();
     void Release();
+
+    SpinLock(SpinLock&& other);
+    SpinLock& operator=(SpinLock&& other);
+
 private:
+    SpinLock() = delete;
+    SpinLock(const SpinLock& other) = delete;
+    SpinLock& operator=(const SpinLock& other) = delete;
     void* Lock;
 };

@@ -38,3 +38,21 @@ Atomic::~Atomic()
     if (pAtomic)
         get_kapi()->atomic_delete(pAtomic);
 }
+
+Atomic::Atomic(Atomic&& other)
+{
+    pAtomic = other.pAtomic;
+    other.pAtomic = nullptr;
+}
+
+Atomic& Atomic::operator=(Atomic&& other)
+{
+    if (pAtomic)
+    {
+        get_kapi()->atomic_delete(pAtomic);
+        pAtomic = nullptr;
+    }
+    pAtomic = other.pAtomic;
+    other.pAtomic = nullptr;
+    return *this;
+}

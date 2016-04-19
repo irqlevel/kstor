@@ -15,7 +15,12 @@ public:
     void *GetId() const;
     virtual ~Thread();
     static void Sleep(int milliseconds);
+
 private:
+    Thread() = delete;
+    Thread(const Thread& other) = delete;
+    Thread& operator=(const Thread& other) = delete;
+    Thread& operator=(Thread&& other) = delete;
     static int StartRoutine(void* context);
     int ExecuteRoutine();
     Runnable* Routine;

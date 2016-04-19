@@ -44,3 +44,23 @@ Event::~Event()
     if (Completion)
         get_kapi()->completion_delete(Completion);
 }
+
+Event& Event::operator=(Event&& other)
+{
+    if (Completion)
+    {
+        get_kapi()->completion_delete(Completion);
+        Completion = nullptr;
+    }
+
+    Completion = other.Completion;
+    other.Completion = nullptr;
+
+    return *this;
+}
+
+Event::Event(Event&& other)
+{
+    Completion = other.Completion;
+    other.Completion = nullptr;
+}

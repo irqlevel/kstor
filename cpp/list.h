@@ -42,6 +42,10 @@ public:
 
         }
     private:
+        Iterator() = delete;
+        Iterator(const Iterator& other) = delete;
+        Iterator& operator=(const Iterator& other) = delete;
+        Iterator& operator=(Iterator&& other) = delete;
         PLIST_ENTRY CurrListEntry;
         PLIST_ENTRY EndList;
     };
@@ -50,6 +54,7 @@ public:
     {
         InitializeListHead(&ListHead);
     }
+
     bool AddHead(T value)
     {
         LinkedListNode* node = new LinkedListNode(value);
@@ -105,6 +110,29 @@ public:
 
     virtual ~LinkedList()
     {
+        Release();
+    }
+
+    LinkedList(LinkedList&& other)
+    {
+        ListHead = other.ListHead;
+        InitializeListHead(&other.ListHead);
+    }
+
+    LinkedList& operator=(LinkedList&& other)
+    {
+        Release();
+        ListHead = other.ListHead;
+        InitializeListHead(&other.ListHead);
+        return *this;
+    }
+
+private:
+    LinkedList(const LinkedList& other) = delete;
+    LinkedList& operator=(const LinkedList& other) = delete;
+
+    void Release()
+    {
         LinkedListNode* node;
         while (!IsListEmpty(&ListHead))
         {
@@ -113,7 +141,6 @@ public:
             delete node;
         }
     }
-private:
     class LinkedListNode
     {
     public:
@@ -127,6 +154,11 @@ private:
         }
         LIST_ENTRY ListEntry;
         T Value;
+    private:
+        LinkedListNode() = delete;
+        LinkedListNode(const LinkedListNode& other) = delete;
+        LinkedListNode& operator=(const LinkedListNode& other) = delete;
+        LinkedListNode& operator=(LinkedListNode&& other) = delete;
     };
     LIST_ENTRY ListHead;
 };

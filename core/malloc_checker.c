@@ -96,6 +96,8 @@ int malloc_checker_delay_thread(void *data)
     struct malloc_entry *curr, *tmp;
     unsigned long i;
 
+    PRINTK("Starting\n");
+
     while (!kthread_should_stop())
     {
         msleep(100);
@@ -126,6 +128,9 @@ int malloc_checker_delay_thread(void *data)
             release_entry(checker, curr);
         }
     }
+
+    PRINTK("Stopping\n");
+
     return 0;
 }
 #endif

@@ -13,7 +13,7 @@ public:
     virtual int Run(const Threadable& thread) = 0;
 
     Runnable(int& err)
-        : CompleteEvent(Event(err))
+        : CompleteEvent(util::move(Event(err)))
     {
     }
 
@@ -41,8 +41,16 @@ public:
         CompleteEvent.Set();
     }
 
-    virtual ~Runnable() {}
+    virtual ~Runnable()
+    {
+    }
+
 private:
+    Runnable() = delete;
+    Runnable(const Runnable& other) = delete;
+    Runnable& operator=(const Runnable& other) = delete;
+    Runnable& operator=(Runnable&& other) = delete;
+
     void SetError(int err)
     {
         Error = err;

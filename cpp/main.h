@@ -1,16 +1,13 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "error.h"
 #include "mem_type.h"
 
 #include "../inc/consts.h"
 #include "../core/kapi.h"
+
 #include "new_delete.h"
+#include "utility.h"
 
 struct kernel_api *get_kapi(void);
 
@@ -38,7 +35,3 @@ static inline unsigned long get_kapi_mem_flag(MemType memType)
 
 #define CONTAINING_RECORD(addr, type, field)    \
             (type*)((unsigned long)(addr) - (unsigned long)&((type*)0)->field)
-
-#ifdef __cplusplus
-}
-#endif

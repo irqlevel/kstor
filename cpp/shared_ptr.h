@@ -46,6 +46,15 @@ public:
             Acquire();
         }
     }
+    shared_ptr(shared_ptr<T>&& other)
+    {
+        Counter = other.Counter;
+        Ptr = other.Ptr;
+        trace(255, "this %p Ptr %p Counter %p", this, Ptr, Counter);
+        other.Counter = nullptr;
+        other.Ptr = nullptr;
+    }
+
     shared_ptr<T>& operator=(const shared_ptr<T>& other)
     {
         Reset();
