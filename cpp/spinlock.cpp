@@ -1,5 +1,9 @@
 #include "spinlock.h"
 
+SpinLock::SpinLock()
+{
+}
+
 SpinLock::SpinLock(int& err, MemType memType)
 {
     if (err)

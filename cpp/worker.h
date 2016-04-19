@@ -11,18 +11,20 @@
 class Worker : public Runnable
 {
 public:
+    Worker();
     Worker(int& err);
     virtual ~Worker();
     bool Execute(RunnableRef task);
     bool ExecuteAndWait(RunnableRef task, int& err);
     int Run(const Threadable& thread);
 private:
-    Worker() = delete;
     Worker(const Worker& other) = delete;
     Worker& operator=(const Worker& other) = delete;
     Worker& operator=(Worker&& other) = delete;
 
     bool Stopping;
+    bool Running;
+
     SpinLock Lock;
     LinkedList<RunnableRef> TaskList;
     Event TaskEvent;

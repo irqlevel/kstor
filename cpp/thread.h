@@ -6,6 +6,7 @@
 class Thread : public Threadable
 {
 public:
+    Thread();
     Thread(Runnable *routine, int& err);
     void Start(Runnable *routine, int& err);
     void Stop();
@@ -17,7 +18,6 @@ public:
     static void Sleep(int milliseconds);
 
 private:
-    Thread() = delete;
     Thread(const Thread& other) = delete;
     Thread& operator=(const Thread& other) = delete;
     Thread& operator=(Thread&& other) = delete;
@@ -26,5 +26,6 @@ private:
     Runnable* Routine;
     void* Task;
     bool Stopping;
+    bool Running;
     Event CompEvent;
 };

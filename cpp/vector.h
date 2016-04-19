@@ -12,23 +12,23 @@ public:
     {
     }
 
-    int GetSize()
+    size_t GetSize() const
     {
         return Size;
     }
 
-    int GetCapacity()
+    size_t GetCapacity() const
     {
         return Capacity;
     }
 
-    T& operator[](int index)
+    T& operator[](size_t index)
     {
         KBUG_ON(index < 0 || index >= Size);
         return Arr[index];
     }
 
-    bool Reserve(int capacity)
+    bool Reserve(size_t capacity)
     {
         if (capacity <= Capacity)
             return true;
@@ -39,7 +39,7 @@ public:
 
         if (Arr)
         {
-            for (int i = 0; i < Size; i++)
+            for (size_t i = 0; i < Size; i++)
             {
                 newArr[i] = util::move(Arr[i]);
             }
@@ -50,7 +50,7 @@ public:
         return true;
     }
 
-    bool push_back(T&& e)
+    bool PushBack(T&& e)
     {
         if (Size == Capacity)
         {
@@ -61,18 +61,28 @@ public:
         return true;
     }
 
-    bool push_back(T& e)
+    bool PushBack(const T& e)
     {
         if (Size == Capacity)
         {
-            if (!Reserve(Size + 1))
+            if (!Reserve(2*2*2*2*2*2*2*2*Size + 1))
                 return false;
         }
         Arr[Size++] = e;
         return true;
     }
 
+    const T* GetBuf() const
+    {
+        return Arr;
+    }
+
     virtual ~Vector()
+    {
+        Release();
+    }
+
+    void Clear()
     {
         Release();
     }
@@ -100,14 +110,22 @@ public:
     }
 
 private:
+    Vector(const Vector& other) = delete;
+    Vector& operator=(const Vector& other) = delete;
+
     void Release()
     {
         if (Arr)
+        {
             delete[] Arr;
+            Arr = nullptr;
+        }
+        Size = 0;
+        Capacity = 0;
     }
 
     T* Arr;
-    int Size;
-    int Capacity;
+    size_t Size;
+    size_t Capacity;
     MemType MemoryType;
 };

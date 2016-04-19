@@ -12,6 +12,10 @@ class Runnable
 public:
     virtual int Run(const Threadable& thread) = 0;
 
+    Runnable()
+    {
+    }
+
     Runnable(int& err)
         : CompleteEvent(util::move(Event(err)))
     {
@@ -46,7 +50,6 @@ public:
     }
 
 private:
-    Runnable() = delete;
     Runnable(const Runnable& other) = delete;
     Runnable& operator=(const Runnable& other) = delete;
     Runnable& operator=(Runnable&& other) = delete;

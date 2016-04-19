@@ -6,6 +6,7 @@
 class SpinLock : public Lockable
 {
 public:
+    SpinLock();
     SpinLock(int& err, MemType memType = MemType::Kernel);
     virtual ~SpinLock();
     void Acquire();
@@ -15,7 +16,6 @@ public:
     SpinLock& operator=(SpinLock&& other);
 
 private:
-    SpinLock() = delete;
     SpinLock(const SpinLock& other) = delete;
     SpinLock& operator=(const SpinLock& other) = delete;
     void* Lock;

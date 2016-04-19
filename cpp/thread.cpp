@@ -1,8 +1,14 @@
 #include "thread.h"
 #include "trace.h"
 
+Thread::Thread()
+    : Routine(nullptr), Task(nullptr), Stopping(false), Running(false)
+{
+}
+
 Thread::Thread(Runnable* routine, int& err)
-   : Routine(nullptr), Task(nullptr), Stopping(false), CompEvent(err)
+   : Routine(nullptr), Task(nullptr), Stopping(false), Running(false),
+     CompEvent(err)
 {
     if (err)
     {
@@ -46,6 +52,7 @@ void Thread::Start(Runnable* routine, int& err)
         err = E_NO_MEM;
         return;
     }
+    Running = true;
     get_kapi()->task_get(Task);
     get_kapi()->task_wakeup(Task);
     err = E_OK;
@@ -70,7 +77,8 @@ void* Thread::GetId() const
 
 void Thread::Wait()
 {
-    CompEvent.Wait();
+    if (Running)
+        CompEvent.Wait();
 }
 
 void Thread::StopAndWait()

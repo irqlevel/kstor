@@ -7,6 +7,7 @@
 #include "worker.h"
 #include "trace.h"
 #include "vector.h"
+#include "astring.h"
 
 #include "public.h"
 
@@ -39,6 +40,8 @@ public:
 void test_worker()
 {
     trace(1,"Test worker!!!");
+    Worker w;
+
     int err = E_OK;
     WorkerRef worker(new (MemType::Atomic) Worker(err));
     if (!worker.get() || err)
@@ -59,10 +62,19 @@ void test_vector()
 {
     Vector<char> v(MemType::Atomic);
 
-    v.push_back('a');
-    v.push_back('b');
+    v.PushBack('a');
+    v.PushBack('b');
 
-    trace(1, "v[0]=%c v[1]=%c\n", v[0], v[1]);
+    trace(1, "v[0]=%c v[1]=%c", v[0], v[1]);
+}
+
+void test_astring()
+{
+    int err = E_OK;
+
+    AString s("blabla", MemType::Atomic, err);
+    trace(1, "s init err %d", err);
+    trace(1, "s content=%s len=%lu", s.GetBuf(), s.GetLen());
 }
 
 int cpp_init(struct kernel_api *kapi)
@@ -72,6 +84,7 @@ int cpp_init(struct kernel_api *kapi)
 
     test_worker();
     test_vector();
+    test_astring();
 
     trace(1, "cpp_init completed");
     return 0;

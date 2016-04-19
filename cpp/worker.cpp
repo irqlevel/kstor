@@ -2,13 +2,18 @@
 #include "auto_lock.h"
 #include "trace.h"
 
+Worker::Worker()
+    : Stopping(false), Running(false)
+{
+}
+
 bool Worker::Execute(RunnableRef task)
 {
-    if (Stopping)
+    if (Stopping || !Running)
         return false;
 
     AutoLock lock(Lock);
-    if (Stopping)
+    if (Stopping || !Running)
         return false;
 
     bool result = TaskList.AddTail(task);
@@ -51,9 +56,13 @@ int Worker::Run(const Threadable& thread)
 }
 
 Worker::Worker(int& err)
-    : Runnable(err), Stopping(false), Lock(err), TaskEvent(err),
-      WorkerThread(this, err)
+    : Runnable(err), Stopping(false), Running(false), Lock(err),
+      TaskEvent(err), WorkerThread(this, err)
 {
+    if (err)
+        return;
+
+    Running = true;
     trace(255, "create %p", this);
 }
 
@@ -61,9 +70,12 @@ Worker::~Worker()
 {
     trace(255, "die %p", this);
     Stopping = true;
+    if (!Running)
+        return;
+
     WorkerThread.Stop();
     TaskEvent.Set();
-    WorkerThread.StopAndWait();
+    WorkerThread.Wait();
 
     bool bHasTasks;
     do {
