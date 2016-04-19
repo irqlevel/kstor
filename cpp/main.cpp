@@ -6,6 +6,8 @@
 #include "spinlock.h"
 #include "worker.h"
 #include "trace.h"
+#include "vector.h"
+
 #include "public.h"
 
 struct kernel_api g_kapi;
@@ -53,12 +55,23 @@ void test_worker()
     trace(1,"Waited job err %d", err);
 }
 
+void test_vector()
+{
+    Vector<char> v(MemType::Atomic);
+
+    v.push_back('a');
+    v.push_back('b');
+
+    trace(1, "v[0]=%c v[1]=%c\n", v[0], v[1]);
+}
+
 int cpp_init(struct kernel_api *kapi)
 {
     g_kapi = *kapi;
     trace(1,"cpp_init");
 
     test_worker();
+    test_vector();
 
     trace(1, "cpp_init completed");
     return 0;
