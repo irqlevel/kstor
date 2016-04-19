@@ -1,6 +1,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
+#include <linux/kallsyms.h>
 
 #include <stdarg.h>
 
@@ -16,6 +17,11 @@ static int __init kcpp_init(void)
     int err;
 
     PRINTK("loading\n");
+
+    PRINTK("startup_64=0x%lx\n", kallsyms_lookup_name("startup_64"));
+    PRINTK("_etext=0x%lx\n", kallsyms_lookup_name("_etext"));
+    PRINTK("do_rmdir=0x%lx\n", kallsyms_lookup_name("do_rmdir"));
+
     err = kapi_init();
     if (err)
         goto out;
