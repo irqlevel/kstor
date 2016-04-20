@@ -5,6 +5,8 @@
 #include <linux/completion.h>
 #include <linux/kthread.h>
 #include <linux/delay.h>
+#include <linux/kallsyms.h>
+#include <linux/uaccess.h>
 
 #include <stdarg.h>
 
@@ -208,6 +210,21 @@ static void kapi_spinlock_unlock(void *lock)
     spin_unlock((spinlock_t *)lock);
 }
 
+static unsigned long kapi_get_symbol_address(const char *symbol)
+{
+    return kallsyms_lookup_name(symbol);
+}
+
+static long kapi_probe_kernel_read(void *dst, const void *src, size_t size)
+{
+    return probe_kernel_read(dst, src, size);
+}
+
+static long kapi_probe_kernel_write(void *dst, const void *src, size_t size)
+{
+    return probe_kernel_write(dst, src, size);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -236,7 +253,10 @@ static struct kernel_api g_kapi =
     .spinlock_create = kapi_spinlock_create,
     .spinlock_delete = kapi_spinlock_delete,
     .spinlock_lock = kapi_spinlock_lock,
-    .spinlock_unlock = kapi_spinlock_unlock
+    .spinlock_unlock = kapi_spinlock_unlock,
+    .get_symbol_address = kapi_get_symbol_address,
+    .probe_kernel_read = kapi_probe_kernel_read,
+    .probe_kernel_write = kapi_probe_kernel_write
 };
 
 int kapi_init(void)

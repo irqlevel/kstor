@@ -21,6 +21,7 @@ static int __init kcpp_init(void)
     PRINTK("startup_64=0x%lx\n", kallsyms_lookup_name("startup_64"));
     PRINTK("_etext=0x%lx\n", kallsyms_lookup_name("_etext"));
     PRINTK("do_rmdir=0x%lx\n", kallsyms_lookup_name("do_rmdir"));
+    PRINTK("kcpp_init=%p\n", kcpp_init);
 
     err = kapi_init();
     if (err)

@@ -45,6 +45,9 @@ struct kernel_api
     void (*spinlock_delete)(void* spinlock);
     void (*spinlock_lock)(void* spinlock);
     void (*spinlock_unlock)(void* spinlock);
+    unsigned long (*get_symbol_address)(const char *symbol);
+    long (*probe_kernel_read)(void *dst, const void *src, size_t size);
+    long (*probe_kernel_write)(void *dts, const void *src, size_t size);
 };
 
 #ifdef __cplusplus

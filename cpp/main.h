@@ -8,6 +8,7 @@
 
 #include "new_delete.h"
 #include "utility.h"
+#include "trace.h"
 
 struct kernel_api *get_kapi(void);
 

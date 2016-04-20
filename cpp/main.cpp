@@ -8,6 +8,7 @@
 #include "trace.h"
 #include "vector.h"
 #include "astring.h"
+#include "kpatch.h"
 
 #include "public.h"
 
@@ -73,8 +74,36 @@ void test_astring()
     int err = E_OK;
 
     AString s("blabla", MemType::Atomic, err);
+    if (err)
+        return;
+
     trace(1, "s init err %d", err);
     trace(1, "s content=%s len=%lu", s.GetBuf(), s.GetLen());
+}
+
+int test_kpatch()
+{
+    int err = E_OK;
+    AString symbol("_do_fork", MemType::Kernel, err);
+    if (err)
+        return err;
+
+    KPatch kp(err);
+    if (err)
+        return err;
+
+    Vector<unsigned long> callers(MemType::Kernel);
+
+    err = kp.GetCallers(symbol, callers);
+    if (err)
+        return err;
+
+    for (size_t i = 0; i < callers.GetSize(); i++)
+    {
+        trace(1, "caller 0x%lx", callers[i]);
+    }
+
+    return E_OK;
 }
 
 int cpp_init(struct kernel_api *kapi)
@@ -85,6 +114,7 @@ int cpp_init(struct kernel_api *kapi)
     test_worker();
     test_vector();
     test_astring();
+    test_kpatch();
 
     trace(1, "cpp_init completed");
     return 0;
