@@ -3,7 +3,7 @@
 #include "trace.h"
 
 Worker::Worker()
-    : Stopping(false), Running(false)
+    : Stopping(false), Running(false), TaskList(MemType::Kernel)
 {
 }
 
@@ -43,7 +43,8 @@ int Worker::Run(const Threadable& thread)
             trace(255, "Locked");
             if (!TaskList.IsEmpty())
             {
-                task = TaskList.PopHead();
+                task = TaskList.Head();
+                TaskList.PopHead();
             }
             trace(255, "De-locking");
         }
@@ -57,7 +58,7 @@ int Worker::Run(const Threadable& thread)
 
 Worker::Worker(int& err)
     : Runnable(err), Stopping(false), Running(false), Lock(err),
-      TaskEvent(err), WorkerThread(this, err)
+      TaskList(MemType::Kernel), TaskEvent(err), WorkerThread(this, err)
 {
     if (err)
         return;
@@ -85,7 +86,8 @@ Worker::~Worker()
             bHasTasks = !TaskList.IsEmpty();
             if (bHasTasks)
             {
-                task = TaskList.PopHead();
+                task = TaskList.Head();
+                TaskList.PopHead();
                 bHasTasks = !TaskList.IsEmpty();
             }
         }

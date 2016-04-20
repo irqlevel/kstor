@@ -257,6 +257,7 @@ static struct kernel_api g_kapi =
     .get_symbol_address = kapi_get_symbol_address,
     .probe_kernel_read = kapi_probe_kernel_read,
     .probe_kernel_write = kapi_probe_kernel_write
+
 };
 
 int kapi_init(void)

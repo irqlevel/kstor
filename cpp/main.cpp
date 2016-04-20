@@ -9,6 +9,7 @@
 #include "vector.h"
 #include "astring.h"
 #include "kpatch.h"
+#include "hash_table.h"
 
 #include "public.h"
 
@@ -106,6 +107,37 @@ int test_kpatch()
     return E_OK;
 }
 
+int IntCmp(const int& key1, const int& key2)
+{
+    if (key1 > key2)
+        return 1;
+    if (key1 < key2)
+        return -1;
+    return 0;
+}
+
+size_t IntHash(const int& key)
+{
+    return key;
+}
+
+int test_hash_table()
+{
+    int err = 0;
+    HashTable<int, int> ht(MemType::Kernel, 256, err, IntCmp, IntHash);
+    if (err)
+        return err;
+
+    ht.Insert(2, 11);
+    ht.Insert(3, -7);
+    trace(1, "ht[2]=%d", ht.Get(2));
+    trace(1, "ht[3]=%d", ht.Get(3));
+    ht.Remove(3);
+    trace(1, "ht[3] exists %d", ht.Exists(3));
+
+    return err;
+}
+
 int cpp_init(struct kernel_api *kapi)
 {
     g_kapi = *kapi;
@@ -114,6 +146,7 @@ int cpp_init(struct kernel_api *kapi)
     test_worker();
     test_vector();
     test_astring();
+    test_hash_table();
     test_kpatch();
 
     trace(1, "cpp_init completed");

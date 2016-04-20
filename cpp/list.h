@@ -15,7 +15,7 @@ public:
             CurrListEntry = List.ListHead.Flink;
             EndList = &List.ListHead;
         }
-        T Get()
+        T& Get()
         {
             KBUG_ON(CurrListEntry == EndList);
             LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
@@ -37,6 +37,20 @@ public:
             }
         }
 
+        void Erase()
+        {
+            KBUG_ON(!IsValid());
+
+            PLIST_ENTRY next = CurrListEntry->Flink;
+
+            LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
+                                                     LinkedListNode,
+                                                     ListEntry);
+            RemoveEntryList(&node->ListEntry);
+            delete node;
+            CurrListEntry = next;
+        }
+
         virtual ~Iterator()
         {
 
@@ -51,13 +65,20 @@ public:
     };
 
     LinkedList()
+        : MemoryType(MemType::Kernel)
     {
         InitializeListHead(&ListHead);
     }
 
-    bool AddHead(T value)
+    LinkedList(MemType memType)
+        : MemoryType(memType)
     {
-        LinkedListNode* node = new LinkedListNode(value);
+        InitializeListHead(&ListHead);
+    }
+
+    bool AddHead(const T& value)
+    {
+        LinkedListNode* node = new (MemoryType) LinkedListNode(value);
 
         if (!node)
         {
@@ -67,9 +88,9 @@ public:
         return true;
     }
 
-    bool AddTail(T value)
+    bool AddTail(const T& value)
     {
-        LinkedListNode* node = new LinkedListNode(value);
+        LinkedListNode* node = new (MemoryType) LinkedListNode(value);
 
         if (!node)
         {
@@ -79,28 +100,54 @@ public:
         return true;
     }
 
-    T PopHead()
+    bool AddTail(T&& value)
     {
-        LinkedListNode* node;
-
-        KBUG_ON(IsListEmpty(&ListHead));
-        node = CONTAINING_RECORD(RemoveHeadList(&ListHead), LinkedListNode,
-                                 ListEntry);
-        T value = node->Value;
-        delete node;
-        return value;
+        LinkedListNode* node = new (MemoryType)
+                                LinkedListNode(util::move(value));
+        if (!node)
+        {
+            return false;
+        }
+        InsertTailList(&ListHead, &node->ListEntry);
+        return true;
     }
 
-    T PopTail()
+    T& Head()
     {
         LinkedListNode* node;
 
         KBUG_ON(IsListEmpty(&ListHead));
-        node = CONTAINING_RECORD(RemoveTailList(&ListHead), LinkedListNode,
-                                 ListEntry);
-        T value = node->Value;
+        node = CONTAINING_RECORD(ListHead.Flink, LinkedListNode, ListEntry);
+        return node->Value;
+    }
+
+    T& Tail()
+    {
+        LinkedListNode* node;
+
+        KBUG_ON(IsListEmpty(&ListHead));
+        node = CONTAINING_RECORD(ListHead.Blink, LinkedListNode, ListEntry);
+        return node->Value;
+    }
+
+    void PopHead()
+    {
+        LinkedListNode* node;
+
+        KBUG_ON(IsListEmpty(&ListHead));
+        node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
+                                 LinkedListNode, ListEntry);
         delete node;
-        return value;
+    }
+
+    void PopTail()
+    {
+        LinkedListNode* node;
+
+        KBUG_ON(IsListEmpty(&ListHead));
+        node = CONTAINING_RECORD(RemoveTailList(&ListHead),
+                                 LinkedListNode, ListEntry);
+        delete node;
     }
 
     bool IsEmpty()
@@ -115,14 +162,25 @@ public:
 
     LinkedList(LinkedList&& other)
     {
-        ListHead = other.ListHead;
+        if (!IsListEmpty(&other.ListHead))
+            ListHead = other.ListHead;
+        else
+            InitializeListHead(&ListHead);
+
+        MemoryType = other.MemoryType;
         InitializeListHead(&other.ListHead);
     }
 
     LinkedList& operator=(LinkedList&& other)
     {
         Release();
-        ListHead = other.ListHead;
+
+        if (!IsListEmpty(&other.ListHead))
+            ListHead = other.ListHead;
+        else
+            InitializeListHead(&ListHead);
+
+        MemoryType = other.MemoryType;
         InitializeListHead(&other.ListHead);
         return *this;
     }
@@ -144,10 +202,15 @@ private:
     class LinkedListNode
     {
     public:
-        LinkedListNode(T value)
+        LinkedListNode(const T& value)
         {
             InitializeListHead(&ListEntry);
             Value = value;
+        }
+        LinkedListNode(T&& value)
+        {
+            InitializeListHead(&ListEntry);
+            Value = util::move(value);
         }
         virtual ~LinkedListNode()
         {
@@ -161,4 +224,5 @@ private:
         LinkedListNode& operator=(LinkedListNode&& other) = delete;
     };
     LIST_ENTRY ListHead;
+    MemType MemoryType;
 };
