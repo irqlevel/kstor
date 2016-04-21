@@ -82,3 +82,18 @@ int AString::Compare(const AString& other) const
 
     return 0;
 }
+
+int AString::Compare(const AString& key1, const AString &key2)
+{
+    return key1.Compare(key2);
+}
+
+size_t AString::Hash()
+{
+    return 0;
+}
+
+size_t AString::Hash(const AString& key)
+{
+    return key.Hash();
+}

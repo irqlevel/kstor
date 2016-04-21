@@ -1,6 +1,7 @@
 #include "kpatch.h"
 
 KPatch::KPatch(int err)
+    : Patches(256, MemType::Kernel, err
 {
     if (err)
         return;
@@ -33,14 +34,6 @@ KPatch::KPatch(int err)
 KPatch::~KPatch()
 {
 }
-
-#pragma pack(push, 1)
-struct RelativeCall
-{
-    unsigned char OpCode;
-    int Offset;
-};
-#pragma pack(pop)
 
 int KPatch::GetCallers(unsigned long addr, Vector<unsigned long>& callers)
 {
@@ -105,4 +98,12 @@ bool KPatch::KernelRead(void *dst, const void *src, size_t size)
 unsigned long KPatch::GetSymbolAddress(const AString& symbol)
 {
     return get_kapi()->get_symbol_address(symbol.GetBuf());
+}
+
+PatchCallCtx::PatchCallCtx()
+{
+}
+
+PatchCallCtx::~PatchCallCtx()
+{
 }

@@ -10,6 +10,7 @@
 #include "astring.h"
 #include "kpatch.h"
 #include "hash_table.h"
+#include "smp.h"
 
 #include "public.h"
 
@@ -138,6 +139,17 @@ int test_hash_table()
     return err;
 }
 
+void only_one_cpu(void *data)
+{
+    trace(1, "curr cpu %d", Smp::GetCpuId());
+}
+
+int test_smp()
+{
+    Smp::CallFunctionCurrCpuOnly(only_one_cpu, nullptr);
+    return 0;
+}
+
 int cpp_init(struct kernel_api *kapi)
 {
     g_kapi = *kapi;
@@ -147,6 +159,7 @@ int cpp_init(struct kernel_api *kapi)
     test_vector();
     test_astring();
     test_hash_table();
+    test_smp();
     test_kpatch();
 
     trace(1, "cpp_init completed");

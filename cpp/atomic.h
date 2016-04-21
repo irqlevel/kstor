@@ -10,6 +10,7 @@ public:
     void Inc();
     bool DecAndTest();
     int Get();
+    void Set(int value);
     ~Atomic();
 
     Atomic& operator=(Atomic&& other);

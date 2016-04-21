@@ -26,6 +26,7 @@ struct kernel_api
     bool (*atomic_dec_and_test)(void *atomic);
     int (*atomic_read)(void *atomic);
     void (*atomic_delete)(void *atomic);
+    void (*atomic_set)(void *atomic, int value);
     void* (*completion_create)(unsigned long mem_flag);
     void (*completion_delete)(void *completion);
     void (*completion_wait)(void *completion);

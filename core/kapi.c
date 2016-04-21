@@ -105,6 +105,11 @@ static int kapi_atomic_read(void *atomic)
     return atomic_read((atomic_t *)atomic);
 }
 
+static void kapi_atomic_set(void *atomic, int value)
+{
+    atomic_set((atomic_t *)atomic, value);
+}
+
 static void *kapi_completion_create(unsigned long mem_flag)
 {
     struct completion *comp;
@@ -270,6 +275,7 @@ static struct kernel_api g_kapi =
     .atomic_inc = kapi_atomic_inc,
     .atomic_dec_and_test = kapi_atomic_dec_and_test,
     .atomic_read = kapi_atomic_read,
+    .atomic_set = kapi_atomic_set,
     .completion_create = kapi_completion_create,
     .completion_delete = kapi_completion_delete,
     .completion_wait = kapi_completion_wait,

@@ -28,6 +28,11 @@ bool Atomic::DecAndTest()
     return get_kapi()->atomic_dec_and_test(pAtomic);
 }
 
+void Atomic::Set(int value)
+{
+    get_kapi()->atomic_set(pAtomic, value);
+}
+
 int Atomic::Get()
 {
     return get_kapi()->atomic_read(pAtomic);
