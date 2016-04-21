@@ -7,6 +7,7 @@
 #include <linux/delay.h>
 #include <linux/kallsyms.h>
 #include <linux/uaccess.h>
+#include <linux/smp.h>
 
 #include <stdarg.h>
 
@@ -225,6 +226,12 @@ static long kapi_probe_kernel_write(void *dst, const void *src, size_t size)
     return probe_kernel_write(dst, src, size);
 }
 
+static void kapi_smp_call_function(void (*function)(void *info), void *info,
+                                   bool wait)
+{
+    smp_call_function(function, info, (wait) ? 1 : 0);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -256,8 +263,8 @@ static struct kernel_api g_kapi =
     .spinlock_unlock = kapi_spinlock_unlock,
     .get_symbol_address = kapi_get_symbol_address,
     .probe_kernel_read = kapi_probe_kernel_read,
-    .probe_kernel_write = kapi_probe_kernel_write
-
+    .probe_kernel_write = kapi_probe_kernel_write,
+    .smp_call_function = kapi_smp_call_function
 };
 
 int kapi_init(void)
