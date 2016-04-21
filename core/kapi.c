@@ -8,6 +8,8 @@
 #include <linux/kallsyms.h>
 #include <linux/uaccess.h>
 #include <linux/smp.h>
+#include <linux/cpu.h>
+#include <linux/preempt.h>
 
 #include <stdarg.h>
 
@@ -232,6 +234,31 @@ static void kapi_smp_call_function(void (*function)(void *info), void *info,
     smp_call_function(function, info, (wait) ? 1 : 0);
 }
 
+static void kapi_get_online_cpus(void)
+{
+    get_online_cpus();
+}
+
+static void kapi_put_online_cpus(void)
+{
+    put_online_cpus();
+}
+
+static void kapi_preempt_disable(void)
+{
+    preempt_disable();
+}
+
+static void kapi_preempt_enable(void)
+{
+    preempt_enable();
+}
+
+static int kapi_smp_processor_id(void)
+{
+    return smp_processor_id();
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -264,7 +291,12 @@ static struct kernel_api g_kapi =
     .get_symbol_address = kapi_get_symbol_address,
     .probe_kernel_read = kapi_probe_kernel_read,
     .probe_kernel_write = kapi_probe_kernel_write,
-    .smp_call_function = kapi_smp_call_function
+    .smp_call_function = kapi_smp_call_function,
+    .get_online_cpus = kapi_get_online_cpus,
+    .put_online_cpus = kapi_put_online_cpus,
+    .preempt_disable = kapi_preempt_disable,
+    .preempt_enable = kapi_preempt_enable,
+    .smp_processor_id = kapi_smp_processor_id
 };
 
 int kapi_init(void)

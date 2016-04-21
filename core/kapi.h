@@ -50,6 +50,11 @@ struct kernel_api
     long (*probe_kernel_write)(void *dts, const void *src, size_t size);
     void (*smp_call_function)(void (*function)(void *info), void *info,
                               bool wait);
+    void (*get_online_cpus)(void);
+    void (*put_online_cpus)(void);
+    void (*preempt_disable)(void);
+    void (*preempt_enable)(void);
+    int (*smp_processor_id)(void);
 };
 
 #ifdef __cplusplus
