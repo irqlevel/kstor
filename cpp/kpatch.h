@@ -47,6 +47,14 @@ private:
         PatchCallCtx(PatchCallCtx&& other) = delete;
         PatchCallCtx& operator=(PatchCallCtx&& other) = delete;
 
+        void PatchInternal();
+        void RestoreInternal();
+
+        static void PatchClb(void* data);
+        static void RestoreClb(void* data);
+
+        int Err;
+        bool Installed;
         AString Symbol;
         unsigned long OrigAddress;
         unsigned long PatchAddress;

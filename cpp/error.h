@@ -7,3 +7,5 @@
 #define E_INVAL         (E_BASE + 4)
 #define E_ACCESS        (E_BASE + 5)
 #define E_NOT_FOUND     (E_BASE + 6)
+#define E_STATE         (E_BASE + 7)
+#define E_NOT_IMPL      (E_BASE + 8)

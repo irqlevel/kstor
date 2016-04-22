@@ -1,4 +1,5 @@
 #include "kpatch.h"
+#include "smp.h"
 
 KPatch::KPatch(int err)
     : Patches(MemType::Kernel, 256, err, &AString::Compare, &AString::Hash)
@@ -55,9 +56,9 @@ int KPatch::GetCallers(unsigned long addr, Vector<unsigned long>& callers)
         {
             unsigned long target;
 
-            target = reinterpret_cast<unsigned long>
-                    (reinterpret_cast<unsigned long>(pCurrByte + sizeof(call))
-                    + call.Offset);
+            target = reinterpret_cast<unsigned long>(pCurrByte + sizeof(call))
+                        + call.Offset;
+
             if (target == addr)
             {
                 if (!callers.PushBack(reinterpret_cast<unsigned long>
@@ -104,7 +105,8 @@ KPatch::PatchCallCtx::PatchCallCtx(KPatch *kp,
                                    const AString& symbol,
                                    unsigned long patchAddress,
                                    int err)
-    : Symbol(symbol, err), PatchAddress(patchAddress),
+    : Err(E_OK), Installed(false), Symbol(symbol, err),
+      PatchAddress(patchAddress),
       Callers(MemType::Kernel), Owner(kp)
 {
     if (err)
@@ -123,6 +125,88 @@ KPatch::PatchCallCtx::PatchCallCtx(KPatch *kp,
 
 }
 
+void KPatch::PatchCallCtx::PatchInternal()
+{
+    int err;
+
+    for (size_t i = 0; i < Callers.GetSize(); i++)
+    {
+        unsigned long caller = Callers[i];
+        struct RelativeCall *pCall =
+            reinterpret_cast<struct RelativeCall *>(caller);
+
+        pCall->Offset = PatchAddress -
+                            reinterpret_cast<unsigned long>(pCall + 1);
+
+    }
+    err = E_OK;
+    if (!err)
+        Installed = true;
+    Err = err;
+}
+
+void KPatch::PatchCallCtx::RestoreInternal()
+{
+    int err;
+
+    for (size_t i = 0; i < Callers.GetSize(); i++)
+    {
+        unsigned long caller = Callers[i];
+        struct RelativeCall *pCall =
+            reinterpret_cast<struct RelativeCall *>(caller);
+
+        pCall->Offset = OrigAddress -
+                            reinterpret_cast<unsigned long>(pCall + 1);
+    }
+    err = E_OK;
+    if (!err)
+        Installed = false;
+    Err = err;
+}
+
+void KPatch::PatchCallCtx::PatchClb(void* data)
+{
+    KPatch::PatchCallCtx* patchCtx = static_cast<KPatch::PatchCallCtx*>(data);
+
+    patchCtx->PatchInternal();
+}
+
+int KPatch::PatchCallCtx::Patch()
+{
+    int err;
+
+    if (Installed)
+        return E_STATE;
+
+    err = Smp::CallFunctionCurrCpuOnly(&KPatch::PatchCallCtx::PatchClb, this);
+    if (err)
+        return err;
+    err = Err;
+    return err;
+}
+
+void KPatch::PatchCallCtx::RestoreClb(void* data)
+{
+    KPatch::PatchCallCtx* patchCtx = static_cast<KPatch::PatchCallCtx*>(data);
+
+    patchCtx->RestoreInternal();
+}
+
+int KPatch::PatchCallCtx::Restore()
+{
+    int err;
+
+    if (!Installed)
+        return E_OK;
+
+    err = Smp::CallFunctionCurrCpuOnly(&KPatch::PatchCallCtx::RestoreClb, this);
+    if (err)
+        return err;
+    err = Err;
+    return err;
+}
+
 KPatch::PatchCallCtx::~PatchCallCtx()
 {
+    Restore();
 }
