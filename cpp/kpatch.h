@@ -33,19 +33,30 @@ private:
 
     class PatchCallCtx
     {
-    private:
-        PatchCallCtx();
+    public:
+        PatchCallCtx(KPatch *kp, const AString& symbol,
+                     unsigned long patchAddress, int err);
         virtual ~PatchCallCtx();
+
+        int Patch();
+        int Restore();
+
     private:
-        AString& Symbol;
-        unsigned long OrigAddr;
-        unsigned long PatchAddr;
+        PatchCallCtx(const PatchCallCtx& other) = delete;
+        PatchCallCtx& operator=(const PatchCallCtx& other) = delete;
+        PatchCallCtx(PatchCallCtx&& other) = delete;
+        PatchCallCtx& operator=(PatchCallCtx&& other) = delete;
+
+        AString Symbol;
+        unsigned long OrigAddress;
+        unsigned long PatchAddress;
         Vector<unsigned long> Callers;
+        KPatch *Owner;
     };
 
     typedef shared_ptr<PatchCallCtx> PatchCallCtxRef;
 
-    HashTable<AStringRef, PatchCallCtxRef> Patches;
+    HashTable<AString, PatchCallCtxRef> Patches;
 
     unsigned long KernelStart;
     unsigned long KernelEnd;

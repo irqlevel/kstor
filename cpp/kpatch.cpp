@@ -1,7 +1,7 @@
 #include "kpatch.h"
 
 KPatch::KPatch(int err)
-    : Patches(256, MemType::Kernel, err
+    : Patches(MemType::Kernel, 256, err, &AString::Compare, &AString::Hash)
 {
     if (err)
         return;
@@ -100,10 +100,29 @@ unsigned long KPatch::GetSymbolAddress(const AString& symbol)
     return get_kapi()->get_symbol_address(symbol.GetBuf());
 }
 
-PatchCallCtx::PatchCallCtx()
+KPatch::PatchCallCtx::PatchCallCtx(KPatch *kp,
+                                   const AString& symbol,
+                                   unsigned long patchAddress,
+                                   int err)
+    : Symbol(symbol, err), PatchAddress(patchAddress),
+      Callers(MemType::Kernel), Owner(kp)
 {
+    if (err)
+        return;
+
+    OrigAddress = GetSymbolAddress(Symbol);
+    if (!OrigAddress)
+    {
+        err = E_NOT_FOUND;
+        return;
+    }
+
+    err = Owner->GetCallers(OrigAddress, Callers);
+    if (err)
+        return;
+
 }
 
-PatchCallCtx::~PatchCallCtx()
+KPatch::PatchCallCtx::~PatchCallCtx()
 {
 }

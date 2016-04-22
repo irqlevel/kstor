@@ -22,6 +22,8 @@ public:
     static int Compare(const AString& key1, const AString& key2);
     static size_t Hash(const AString& key);
 
+    AString(const AString& other, int err);
+
 private:
     AString(const AString& other) = delete;
     AString& operator=(const AString& other) = delete;

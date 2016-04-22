@@ -50,6 +50,11 @@ AString& AString::operator=(AString&& other)
     return *this;
 }
 
+AString::AString(const AString& other, int err)
+    : Buf(other.Buf, err)
+{
+}
+
 AString::~AString()
 {
 }
@@ -88,7 +93,7 @@ int AString::Compare(const AString& key1, const AString &key2)
     return key1.Compare(key2);
 }
 
-size_t AString::Hash()
+size_t AString::Hash() const
 {
     return 0;
 }

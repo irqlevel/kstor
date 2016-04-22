@@ -53,6 +53,26 @@ public:
         return true;
     }
 
+    bool Insert(K&& key, V&&value)
+    {
+        size_t bucket = KeyHash(key) % Buckets.GetSize();
+        LinkedList<HashEntry>& list = Buckets[bucket];
+        typename LinkedList<HashEntry>::Iterator it(list);
+        for (;it.IsValid(); it.Next())
+        {
+            HashEntry& entry = it.Get();
+            if (KeyCmp(entry.GetKey(), key) == 0)
+            {
+                return false;
+            }
+        }
+        HashEntry entry(util::move(key), util::move(value));
+        list.AddTail(util::move(entry));
+
+        return true;
+    }
+
+
     bool Remove(const K& key)
     {
         size_t bucket = KeyHash(key) % Buckets.GetSize();

@@ -92,9 +92,11 @@ public:
         Arr = other.Arr;
         Size = other.Size;
         Capacity = other.Capacity;
+        MemoryType = other.MemoryType;
         other.Arr = nullptr;
         other.Size = 0;
         other.Capacity = 0;
+        other.MemoryType = MemType::Kernel;
     }
 
     Vector& operator=(Vector&& other)
@@ -103,12 +105,34 @@ public:
         Arr = other.Arr;
         Size = other.Size;
         Capacity = other.Capacity;
+        MemoryType = other.MemoryType;
         other.Arr = nullptr;
         other.Size = 0;
         other.Capacity = 0;
+        other.MemoryType = MemType::Kernel;
         return *this;
     }
 
+    Vector(const Vector& other, int err)
+    {
+        if (err)
+            return;
+
+        T* Arr = new (other.MemoryType) T[other.Capacity];
+        if (!Arr)
+        {
+            err = E_NO_MEM;
+            return;
+        }
+
+        for (size_t i = 0; i < other.Size; i++)
+        {
+            Arr[i] = other.Arr[i];
+        }
+        Size = other.Size;
+        Capacity = other.Capacity;
+        MemoryType = other.MemoryType;
+    }
 private:
     Vector(const Vector& other) = delete;
     Vector& operator=(const Vector& other) = delete;
