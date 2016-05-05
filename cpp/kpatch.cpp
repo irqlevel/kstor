@@ -1,8 +1,10 @@
 #include "kpatch.h"
 #include "smp.h"
+#include "auto_lock.h"
 
 KPatch::KPatch(int err)
-    : Patches(MemType::Kernel, 256, err, &AString::Compare, &AString::Hash)
+    : Patches(MemType::Kernel, 256, err, &AString::Compare, &AString::Hash),
+      Lock(err, MemType::Kernel)
 {
     if (err)
         return;
@@ -104,7 +106,7 @@ unsigned long KPatch::GetSymbolAddress(const AString& symbol)
 KPatch::PatchCallCtx::PatchCallCtx(KPatch *kp,
                                    const AString& symbol,
                                    unsigned long patchAddress,
-                                   int err)
+                                   int& err)
     : Err(E_OK), Installed(false), Symbol(symbol, err),
       PatchAddress(patchAddress),
       Callers(MemType::Kernel), Owner(kp)
@@ -125,9 +127,30 @@ KPatch::PatchCallCtx::PatchCallCtx(KPatch *kp,
 
 }
 
+KPatch::PatchCallCtxRef
+KPatch::PatchCallCtx::Make(KPatch *kp,
+                           const AString& symbol,
+                           unsigned long patchAddress)
+{
+    int err = E_OK;
+
+    PatchCallCtxRef ref = PatchCallCtxRef(
+                                        new (MemType::Kernel)PatchCallCtx(kp,
+                                                symbol, patchAddress, err));
+    if (!ref.get() || err)
+        return PatchCallCtxRef();
+    return ref;
+}
+
 void KPatch::PatchCallCtx::PatchInternal()
 {
     int err;
+
+    if (Installed)
+    {
+        Err = E_OK;
+        return;
+    }
 
     for (size_t i = 0; i < Callers.GetSize(); i++)
     {
@@ -148,6 +171,12 @@ void KPatch::PatchCallCtx::PatchInternal()
 void KPatch::PatchCallCtx::RestoreInternal()
 {
     int err;
+
+    if (!Installed)
+    {
+        Err = E_OK;
+        return;
+    }
 
     for (size_t i = 0; i < Callers.GetSize(); i++)
     {
@@ -176,7 +205,7 @@ int KPatch::PatchCallCtx::Patch()
     int err;
 
     if (Installed)
-        return E_STATE;
+        return E_OK;
 
     err = Smp::CallFunctionCurrCpuOnly(&KPatch::PatchCallCtx::PatchClb, this);
     if (err)
@@ -209,4 +238,37 @@ int KPatch::PatchCallCtx::Restore()
 KPatch::PatchCallCtx::~PatchCallCtx()
 {
     Restore();
+}
+
+int KPatch::PatchCall(const AString& symbol, void *pFunc)
+{
+    AutoLock lock(Lock);
+
+    KPatch::PatchCallCtxRef patch = Patches.Get(symbol);
+    if (patch.get())
+        return E_EXISTS;
+
+    patch = PatchCallCtx::Make(this, symbol,
+                               reinterpret_cast<unsigned long>(pFunc));
+    if (!patch.get())
+        return E_NO_MEM;
+
+    int err = patch->Patch();
+    if (err)
+        return err;
+
+    if (!Patches.Insert(symbol, patch))
+        return E_STATE;
+
+    return E_OK;
+}
+
+int KPatch::UnpatchCall(const AString& symbol)
+{
+    AutoLock lock(Lock);
+
+    KPatch::PatchCallCtxRef patch = Patches.Get(symbol);
+    if (!patch.get())
+        return E_OK;
+    return E_OK;
 }

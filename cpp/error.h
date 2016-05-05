@@ -9,3 +9,4 @@
 #define E_NOT_FOUND     (E_BASE + 6)
 #define E_STATE         (E_BASE + 7)
 #define E_NOT_IMPL      (E_BASE + 8)
+#define E_EXISTS        (E_BASE + 9)

@@ -56,6 +56,13 @@ struct kernel_api
     void (*preempt_disable)(void);
     void (*preempt_enable)(void);
     int (*smp_processor_id)(void);
+
+    void *(*rwsem_create)(unsigned long mem_flag);
+    void (*rwsem_down_write)(void *sem);
+    void (*rwsem_up_write)(void *sem);
+    void (*rwsem_down_read)(void *sem);
+    void (*rwsem_up_read)(void *sem);
+    void (*rwsem_delete)(void *sem);
 };
 
 #ifdef __cplusplus

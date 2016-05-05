@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
+AString::AString()
+    : Buf(MemType::Kernel)
+{
+}
+
 AString::AString(const char* s, MemType memType, int& err)
     : Buf(memType)
 {

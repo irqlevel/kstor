@@ -4,6 +4,7 @@
 #include "astring.h"
 #include "vector.h"
 #include "hash_table.h"
+#include "rwsem.h"
 
 class KPatch
 {
@@ -31,12 +32,18 @@ private:
     };
 #pragma pack(pop)
 
+    class PatchCallCtx;
+    typedef shared_ptr<PatchCallCtx> PatchCallCtxRef;
+
     class PatchCallCtx
     {
     public:
         PatchCallCtx(KPatch *kp, const AString& symbol,
-                     unsigned long patchAddress, int err);
+                     unsigned long patchAddress, int& err);
         virtual ~PatchCallCtx();
+
+        static PatchCallCtxRef Make(KPatch *kp, const AString& symbol,
+                                    unsigned long patchAddress);
 
         int Patch();
         int Restore();
@@ -62,10 +69,8 @@ private:
         KPatch *Owner;
     };
 
-    typedef shared_ptr<PatchCallCtx> PatchCallCtxRef;
-
     HashTable<AString, PatchCallCtxRef> Patches;
-
+    RWSem Lock;
     unsigned long KernelStart;
     unsigned long KernelEnd;
 

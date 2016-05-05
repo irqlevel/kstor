@@ -7,6 +7,7 @@
 class AString
 {
 public:
+    AString();
     AString(const char* s, MemType memType, int& err);
     virtual ~AString();
 

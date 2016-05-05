@@ -264,6 +264,43 @@ static int kapi_smp_processor_id(void)
     return smp_processor_id();
 }
 
+static void *kapi_rwsem_create(unsigned long mem_flag)
+{
+    struct rw_semaphore *sem;
+
+    sem = kapi_kmalloc(sizeof(*sem), mem_flag);
+    if (!sem)
+        return NULL;
+
+    init_rwsem(sem);
+    return sem;
+}
+
+static void kapi_rwsem_down_write(void *sem)
+{
+    down_write((struct rw_semaphore *)sem);
+}
+
+static void kapi_rwsem_up_write(void *sem)
+{
+    up_write((struct rw_semaphore *)sem);
+}
+
+static void kapi_rwsem_down_read(void *sem)
+{
+    down_read((struct rw_semaphore *)sem);
+}
+
+static void kapi_rwsem_up_read(void *sem)
+{
+    up_read((struct rw_semaphore *)sem);
+}
+
+static void kapi_rwsem_delete(void *sem)
+{
+    kapi_kfree(sem);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -302,7 +339,13 @@ static struct kernel_api g_kapi =
     .put_online_cpus = kapi_put_online_cpus,
     .preempt_disable = kapi_preempt_disable,
     .preempt_enable = kapi_preempt_enable,
-    .smp_processor_id = kapi_smp_processor_id
+    .smp_processor_id = kapi_smp_processor_id,
+    .rwsem_create = kapi_rwsem_create,
+    .rwsem_down_write = kapi_rwsem_down_write,
+    .rwsem_up_write = kapi_rwsem_up_write,
+    .rwsem_down_read = kapi_rwsem_down_read,
+    .rwsem_up_read = kapi_rwsem_up_read,
+    .rwsem_delete = kapi_rwsem_delete
 };
 
 int kapi_init(void)
