@@ -133,6 +133,7 @@ public:
         Capacity = other.Capacity;
         MemoryType = other.MemoryType;
     }
+
 private:
     Vector(const Vector& other) = delete;
     Vector& operator=(const Vector& other) = delete;

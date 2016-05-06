@@ -46,6 +46,20 @@ public:
             Acquire();
         }
     }
+    shared_ptr(const shared_ptr<T>& other, int err)
+    {
+        if (err)
+            return;
+
+        Counter = other.Counter;
+        Ptr = other.Ptr;
+        trace(255, "this %p Ptr %p Counter %p other %p",
+              this, Ptr, Counter, &other);
+        if (Counter != nullptr)
+        {
+            Acquire();
+        }
+    }
     shared_ptr(shared_ptr<T>&& other)
     {
         Counter = other.Counter;

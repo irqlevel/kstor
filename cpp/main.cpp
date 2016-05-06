@@ -105,6 +105,7 @@ int test_kpatch()
         trace(1, "caller 0x%lx", callers[i]);
     }
 
+
     return E_OK;
 }
 

@@ -53,6 +53,30 @@ public:
         return true;
     }
 
+    bool Insert(const K& key, const V& value, int err)
+    {
+        if (err)
+            return false;
+
+        size_t bucket = KeyHash(key) % Buckets.GetSize();
+        LinkedList<HashEntry>& list = Buckets[bucket];
+        typename LinkedList<HashEntry>::Iterator it(list);
+        for (;it.IsValid(); it.Next())
+        {
+            HashEntry& entry = it.Get();
+            if (KeyCmp(entry.GetKey(), key) == 0)
+            {
+                return false;
+            }
+        }
+        HashEntry entry(key, value, err);
+        if (err)
+            return false;
+
+        list.AddTail(util::move(entry));
+        return true;
+    }
+
     bool Insert(K&& key, V&&value)
     {
         size_t bucket = KeyHash(key) % Buckets.GetSize();
@@ -133,9 +157,12 @@ private:
     public:
         HashEntry() {}
         HashEntry(const K& key, const V& value)
+            : Key(key), Value(value)
         {
-            Key = key;
-            Value = value;
+        }
+        HashEntry(const K& key, const V& value, int err)
+            : Key(key, err), Value(value, err)
+        {
         }
         virtual ~HashEntry() {}
         HashEntry(HashEntry&& other)

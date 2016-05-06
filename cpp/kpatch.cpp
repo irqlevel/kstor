@@ -253,12 +253,16 @@ int KPatch::PatchCall(const AString& symbol, void *pFunc)
     if (!patch.get())
         return E_NO_MEM;
 
-    int err = patch->Patch();
-    if (err)
-        return err;
-
-    if (!Patches.Insert(symbol, patch))
+    int err = E_OK;
+    if (!Patches.Insert(symbol, patch, err))
         return E_STATE;
+
+    err = patch->Patch();
+    if (err)
+    {
+        Patches.Remove(symbol);
+        return err;
+    }
 
     return E_OK;
 }
@@ -270,5 +274,9 @@ int KPatch::UnpatchCall(const AString& symbol)
     KPatch::PatchCallCtxRef patch = Patches.Get(symbol);
     if (!patch.get())
         return E_OK;
-    return E_OK;
+
+    int err = patch->Restore();
+    Patches.Remove(symbol);
+
+    return err;
 }
