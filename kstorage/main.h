@@ -4,7 +4,7 @@
 #include "mem_type.h"
 
 #include "../inc/consts.h"
-#include "../core/kapi.h"
+#include "../lkm/kapi.h"
 
 #include "new_delete.h"
 #include "utility.h"

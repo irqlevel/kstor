@@ -1,10 +1,10 @@
 include $(PROJ_ROOT)/Makefile.inc
 
-KMOD = kcpp
+KMOD = kstorage
 KMOD_KO = $(KMOD).ko
 
 obj-m = $(KMOD).o
-$(KMOD)-objs := module.o kapi.o malloc_checker.o ../lib/cpp.a
+$(KMOD)-objs := module.o kapi.o malloc_checker.o ../lib/$(KMOD).a
 
 ccflags-y := -I$(src) -I.. $(COMMON_CFLAGS) -fno-inline    \
             -D __KERNEL__ -D __MALLOC_CHECKER__ \
@@ -17,8 +17,8 @@ KERNEL_PATH=/lib/modules/$(shell uname -r)/build
 endif
 
 all:
-	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/core modules
+	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/lkm modules
 	cp $(KMOD_KO) ../bin/$(KMOD_KO)
 clean:
-	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/core clean
+	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/lkm clean
 	rm -r -f *.o

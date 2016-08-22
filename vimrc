@@ -1,10 +1,6 @@
 function! SetupEnvironment()
   let l:path = expand('%:p')
-  if l:path =~ '/root/linux'
-    setlocal tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab
-  elseif l:path =~ '/root/nkfs'
-    setlocal tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab
-  elseif l:path =~ '/root/kcpp'
+  if l:path =~ '/root/kstorage'
     setlocal softtabstop=4 shiftwidth=4 expandtab
   endif
 endfunction

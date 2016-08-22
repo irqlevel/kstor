@@ -1,8 +1,8 @@
 #!/bin/bash
-for i in {1..100}
+for i in {1..1}
 do
-    insmod bin/kcpp.ko
+    insmod bin/kstorage.ko
     sleep 1
-    rmmod kcpp
+    rmmod kstorage
     echo "$i times"
 done

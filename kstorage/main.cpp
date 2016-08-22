@@ -8,7 +8,6 @@
 #include "trace.h"
 #include "vector.h"
 #include "astring.h"
-#include "kpatch.h"
 #include "hash_table.h"
 #include "smp.h"
 
@@ -83,32 +82,6 @@ void test_astring()
     trace(1, "s content=%s len=%lu", s.GetBuf(), s.GetLen());
 }
 
-int test_kpatch()
-{
-    int err = E_OK;
-    AString symbol("_do_fork", MemType::Kernel, err);
-    if (err)
-        return err;
-
-    KPatch kp(err);
-    if (err)
-        return err;
-
-    Vector<unsigned long> callers(MemType::Kernel);
-
-    err = kp.GetCallers(symbol, callers);
-    if (err)
-        return err;
-
-    for (size_t i = 0; i < callers.GetSize(); i++)
-    {
-        trace(1, "caller 0x%lx", callers[i]);
-    }
-
-
-    return E_OK;
-}
-
 int IntCmp(const int& key1, const int& key2)
 {
     if (key1 > key2)
@@ -151,23 +124,22 @@ int test_smp()
     return 0;
 }
 
-int cpp_init(struct kernel_api *kapi)
+int kstorage_init(struct kernel_api *kapi)
 {
     g_kapi = *kapi;
-    trace(1,"cpp_init");
+    trace(1, "kstorage_init");
 
     test_worker();
     test_vector();
     test_astring();
     test_hash_table();
     test_smp();
-    test_kpatch();
 
-    trace(1, "cpp_init completed");
+    trace(1, "kstorage_init completed");
     return 0;
 }
 
-void cpp_deinit(void)
+void kstorage_deinit(void)
 {
-    trace(1,"cpp_deinit");
+    trace(1,"kstorage_deinit");
 }

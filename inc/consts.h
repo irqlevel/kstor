@@ -5,7 +5,7 @@ extern "C"
 {
 #endif
 
-#define MOD_NAME "kcpp"
+#define MOD_NAME "kstorage"
 
 #ifdef __cplusplus
 }

@@ -46,7 +46,8 @@ void Thread::Start(Runnable* routine, int& err)
         return;
     }
     Routine = routine;
-    Task = get_kapi()->task_create(&Thread::StartRoutine, this, "kcpp-thread");
+    Task = get_kapi()->task_create(&Thread::StartRoutine, this,
+				   "kstorage-thread");
     if (!Task)
     {
         err = E_NO_MEM;
