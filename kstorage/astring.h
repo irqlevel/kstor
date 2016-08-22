@@ -3,12 +3,13 @@
 #include "main.h"
 #include "vector.h"
 #include "shared_ptr.h"
+#include "error.h"
 
 class AString
 {
 public:
     AString();
-    AString(const char* s, MemType memType, int& err);
+    AString(const char* s, MemType memType, Error& err);
     virtual ~AString();
 
     const char* GetBuf() const;
@@ -23,7 +24,7 @@ public:
     static int Compare(const AString& key1, const AString& key2);
     static size_t Hash(const AString& key);
 
-    AString(const AString& other, int err);
+    AString(const AString& other, Error& err);
 
 private:
     AString(const AString& other) = delete;

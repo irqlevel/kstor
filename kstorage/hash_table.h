@@ -3,23 +3,24 @@
 #include "main.h"
 #include "list.h"
 #include "vector.h"
+#include "error.h"
 
 template <class K, class V>
 class HashTable
 {
 public:
-    HashTable(MemType memType, size_t nrBuckets, int err,
+    HashTable(MemType memType, size_t nrBuckets, Error& err,
               int (*keyCmp)(const K& key1, const K& key2),
               size_t (*keyHash)(const K& key))
         : Buckets(memType), KeyCmp(keyCmp), KeyHash(keyHash),
           MemoryType(memType)
     {
-        if (err)
+        if (err != Error::Success)
             return;
 
         if (!Buckets.Reserve(nrBuckets))
         {
-            err = E_NO_MEM;
+            err = Error::NoMemory;
             return;
         }
 
@@ -28,7 +29,7 @@ public:
             LinkedList<HashEntry> list(memType);
             if (!Buckets.PushBack(util::move(list)))
             {
-                err = E_NO_MEM;
+                err = Error::NoMemory;
                 return;
             }
         }
@@ -53,9 +54,9 @@ public:
         return true;
     }
 
-    bool Insert(const K& key, const V& value, int err)
+    bool Insert(const K& key, const V& value, Error& err)
     {
-        if (err)
+        if (err != Error::Success)
             return false;
 
         size_t bucket = KeyHash(key) % Buckets.GetSize();
@@ -70,7 +71,7 @@ public:
             }
         }
         HashEntry entry(key, value, err);
-        if (err)
+        if (err != Error::Success)
             return false;
 
         list.AddTail(util::move(entry));
@@ -160,7 +161,7 @@ private:
             : Key(key), Value(value)
         {
         }
-        HashEntry(const K& key, const V& value, int err)
+        HashEntry(const K& key, const V& value, Error& err)
             : Key(key, err), Value(value, err)
         {
         }

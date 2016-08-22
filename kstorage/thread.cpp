@@ -6,11 +6,11 @@ Thread::Thread()
 {
 }
 
-Thread::Thread(Runnable* routine, int& err)
+Thread::Thread(Runnable* routine, Error& err)
    : Routine(nullptr), Task(nullptr), Stopping(false), Running(false),
      CompEvent(err)
 {
-    if (err)
+    if (err != Error::Success)
     {
         return;
     }
@@ -20,28 +20,28 @@ Thread::Thread(Runnable* routine, int& err)
 int Thread::StartRoutine(void* context)
 {
     Thread* thread = static_cast<Thread*>(context);
-    return thread->ExecuteRoutine();
+    return thread->ExecuteRoutine().GetCode();
 }
 
-int Thread::ExecuteRoutine()
+Error Thread::ExecuteRoutine()
 {
-    int err = Routine->Execute(*this);
+    Error err = Routine->Execute(*this);
     CompEvent.SetAll();
     return err;
 }
 
-void Thread::Start(Runnable* routine, int& err)
+void Thread::Start(Runnable* routine, Error& err)
 {
-    if (err)
+    if (err != Error::Success)
     {
         return;
     }
     if (!routine)
     {
-        err = E_INVAL;
+        err = Error::InvalidValue;
         return;
     }
-    if (err)
+    if (err != Error::Success)
     {
         return;
     }
@@ -50,13 +50,13 @@ void Thread::Start(Runnable* routine, int& err)
 				   "kstorage-thread");
     if (!Task)
     {
-        err = E_NO_MEM;
+        err = Error::NoMemory;
         return;
     }
     Running = true;
     get_kapi()->task_get(Task);
     get_kapi()->task_wakeup(Task);
-    err = E_OK;
+    err = Error::Success;
 }
 
 void Thread::Stop()

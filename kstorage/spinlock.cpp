@@ -4,18 +4,18 @@ SpinLock::SpinLock()
 {
 }
 
-SpinLock::SpinLock(int& err, MemType memType)
+SpinLock::SpinLock(Error& err, MemType memType)
 {
-    if (err)
+    if (err != Error::Success)
         return;
 
     Lock = get_kapi()->spinlock_create(get_kapi_mem_flag(memType));
     if (!Lock)
     {
-        err = E_NO_MEM;
+        err = Error::NoMemory;
         return;
     }
-    err = E_OK;
+    err = Error::Success;
 }
 
 void SpinLock::Acquire()

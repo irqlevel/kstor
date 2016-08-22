@@ -5,9 +5,9 @@ Event::Event()
 {
 }
 
-Event::Event(int& err, MemType memType)
+Event::Event(Error& err, MemType memType)
 {
-    if (err)
+    if (err != Error::Success)
     {
         return;
     }
@@ -15,10 +15,10 @@ Event::Event(int& err, MemType memType)
     Completion = get_kapi()->completion_create(get_kapi_mem_flag(memType));
     if (!Completion)
     {
-        err = E_NO_MEM;
+        err = Error::NoMemory;
         return;
     }
-    err = E_OK;
+    err = Error::Success;
 }
 
 void Event::Set()

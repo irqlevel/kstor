@@ -2,13 +2,14 @@
 #include "runnable.h"
 #include "threadable.h"
 #include "event.h"
+#include "error.h"
 
 class Thread : public Threadable
 {
 public:
     Thread();
-    Thread(Runnable *routine, int& err);
-    void Start(Runnable *routine, int& err);
+    Thread(Runnable *routine, Error& err);
+    void Start(Runnable *routine, Error& err);
     void Stop();
     void Wait();
     void StopAndWait();
@@ -22,7 +23,7 @@ private:
     Thread& operator=(const Thread& other) = delete;
     Thread& operator=(Thread&& other) = delete;
     static int StartRoutine(void* context);
-    int ExecuteRoutine();
+    Error ExecuteRoutine();
     Runnable* Routine;
     void* Task;
     bool Stopping;

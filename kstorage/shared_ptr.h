@@ -20,13 +20,13 @@ public:
         trace(255, "this %p Ptr %p", this, ptr);
         Ptr = nullptr;
         Counter = nullptr;
-        int err = E_OK;
+        Error err;
         Atomic* counter = new Atomic(0, err);
         if (counter == nullptr)
         {
             return;
         }
-        if (err)
+        if (err != Error::Success)
         {
             delete counter;
             return;
@@ -46,9 +46,9 @@ public:
             Acquire();
         }
     }
-    shared_ptr(const shared_ptr<T>& other, int err)
+    shared_ptr(const shared_ptr<T>& other, Error& err)
     {
-        if (err)
+        if (err != Error::Success)
             return;
 
         Counter = other.Counter;

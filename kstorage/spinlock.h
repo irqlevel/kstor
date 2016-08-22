@@ -2,12 +2,13 @@
 
 #include "main.h"
 #include "lockable.h"
+#include "error.h"
 
 class SpinLock : public Lockable
 {
 public:
     SpinLock();
-    SpinLock(int& err, MemType memType = MemType::Kernel);
+    SpinLock(Error& err, MemType memType = MemType::Kernel);
     virtual ~SpinLock();
     void Acquire();
     void Release();

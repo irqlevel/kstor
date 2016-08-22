@@ -1,8 +1,28 @@
 #pragma once
 
-#define E_BASE      0xFFFE0000
+class Error
+{
+public:
+    Error();
 
-#define E_OK        0
-#define E_INVAL     (E_BASE + 1)
-#define E_NO_MEM    (E_BASE + 2)
-#define E_CANCELED  (E_BASE + 3)
+    Error(int code);
+
+    virtual ~Error();
+
+    int GetCode() const;
+
+    const char* GetDescription() const;
+
+    static const int Success = 0;
+
+    static const int InvalidValue = 22;
+
+    static const int NoMemory = 12;
+
+    static const int Cancelled = 125;
+
+    bool operator!= (const Error& other) const;
+
+private:
+    int Code;
+};

@@ -8,10 +8,10 @@ AString::AString()
 {
 }
 
-AString::AString(const char* s, MemType memType, int& err)
+AString::AString(const char* s, MemType memType, Error& err)
     : Buf(memType)
 {
-    if (err)
+    if (err != Error::Success)
         return;
 
     size_t len = strlen(s);
@@ -19,7 +19,7 @@ AString::AString(const char* s, MemType memType, int& err)
 
     if (!Buf.Reserve(size))
     {
-        err = E_NO_MEM;
+        err = Error::NoMemory;
         return;
     }
 
@@ -27,7 +27,7 @@ AString::AString(const char* s, MemType memType, int& err)
     {
         Buf.PushBack(s[i]);
     }
-    err = E_OK;
+    err = Error::Success;
 }
 
 const char* AString::GetBuf() const
@@ -55,7 +55,7 @@ AString& AString::operator=(AString&& other)
     return *this;
 }
 
-AString::AString(const AString& other, int err)
+AString::AString(const AString& other, Error& err)
     : Buf(other.Buf, err)
 {
 }

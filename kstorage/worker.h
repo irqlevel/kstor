@@ -7,16 +7,17 @@
 #include "runnable.h"
 #include "spinlock.h"
 #include "shared_ptr.h"
+#include "error.h"
 
 class Worker : public Runnable
 {
 public:
     Worker();
-    Worker(int& err);
+    Worker(Error& err);
     virtual ~Worker();
     bool Execute(RunnableRef task);
-    bool ExecuteAndWait(RunnableRef task, int& err);
-    int Run(const Threadable& thread);
+    bool ExecuteAndWait(RunnableRef task, Error& err);
+    Error Run(const Threadable& thread);
 private:
     Worker(const Worker& other) = delete;
     Worker& operator=(const Worker& other) = delete;

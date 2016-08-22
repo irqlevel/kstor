@@ -5,15 +5,15 @@ Atomic::Atomic()
 {
 }
 
-Atomic::Atomic(int value, int& err, MemType memType)
+Atomic::Atomic(int value, Error& err, MemType memType)
 {
-    if (err)
+    if (err != Error::Success)
         return;
 
     pAtomic = get_kapi()->atomic_create(value, get_kapi_mem_flag(memType));
     if (!pAtomic)
     {
-        err = E_NO_MEM;
+        err = Error::NoMemory;
         return;
     }
 }

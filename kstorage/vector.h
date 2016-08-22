@@ -113,15 +113,15 @@ public:
         return *this;
     }
 
-    Vector(const Vector& other, int err)
+    Vector(const Vector& other, Error err)
     {
-        if (err)
+        if (err != Error::Success)
             return;
 
         T* Arr = new (other.MemoryType) T[other.Capacity];
         if (!Arr)
         {
-            err = E_NO_MEM;
+            err = Error::NoMemory;
             return;
         }
 

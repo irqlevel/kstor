@@ -1,12 +1,13 @@
 #pragma once
 
 #include "main.h"
+#include "error.h"
 
 class Atomic
 {
 public:
     Atomic();
-    Atomic(int value, int& err, MemType memType = MemType::Kernel);
+    Atomic(int value, Error& err, MemType memType = MemType::Kernel);
     void Inc();
     bool DecAndTest();
     int Get();

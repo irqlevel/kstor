@@ -21,17 +21,17 @@ bool Worker::Execute(RunnableRef task)
     return result;
 }
 
-bool Worker::ExecuteAndWait(RunnableRef task, int& err)
+bool Worker::ExecuteAndWait(RunnableRef task, Error& err)
 {
     if (!Execute(task))
         return false;
 
     task.get()->Wait();
-    err = task.get()->GetError();
+    err = task.get()->GetStatus();
     return true;
 }
 
-int Worker::Run(const Threadable& thread)
+Error Worker::Run(const Threadable& thread)
 {
     while (!thread.IsStopping())
     {
@@ -53,14 +53,14 @@ int Worker::Run(const Threadable& thread)
     }
 
     trace(255, "Stopping");
-    return E_OK;
+    return Error::Success;
 }
 
-Worker::Worker(int& err)
+Worker::Worker(Error& err)
     : Runnable(err), Stopping(false), Running(false), Lock(err),
       TaskList(MemType::Kernel), TaskEvent(err), WorkerThread(this, err)
 {
-    if (err)
+    if (err != Error::Success)
         return;
 
     Running = true;

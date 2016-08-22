@@ -10,6 +10,7 @@
 #include "astring.h"
 #include "hash_table.h"
 #include "smp.h"
+#include "error.h"
 
 #include "public.h"
 
@@ -23,7 +24,7 @@ struct kernel_api *get_kapi(void)
 class TJob : public Runnable
 {
 public:
-    TJob(int& err)
+    TJob(Error& err)
         : Runnable(err)
     {
         trace(1,"job %p ctor", this);
@@ -32,10 +33,10 @@ public:
     {
         trace(1,"job %p dtor", this);
     }
-    int Run(const Threadable& thread)
+    Error Run(const Threadable& thread)
     {
         trace(1,"Hello from job %p", this);
-        return E_OK;
+        return Error::Success;
     }
 };
 
@@ -44,20 +45,20 @@ void test_worker()
     trace(1,"Test worker!!!");
     Worker w;
 
-    int err = E_OK;
+    Error err = Error::Success;
     WorkerRef worker(new (MemType::Atomic) Worker(err));
-    if (!worker.get() || err)
+    if (!worker.get() || err != Error::Success)
         return;
 
-    err = E_OK;
+    err = Error::Success;
     RunnableRef job(new TJob(err));
-    if (!job.get() || err)
+    if (!job.get() || err != Error::Success)
         return;
 
     if (!worker->ExecuteAndWait(job, err))
         return;
 
-    trace(1,"Waited job err %d", err);
+    trace(1,"Waited job err %d", err.GetCode());
 }
 
 void test_vector()
@@ -72,10 +73,9 @@ void test_vector()
 
 void test_astring()
 {
-    int err = E_OK;
-
+    Error err;
     AString s("blabla", MemType::Atomic, err);
-    if (err)
+    if (err != Error::Success)
         return;
 
     trace(1, "s init err %d", err);
@@ -98,10 +98,10 @@ size_t IntHash(const int& key)
 
 int test_hash_table()
 {
-    int err = 0;
+    Error err;
     HashTable<int, int> ht(MemType::Kernel, 256, err, IntCmp, IntHash);
-    if (err)
-        return err;
+    if (err != Error::Success)
+        return err.GetCode();
 
     ht.Insert(2, 11);
     ht.Insert(3, -7);
@@ -110,7 +110,7 @@ int test_hash_table()
     ht.Remove(3);
     trace(1, "ht[3] exists %d", ht.Exists(3));
 
-    return err;
+    return err.GetCode();
 }
 
 void only_one_cpu(void *data)

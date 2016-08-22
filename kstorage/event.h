@@ -2,11 +2,12 @@
 
 #include "main.h"
 #include "atomic.h"
+#include "error.h"
 
 class Event
 {
 public:
-    Event(int& err, MemType memType = MemType::Kernel);
+    Event(Error& err, MemType memType = MemType::Kernel);
     Event();
     void Set();
     void SetAll();

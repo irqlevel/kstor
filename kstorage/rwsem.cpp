@@ -4,18 +4,18 @@ RWSem::RWSem()
 {
 }
 
-RWSem::RWSem(int& err, MemType memType)
+RWSem::RWSem(Error& err, MemType memType)
 {
-    if (err)
+    if (err != Error::Success)
         return;
 
     Lock = get_kapi()->rwsem_create(get_kapi_mem_flag(memType));
     if (!Lock)
     {
-        err = E_NO_MEM;
+        err = Error::NoMemory;
         return;
     }
-    err = E_OK;
+    err = Error::Success;
 }
 
 void RWSem::Acquire()

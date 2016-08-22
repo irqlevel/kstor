@@ -55,12 +55,12 @@ void Smp::BlockAndWait(void *data)
 
 bool Smp::CallFunctionCurrCpuOnly(void (*function)(void *data), void *data)
 {
-    int err = 0;
+    Error err = Error::Success;
     Atomic counter(0, err, MemType::Atomic);
-    if (err)
+    if (err != Error::Success)
         return false;
     Atomic block(0, err, MemType::Atomic);
-    if (err)
+    if (err != Error::Success)
         return false;
 
     LockOnlineCpus();

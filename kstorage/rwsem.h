@@ -3,12 +3,13 @@
 #include "main.h"
 #include "lockable.h"
 #include "share_lockable.h"
+#include "error.h"
 
 class RWSem : public Lockable, public ShareLockable
 {
 public:
     RWSem();
-    RWSem(int& err, MemType memType = MemType::Kernel);
+    RWSem(Error& err, MemType memType = MemType::Kernel);
     virtual ~RWSem();
 
     void Acquire();

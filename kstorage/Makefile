@@ -5,7 +5,7 @@ LIB_OUT = kstorage.a
 
 LIB_SRC = main.cpp new_delete.cpp atomic.cpp thread.cpp event.cpp\
           worker.cpp spinlock.cpp pure_virtual.cpp trace.cpp astring.cpp\
-          list_entry.cpp smp.cpp rwsem.cpp
+          list_entry.cpp smp.cpp rwsem.cpp error.cpp
 
 OBJS = $(LIBS_OBJ) $(LIBS_KOBJ)
 

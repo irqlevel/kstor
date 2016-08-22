@@ -10,21 +10,21 @@
 class Runnable
 {
 public:
-    virtual int Run(const Threadable& thread) = 0;
+    virtual Error Run(const Threadable& thread) = 0;
 
     Runnable()
     {
     }
 
-    Runnable(int& err)
+    Runnable(Error& err)
         : CompleteEvent(util::move(Event(err)))
     {
     }
 
-    int Execute(const Threadable& thread)
+    Error Execute(const Threadable& thread)
     {
-        int err = Run(thread);
-        SetError(err);
+        Error err = Run(thread);
+        SetStatus(err);
         CompleteEvent.Set();
         return err;
     }
@@ -34,14 +34,14 @@ public:
         CompleteEvent.Wait();
     }
 
-    int GetError()
+    Error GetStatus()
     {
-        return Error;
+        return Status;
     }
 
     void Cancel()
     {
-        Error = E_CANCELED;
+        SetStatus(Error::Cancelled);
         CompleteEvent.Set();
     }
 
@@ -54,11 +54,11 @@ private:
     Runnable& operator=(const Runnable& other) = delete;
     Runnable& operator=(Runnable&& other) = delete;
 
-    void SetError(int err)
+    void SetStatus(const Error& err)
     {
-        Error = err;
+        Status = err;
     }
-    int Error;
+    Error Status;
     Event CompleteEvent;
 };
 
