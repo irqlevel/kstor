@@ -2,53 +2,24 @@
 
 #include "main.h"
 
-struct LIST_ENTRY
+struct ListEntry
 {
-    struct LIST_ENTRY *Flink;
-    struct LIST_ENTRY *Blink;
+    struct ListEntry *Flink;
+    struct ListEntry *Blink;
 };
 
-typedef struct LIST_ENTRY* PLIST_ENTRY;
+void InitializeListHead(ListEntry* listHead);
 
-void
-InitializeListHead(
-    PLIST_ENTRY ListHead
-    );
+bool IsListEmpty(ListEntry* listHead);
 
-bool
-IsListEmpty(
-    LIST_ENTRY * ListHead
-    );
+bool RemoveEntryList(ListEntry* entry);
 
-bool
-RemoveEntryList(
-    PLIST_ENTRY Entry
-    );
+void RemoveInitEntryList(ListEntry* entry);
 
-void
-RemoveInitEntryList(
-    PLIST_ENTRY Entry
-    );
+ListEntry* RemoveHeadList(ListEntry* listHead);
 
-PLIST_ENTRY
-RemoveHeadList(
-    PLIST_ENTRY ListHead
-    );
+ListEntry* RemoveTailList(ListEntry* listHead);
 
+void InsertTailList(ListEntry* listHead, ListEntry* entry);
 
-PLIST_ENTRY
-RemoveTailList(
-    PLIST_ENTRY ListHead
-    );
-
-void
-InsertTailList(
-    PLIST_ENTRY ListHead,
-    PLIST_ENTRY Entry
-    );
-
-void
-InsertHeadList(
-    PLIST_ENTRY ListHead,
-    PLIST_ENTRY Entry
-    );
+void InsertHeadList(ListEntry* ListHead, ListEntry* Entry);

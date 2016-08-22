@@ -1,115 +1,80 @@
 #include "list_entry.h"
 
-void
-InitializeListHead(
-    PLIST_ENTRY ListHead
-    )
-
+void InitializeListHead(ListEntry* listHead)
 {
-    ListHead->Flink = ListHead->Blink = ListHead;
+    listHead->Flink = listHead->Blink = listHead;
     return;
 }
 
-bool
-IsListEmpty(
-    LIST_ENTRY * ListHead
-    )
-
+bool IsListEmpty(ListEntry* listHead)
 {
-
-    return (ListHead->Flink == ListHead) ? true : false;
+    return (listHead->Flink == listHead) ? true : false;
 }
 
-bool
-RemoveEntryList(
-    PLIST_ENTRY Entry
-    )
-
+bool RemoveEntryList(ListEntry* entry)
 {
-    PLIST_ENTRY Blink;
-    PLIST_ENTRY Flink;
+    ListEntry* blink;
+    ListEntry* flink;
 
-    Flink = Entry->Flink;
-    Blink = Entry->Blink;
-    Blink->Flink = Flink;
-    Flink->Blink = Blink;
-    return (Flink == Blink) ? true : false;
+    flink = entry->Flink;
+    blink = entry->Blink;
+    blink->Flink = flink;
+    flink->Blink = blink;
+    return (flink == blink) ? true : false;
 }
 
-void
-RemoveInitEntryList(
-    PLIST_ENTRY Entry
-    )
-
+void RemoveInitEntryList(ListEntry* entry)
 {
-    RemoveEntryList(Entry);
-    InitializeListHead(Entry);
+    RemoveEntryList(entry);
+    InitializeListHead(entry);
 }
 
-PLIST_ENTRY
-RemoveHeadList(
-    PLIST_ENTRY ListHead
-    )
-
+ListEntry* RemoveHeadList(ListEntry* listHead)
 {
+    ListEntry* flink;
+    ListEntry* entry;
 
-    PLIST_ENTRY Flink;
-    PLIST_ENTRY Entry;
-
-    Entry = ListHead->Flink;
-    Flink = Entry->Flink;
-    ListHead->Flink = Flink;
-    Flink->Blink = ListHead;
-    return Entry;
+    entry = listHead->Flink;
+    flink = entry->Flink;
+    listHead->Flink = flink;
+    flink->Blink = listHead;
+    return entry;
 }
 
-PLIST_ENTRY
-RemoveTailList(
-    PLIST_ENTRY ListHead
-    )
-
+ListEntry* RemoveTailList(ListEntry* listHead)
 {
+    ListEntry* blink;
+    ListEntry* entry;
 
-    PLIST_ENTRY Blink;
-    PLIST_ENTRY Entry;
-
-    Entry = ListHead->Blink;
-    Blink = Entry->Blink;
-    ListHead->Blink = Blink;
-    Blink->Flink = ListHead;
-    return Entry;
+    entry = listHead->Blink;
+    blink = entry->Blink;
+    listHead->Blink = blink;
+    blink->Flink = listHead;
+    return entry;
 }
 
-void
-InsertTailList(
-    PLIST_ENTRY ListHead,
-    PLIST_ENTRY Entry
-    )
+void InsertTailList(ListEntry* listHead, ListEntry* entry)
 {
 
-    PLIST_ENTRY Blink;
+    ListEntry* blink;
 
-    Blink = ListHead->Blink;
-    Entry->Flink = ListHead;
-    Entry->Blink = Blink;
-    Blink->Flink = Entry;
-    ListHead->Blink = Entry;
+    blink = listHead->Blink;
+    entry->Flink = listHead;
+    entry->Blink = blink;
+    blink->Flink = entry;
+    listHead->Blink = entry;
     return;
 }
 
-void
-InsertHeadList(
-    PLIST_ENTRY ListHead,
-    PLIST_ENTRY Entry
-    )
+void InsertHeadList(ListEntry* listHead, ListEntry* entry)
 {
 
-    PLIST_ENTRY Flink;
+    ListEntry* flink;
 
-    Flink = ListHead->Flink;
-    Entry->Flink = Flink;
-    Entry->Blink = ListHead;
-    Flink->Blink = Entry;
-    ListHead->Flink = Entry;
+    flink = listHead->Flink;
+    entry->Flink = flink;
+    entry->Blink = listHead;
+    flink->Blink = entry;
+    listHead->Flink = entry;
     return;
 }

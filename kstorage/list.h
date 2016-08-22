@@ -20,7 +20,7 @@ public:
             KBUG_ON(CurrListEntry == EndList);
             LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
                                                      LinkedListNode,
-                                                     ListEntry);
+                                                     ListLink);
             return node->Value;
         }
 
@@ -41,12 +41,12 @@ public:
         {
             KBUG_ON(!IsValid());
 
-            PLIST_ENTRY next = CurrListEntry->Flink;
+            ListEntry* next = CurrListEntry->Flink;
 
             LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
                                                      LinkedListNode,
-                                                     ListEntry);
-            RemoveEntryList(&node->ListEntry);
+                                                     ListLink);
+            RemoveEntryList(&node->ListLink);
             delete node;
             CurrListEntry = next;
         }
@@ -60,8 +60,8 @@ public:
         Iterator(const Iterator& other) = delete;
         Iterator& operator=(const Iterator& other) = delete;
         Iterator& operator=(Iterator&& other) = delete;
-        PLIST_ENTRY CurrListEntry;
-        PLIST_ENTRY EndList;
+        ListEntry* CurrListEntry;
+        ListEntry* EndList;
     };
 
     LinkedList()
@@ -84,7 +84,7 @@ public:
         {
             return false;
         }
-        InsertHeadList(&ListHead, &node->ListEntry);
+        InsertHeadList(&ListHead, &node->ListLink);
         return true;
     }
 
@@ -96,7 +96,7 @@ public:
         {
             return false;
         }
-        InsertTailList(&ListHead, &node->ListEntry);
+        InsertTailList(&ListHead, &node->ListLink);
         return true;
     }
 
@@ -108,7 +108,7 @@ public:
         {
             return false;
         }
-        InsertTailList(&ListHead, &node->ListEntry);
+        InsertTailList(&ListHead, &node->ListLink);
         return true;
     }
 
@@ -117,7 +117,7 @@ public:
         LinkedListNode* node;
 
         KBUG_ON(IsListEmpty(&ListHead));
-        node = CONTAINING_RECORD(ListHead.Flink, LinkedListNode, ListEntry);
+        node = CONTAINING_RECORD(ListHead.Flink, LinkedListNode, ListLink);
         return node->Value;
     }
 
@@ -126,7 +126,7 @@ public:
         LinkedListNode* node;
 
         KBUG_ON(IsListEmpty(&ListHead));
-        node = CONTAINING_RECORD(ListHead.Blink, LinkedListNode, ListEntry);
+        node = CONTAINING_RECORD(ListHead.Blink, LinkedListNode, ListLink);
         return node->Value;
     }
 
@@ -136,7 +136,7 @@ public:
 
         KBUG_ON(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
-                                 LinkedListNode, ListEntry);
+                                 LinkedListNode, ListLink);
         delete node;
     }
 
@@ -146,7 +146,7 @@ public:
 
         KBUG_ON(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveTailList(&ListHead),
-                                 LinkedListNode, ListEntry);
+                                 LinkedListNode, ListLink);
         delete node;
     }
 
@@ -195,7 +195,7 @@ private:
         while (!IsListEmpty(&ListHead))
         {
             node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
-                                     LinkedListNode, ListEntry);
+                                     LinkedListNode, ListLink);
             delete node;
         }
     }
@@ -204,18 +204,18 @@ private:
     public:
         LinkedListNode(const T& value)
         {
-            InitializeListHead(&ListEntry);
+            InitializeListHead(&ListLink);
             Value = value;
         }
         LinkedListNode(T&& value)
         {
-            InitializeListHead(&ListEntry);
+            InitializeListHead(&ListLink);
             Value = util::move(value);
         }
         virtual ~LinkedListNode()
         {
         }
-        LIST_ENTRY ListEntry;
+        ListEntry ListLink;
         T Value;
     private:
         LinkedListNode() = delete;
@@ -223,6 +223,6 @@ private:
         LinkedListNode& operator=(const LinkedListNode& other) = delete;
         LinkedListNode& operator=(LinkedListNode&& other) = delete;
     };
-    LIST_ENTRY ListHead;
+    ListEntry ListHead;
     MemType MemoryType;
 };
