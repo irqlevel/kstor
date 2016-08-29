@@ -124,7 +124,7 @@ int test_smp()
     return 0;
 }
 
-int kstorage_init(struct kernel_api *kapi)
+int core_init(struct kernel_api *kapi)
 {
     g_kapi = *kapi;
     trace(1, "kstorage_init");
@@ -139,7 +139,7 @@ int kstorage_init(struct kernel_api *kapi)
     return 0;
 }
 
-void kstorage_deinit(void)
+void core_deinit(void)
 {
     trace(1,"kstorage_deinit");
 }

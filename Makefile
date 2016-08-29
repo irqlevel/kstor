@@ -1,7 +1,7 @@
 export PROJ_ROOT=$(CURDIR)
 export ARCH_BITS=$(shell getconf LONG_BIT)
 
-SOURCE_DIRS = lkm kstorage
+SOURCE_DIRS = system core
 BUILD_DIRS = bin lib obj
 
 SOURCE_DIRS_CLEAN = $(addsuffix .clean,$(SOURCE_DIRS))
@@ -25,6 +25,6 @@ $(SOURCE_DIRS_CLEAN): %.clean:
 $(BUILD_DIRS_CLEAN): %.clean:
 	rm -rf $*
 
-kstorage: $(BUILD_DIRS)
+core: $(BUILD_DIRS)
 
-lkm: kstorage $(BUILD_DIRS)
+system: core $(BUILD_DIRS)

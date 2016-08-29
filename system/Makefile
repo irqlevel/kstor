@@ -17,8 +17,8 @@ KERNEL_PATH=/lib/modules/$(shell uname -r)/build
 endif
 
 all:
-	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/lkm modules
+	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/system modules
 	cp $(KMOD_KO) ../bin/$(KMOD_KO)
 clean:
-	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/lkm clean
+	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/system clean
 	rm -r -f *.o

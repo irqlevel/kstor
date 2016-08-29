@@ -8,7 +8,7 @@
 #include "base.h"
 #include "kapi_internal.h"
 
-#include "../kstorage/public.h"
+#include "../core/public.h"
 
 MODULE_LICENSE("GPL");
 
@@ -22,7 +22,7 @@ static int __init kstorage_module_init(void)
     if (err)
         goto out;
 
-    err = kstorage_init(kapi_get());
+    err = core_init(kapi_get());
     if (err)
     {
         kapi_deinit();
@@ -36,7 +36,7 @@ out:
 static void __exit kstorage_module_exit(void)
 {
     PRINTK("exiting\n");
-    kstorage_deinit();
+    core_deinit();
     kapi_deinit();
     PRINTK("exited\n");
     return;
