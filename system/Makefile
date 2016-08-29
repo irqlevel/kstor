@@ -1,6 +1,6 @@
 include $(PROJ_ROOT)/Makefile.inc
 
-KMOD = kstorage
+KMOD = kstor
 KMOD_KO = $(KMOD).ko
 
 obj-m = $(KMOD).o

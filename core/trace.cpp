@@ -26,7 +26,7 @@ void Trace::Output(int level, const char *prefix, const char *file,
     if (level > Level)
         return;
 
-    pos = snprintf(output, sizeof(output), "%s: p%d %s,%d %s:",
+    pos = snprintf(output, sizeof(output), "%s: p%d %s,%d %s():",
                    prefix, pid, file, line, func);
     if (pos < 0)
         return;

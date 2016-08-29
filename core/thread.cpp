@@ -46,7 +46,7 @@ void Thread::Start(Runnable* routine, Error& err)
     }
     Routine = routine;
     Task = get_kapi()->task_create(&Thread::StartRoutine, this,
-				   "kstorage-thread");
+				   "kstor-thread");
     if (!Task)
     {
         err = Error::NoMemory;

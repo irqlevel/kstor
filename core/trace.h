@@ -1,7 +1,6 @@
 #pragma once
 
 #include "kapi.h"
-#include "../inc/consts.h"
 
 class Trace
 {
@@ -16,7 +15,7 @@ private:
 };
 
 #define trace(level, fmt, ...)   \
-            Trace::Output(level, MOD_NAME,  \
-                          __FILE__, __PRETTY_FUNCTION__, __LINE__,  \
-                          get_kapi()->task_get_id(get_kapi()->task_current()), \
-                          fmt, ##__VA_ARGS__)
+              Trace::Output(level, __MODULE_NAME__,  \
+              __FILE__, __FUNCTION__, __LINE__,  \
+              get_kapi()->task_get_id(get_kapi()->task_current()), \
+              fmt, ##__VA_ARGS__)

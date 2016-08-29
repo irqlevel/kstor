@@ -1,6 +1,6 @@
 function! SetupEnvironment()
   let l:path = expand('%:p')
-  if l:path =~ '/root/kstorage'
+  if l:path =~ '/root/kstor'
     setlocal softtabstop=4 shiftwidth=4 expandtab
   endif
 endfunction

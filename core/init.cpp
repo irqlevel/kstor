@@ -5,11 +5,11 @@
 int core_init(struct kernel_api *api)
 {
     kapi_init(api);
-    trace(1, "core_init completed");
+    trace(1, "inited");
     return 0;
 }
 
 void core_deinit(void)
 {
-    trace(1,"core_deinit");
+    trace(1,"deinited");
 }

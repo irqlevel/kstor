@@ -13,7 +13,7 @@
 
 MODULE_LICENSE("GPL");
 
-static int __init kstorage_module_init(void)
+static int __init kstor_module_init(void)
 {
     int err;
 
@@ -43,7 +43,7 @@ out:
     return err;
 }
 
-static void __exit kstorage_module_exit(void)
+static void __exit kstor_module_exit(void)
 {
     PRINTK("exiting\n");
     stor_deinit();
@@ -53,5 +53,5 @@ static void __exit kstorage_module_exit(void)
     return;
 }
 
-module_init(kstorage_module_init);
-module_exit(kstorage_module_exit);
+module_init(kstor_module_init);
+module_exit(kstor_module_exit);

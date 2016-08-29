@@ -4,15 +4,15 @@
 
 int stor_init(void)
 {
-    trace(1, "storage_init");
+    trace(1, "initing");
 
     run_tests();
 
-    trace(1, "storage_init completed");
+    trace(1, "inited");
     return 0;
 }
 
 void stor_deinit(void)
 {
-    trace(1,"storage_deinit");
+    trace(1,"deinited");
 }
