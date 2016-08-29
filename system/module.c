@@ -9,6 +9,7 @@
 #include "kapi_internal.h"
 
 #include "../core/init.h"
+#include "../stor/init.h"
 
 MODULE_LICENSE("GPL");
 
@@ -24,18 +25,28 @@ static int __init kstorage_module_init(void)
 
     err = core_init(kapi_get());
     if (err)
-    {
-        kapi_deinit();
-        goto out;
-    }
+        goto deinit_kapi;
+
+    err = stor_init();
+    if (err)
+        goto deinit_core;
+
+    PRINTK("load success\n");
+    return 0;
+
+deinit_core:
+    core_deinit();
+deinit_kapi:
+    kapi_deinit();
 out:
-    PRINTK("loaded err %d\n", err);
+    PRINTK("load err %d\n", err);
     return err;
 }
 
 static void __exit kstorage_module_exit(void)
 {
     PRINTK("exiting\n");
+    stor_deinit();
     core_deinit();
     kapi_deinit();
     PRINTK("exited\n");

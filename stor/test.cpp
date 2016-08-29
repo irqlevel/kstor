@@ -1,15 +1,15 @@
-#include "shared_ptr.h"
-#include "list_entry.h"
-#include "list.h"
-#include "auto_lock.h"
-#include "spinlock.h"
-#include "worker.h"
-#include "trace.h"
-#include "vector.h"
-#include "astring.h"
-#include "hash_table.h"
-#include "smp.h"
-#include "error.h"
+#include <core/shared_ptr.h>
+#include <core/list_entry.h>
+#include <core/list.h>
+#include <core/auto_lock.h>
+#include <core/spinlock.h>
+#include <core/worker.h>
+#include <core/trace.h>
+#include <core/vector.h>
+#include <core/astring.h>
+#include <core/hash_table.h>
+#include <core/smp.h>
+#include <core/error.h>
 
 class TJob : public Runnable
 {

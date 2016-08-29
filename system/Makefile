@@ -4,7 +4,7 @@ KMOD = kstorage
 KMOD_KO = $(KMOD).ko
 
 obj-m = $(KMOD).o
-$(KMOD)-objs := module.o kapi.o malloc_checker.o ../lib/$(KMOD).a
+$(KMOD)-objs := module.o kapi.o malloc_checker.o ../lib/stor.a ../lib/core.a
 
 ccflags-y := -I$(src) -I.. $(COMMON_CFLAGS) -fno-inline    \
             -D __KERNEL__ -D __MALLOC_CHECKER__ \
