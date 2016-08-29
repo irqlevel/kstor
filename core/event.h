@@ -7,7 +7,7 @@
 class Event
 {
 public:
-    Event(Error& err, MemType memType = MemType::Kernel);
+    Event(Error& err, Memory::PoolType poolType = Memory::PoolType::Kernel);
     Event();
     void Set();
     void SetAll();

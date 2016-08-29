@@ -8,12 +8,12 @@ extern "C"
 #include <stddef.h>
 #include <stdbool.h>
 
-#define KAPI_MEM_UNKNOWN    0UL
-#define KAPI_MEM_ATOMIC     1UL
-#define KAPI_MEM_KERNEL     2UL
-#define KAPI_MEM_NOFS       3UL
-#define KAPI_MEM_NOIO       4UL
-#define KAPI_MEM_USER       5UL
+#define KAPI_GFP_UNKNOWN    0UL
+#define KAPI_GFP_ATOMIC     1UL
+#define KAPI_GFP_KERNEL     2UL
+#define KAPI_GFP_NOFS       3UL
+#define KAPI_GFP_NOIO       4UL
+#define KAPI_GFP_USER       5UL
 
 struct kernel_api
 {

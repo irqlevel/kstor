@@ -4,12 +4,12 @@ RWSem::RWSem()
 {
 }
 
-RWSem::RWSem(Error& err, MemType memType)
+RWSem::RWSem(Error& err, Memory::PoolType poolType)
 {
     if (err != Error::Success)
         return;
 
-    Lock = get_kapi()->rwsem_create(get_kapi_mem_flag(memType));
+    Lock = get_kapi()->rwsem_create(get_kapi_gfp_flags(poolType));
     if (!Lock)
     {
         err = Error::NoMemory;

@@ -7,7 +7,8 @@ class Atomic
 {
 public:
     Atomic();
-    Atomic(int value, Error& err, MemType memType = MemType::Kernel);
+    Atomic(int value, Error& err,
+           Memory::PoolType poolType = Memory::PoolType::Kernel);
     void Inc();
     bool DecAndTest();
     int Get();

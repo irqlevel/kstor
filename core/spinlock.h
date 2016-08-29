@@ -8,7 +8,7 @@ class SpinLock : public Lockable
 {
 public:
     SpinLock();
-    SpinLock(Error& err, MemType memType = MemType::Kernel);
+    SpinLock(Error& err,  Memory::PoolType poolType = Memory::PoolType::Kernel);
     virtual ~SpinLock();
     void Acquire();
     void Release();

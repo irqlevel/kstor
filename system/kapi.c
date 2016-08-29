@@ -17,25 +17,25 @@
 
 #include "malloc_checker.h"
 
-static void *kapi_kmalloc(size_t size, unsigned long mem_flag)
+static void *kapi_kmalloc(size_t size, unsigned long type)
 {
     gfp_t flags;
 
-    switch (mem_flag)
+    switch (type)
     {
-    case KAPI_MEM_ATOMIC:
+    case KAPI_GFP_ATOMIC:
         flags = GFP_ATOMIC;
         break;
-    case KAPI_MEM_KERNEL:
+    case KAPI_GFP_KERNEL:
         flags = GFP_KERNEL;
         break;
-    case KAPI_MEM_NOIO:
+    case KAPI_GFP_NOIO:
         flags = GFP_NOIO;
         break;
-    case KAPI_MEM_NOFS:
+    case KAPI_GFP_NOFS:
         flags = GFP_NOFS;
         break;
-    case KAPI_MEM_USER:
+    case KAPI_GFP_USER:
         flags = GFP_USER;
         break;
     default:

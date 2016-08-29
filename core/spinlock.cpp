@@ -4,12 +4,12 @@ SpinLock::SpinLock()
 {
 }
 
-SpinLock::SpinLock(Error& err, MemType memType)
+SpinLock::SpinLock(Error& err, Memory::PoolType poolType)
 {
     if (err != Error::Success)
         return;
 
-    Lock = get_kapi()->spinlock_create(get_kapi_mem_flag(memType));
+    Lock = get_kapi()->spinlock_create(get_kapi_gfp_flags(poolType));
     if (!Lock)
     {
         err = Error::NoMemory;

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "mem_type.h"
+#include "memory.h"
 
-void* operator new(size_t size, MemType memType);
-void* operator new[](size_t size, MemType memType);
+void* operator new(size_t size, Memory::PoolType poolType);
+void* operator new[](size_t size, Memory::PoolType poolType);
 void operator delete(void* ptr);
 void operator delete[](void* ptr);

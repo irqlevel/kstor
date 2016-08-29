@@ -65,20 +65,20 @@ public:
     };
 
     LinkedList()
-        : MemoryType(MemType::Kernel)
+        : PoolType(Memory::PoolType::Kernel)
     {
         InitializeListHead(&ListHead);
     }
 
-    LinkedList(MemType memType)
-        : MemoryType(memType)
+    LinkedList(Memory::PoolType poolType)
+        : PoolType(poolType)
     {
         InitializeListHead(&ListHead);
     }
 
     bool AddHead(const T& value)
     {
-        LinkedListNode* node = new (MemoryType) LinkedListNode(value);
+        LinkedListNode* node = new (PoolType) LinkedListNode(value);
 
         if (!node)
         {
@@ -90,7 +90,7 @@ public:
 
     bool AddTail(const T& value)
     {
-        LinkedListNode* node = new (MemoryType) LinkedListNode(value);
+        LinkedListNode* node = new (PoolType) LinkedListNode(value);
 
         if (!node)
         {
@@ -102,7 +102,7 @@ public:
 
     bool AddTail(T&& value)
     {
-        LinkedListNode* node = new (MemoryType)
+        LinkedListNode* node = new (PoolType)
                                 LinkedListNode(util::move(value));
         if (!node)
         {
@@ -167,7 +167,7 @@ public:
         else
             InitializeListHead(&ListHead);
 
-        MemoryType = other.MemoryType;
+        PoolType = other.PoolType;
         InitializeListHead(&other.ListHead);
     }
 
@@ -180,7 +180,7 @@ public:
         else
             InitializeListHead(&ListHead);
 
-        MemoryType = other.MemoryType;
+        PoolType = other.PoolType;
         InitializeListHead(&other.ListHead);
         return *this;
     }
@@ -224,5 +224,5 @@ private:
         LinkedListNode& operator=(LinkedListNode&& other) = delete;
     };
     ListEntry ListHead;
-    MemType MemoryType;
+    Memory::PoolType PoolType;
 };

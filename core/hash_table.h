@@ -9,11 +9,11 @@ template <class K, class V>
 class HashTable
 {
 public:
-    HashTable(MemType memType, size_t nrBuckets, Error& err,
+    HashTable(Memory::PoolType poolType, size_t nrBuckets, Error& err,
               int (*keyCmp)(const K& key1, const K& key2),
               size_t (*keyHash)(const K& key))
-        : Buckets(memType), KeyCmp(keyCmp), KeyHash(keyHash),
-          MemoryType(memType)
+        : Buckets(poolType), KeyCmp(keyCmp), KeyHash(keyHash),
+          PoolType(poolType)
     {
         if (err != Error::Success)
             return;
@@ -26,7 +26,7 @@ public:
 
         for (size_t i = 0; i < nrBuckets; i++)
         {
-            LinkedList<HashEntry> list(memType);
+            LinkedList<HashEntry> list(poolType);
             if (!Buckets.PushBack(util::move(list)))
             {
                 err = Error::NoMemory;
@@ -197,6 +197,6 @@ private:
     Vector<LinkedList<HashEntry>> Buckets;
     int (*KeyCmp)(const K& key1, const K& key2);
     size_t (*KeyHash)(const K& key);
-    MemType MemoryType;
+    Memory::PoolType PoolType;
     V EmptyValue;
 };

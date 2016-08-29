@@ -1,7 +1,7 @@
 #pragma once
 
 #include "error.h"
-#include "mem_type.h"
+#include "memory.h"
 
 #include "../inc/consts.h"
 #include "../system/kapi.h"
@@ -12,22 +12,22 @@
 
 struct kernel_api *get_kapi(void);
 
-static inline unsigned long get_kapi_mem_flag(MemType memType)
+static inline unsigned long get_kapi_gfp_flags(Memory::PoolType poolType)
 {
-    switch (memType)
+    switch (poolType)
     {
-    case MemType::Atomic:
-        return KAPI_MEM_ATOMIC;
-    case MemType::Kernel:
-        return KAPI_MEM_KERNEL;
-    case MemType::User:
-        return KAPI_MEM_USER;
-    case MemType::NoIO:
-        return KAPI_MEM_NOIO;
-    case MemType::NoFS:
-        return KAPI_MEM_NOFS;
+    case Memory::PoolType::Atomic:
+        return KAPI_GFP_ATOMIC;
+    case Memory::PoolType::Kernel:
+        return KAPI_GFP_KERNEL;
+    case Memory::PoolType::User:
+        return KAPI_GFP_USER;
+    case Memory::PoolType::NoIO:
+        return KAPI_GFP_NOIO;
+    case Memory::PoolType::NoFS:
+        return KAPI_GFP_NOFS;
     default:
-        return KAPI_MEM_UNKNOWN;
+        return KAPI_GFP_UNKNOWN;
     }
 }
 

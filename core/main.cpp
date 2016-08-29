@@ -46,7 +46,7 @@ void test_worker()
     Worker w;
 
     Error err = Error::Success;
-    WorkerRef worker(new (MemType::Atomic) Worker(err));
+    WorkerRef worker(new (Memory::PoolType::Atomic) Worker(err));
     if (!worker.get() || err != Error::Success)
         return;
 
@@ -63,7 +63,7 @@ void test_worker()
 
 void test_vector()
 {
-    Vector<char> v(MemType::Atomic);
+    Vector<char> v(Memory::PoolType::Atomic);
 
     v.PushBack('a');
     v.PushBack('b');
@@ -74,7 +74,7 @@ void test_vector()
 void test_astring()
 {
     Error err;
-    AString s("blabla", MemType::Atomic, err);
+    AString s("blabla", Memory::PoolType::Atomic, err);
     if (err != Error::Success)
         return;
 
@@ -99,7 +99,7 @@ size_t IntHash(const int& key)
 int test_hash_table()
 {
     Error err;
-    HashTable<int, int> ht(MemType::Kernel, 256, err, IntCmp, IntHash);
+    HashTable<int, int> ht(Memory::PoolType::Kernel, 256, err, IntCmp, IntHash);
     if (err != Error::Success)
         return err.GetCode();
 

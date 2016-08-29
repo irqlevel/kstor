@@ -5,14 +5,14 @@ Event::Event()
 {
 }
 
-Event::Event(Error& err, MemType memType)
+Event::Event(Error& err, Memory::PoolType poolType)
 {
     if (err != Error::Success)
     {
         return;
     }
 
-    Completion = get_kapi()->completion_create(get_kapi_mem_flag(memType));
+    Completion = get_kapi()->completion_create(get_kapi_gfp_flags(poolType));
     if (!Completion)
     {
         err = Error::NoMemory;

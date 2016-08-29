@@ -9,7 +9,7 @@ class RWSem : public Lockable, public ShareLockable
 {
 public:
     RWSem();
-    RWSem(Error& err, MemType memType = MemType::Kernel);
+    RWSem(Error& err, Memory::PoolType poolType = Memory::PoolType::Kernel);
     virtual ~RWSem();
 
     void Acquire();

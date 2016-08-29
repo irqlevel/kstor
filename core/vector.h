@@ -6,9 +6,9 @@ template<class T>
 class Vector
 {
 public:
-    Vector(MemType memType)
+    Vector(Memory::PoolType poolType)
         : Arr(nullptr), Size(0), Capacity(0),
-         MemoryType(memType)
+         PoolType(poolType)
     {
     }
 
@@ -33,7 +33,7 @@ public:
         if (capacity <= Capacity)
             return true;
 
-        T* newArr = new (MemoryType) T[capacity];
+        T* newArr = new (PoolType) T[capacity];
         if (!newArr)
             return false;
 
@@ -92,11 +92,11 @@ public:
         Arr = other.Arr;
         Size = other.Size;
         Capacity = other.Capacity;
-        MemoryType = other.MemoryType;
+        PoolType = other.PoolType;
         other.Arr = nullptr;
         other.Size = 0;
         other.Capacity = 0;
-        other.MemoryType = MemType::Kernel;
+        other.PoolType = Memory::PoolType::Undefined;
     }
 
     Vector& operator=(Vector&& other)
@@ -105,11 +105,11 @@ public:
         Arr = other.Arr;
         Size = other.Size;
         Capacity = other.Capacity;
-        MemoryType = other.MemoryType;
+        PoolType = other.PoolType;
         other.Arr = nullptr;
         other.Size = 0;
         other.Capacity = 0;
-        other.MemoryType = MemType::Kernel;
+        other.PoolType = Memory::PoolType::Kernel;
         return *this;
     }
 
@@ -118,7 +118,7 @@ public:
         if (err != Error::Success)
             return;
 
-        T* Arr = new (other.MemoryType) T[other.Capacity];
+        T* Arr = new (other.PoolType) T[other.Capacity];
         if (!Arr)
         {
             err = Error::NoMemory;
@@ -131,7 +131,7 @@ public:
         }
         Size = other.Size;
         Capacity = other.Capacity;
-        MemoryType = other.MemoryType;
+        PoolType = other.PoolType;
     }
 
 private:
@@ -152,5 +152,5 @@ private:
     T* Arr;
     size_t Size;
     size_t Capacity;
-    MemType MemoryType;
+    Memory::PoolType PoolType;
 };

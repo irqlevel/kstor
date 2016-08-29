@@ -4,12 +4,12 @@
 #include <string.h>
 
 AString::AString()
-    : Buf(MemType::Kernel)
+    : Buf(Memory::PoolType::Kernel)
 {
 }
 
-AString::AString(const char* s, MemType memType, Error& err)
-    : Buf(memType)
+AString::AString(const char* s, Memory::PoolType poolType, Error& err)
+    : Buf(poolType)
 {
     if (err != Error::Success)
         return;

@@ -56,10 +56,10 @@ void Smp::BlockAndWait(void *data)
 bool Smp::CallFunctionCurrCpuOnly(void (*function)(void *data), void *data)
 {
     Error err = Error::Success;
-    Atomic counter(0, err, MemType::Atomic);
+    Atomic counter(0, err, Memory::PoolType::Atomic);
     if (err != Error::Success)
         return false;
-    Atomic block(0, err, MemType::Atomic);
+    Atomic block(0, err, Memory::PoolType::Atomic);
     if (err != Error::Success)
         return false;
 
