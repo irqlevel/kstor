@@ -1,8 +1,6 @@
 #pragma once
 
-#include "main.h"
-#include "atomic.h"
-#include "error.h"
+#include "kapi.h"
 
 class Event
 {

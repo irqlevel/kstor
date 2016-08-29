@@ -1,7 +1,5 @@
 #pragma once
 
-#include "main.h"
-
 #include "error.h"
 #include "threadable.h"
 #include "shared_ptr.h"

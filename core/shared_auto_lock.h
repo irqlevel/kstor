@@ -1,7 +1,6 @@
 #pragma once
 
-#include "main.h"
-#include "share_lockable.h"
+#include "shared_lockable.h"
 #include "trace.h"
 
 class ShareAutoLock

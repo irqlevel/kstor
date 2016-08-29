@@ -1,8 +1,6 @@
 #pragma once
 
-#include "main.h"
-
-class ShareLockable
+class SharedLockable
 {
 public:
     virtual void AcquireShared() = 0;

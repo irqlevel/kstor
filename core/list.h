@@ -1,7 +1,10 @@
 #pragma once
 
-#include "main.h"
 #include "list_entry.h"
+#include "containing_record.h"
+#include "bug.h"
+#include "utility.h"
+#include "new.h"
 
 template <class T> class LinkedList
 {

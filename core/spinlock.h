@@ -1,8 +1,7 @@
 #pragma once
 
-#include "main.h"
 #include "lockable.h"
-#include "error.h"
+#include "kapi.h"
 
 class SpinLock : public Lockable
 {

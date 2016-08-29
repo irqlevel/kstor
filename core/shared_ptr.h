@@ -1,9 +1,9 @@
 #pragma once
 
-#include "main.h"
 #include "atomic.h"
 #include "error.h"
 #include "trace.h"
+#include "bug.h"
 
 template<class T>
 class shared_ptr

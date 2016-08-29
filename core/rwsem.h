@@ -1,11 +1,10 @@
 #pragma once
 
-#include "main.h"
+#include "kapi.h"
 #include "lockable.h"
-#include "share_lockable.h"
-#include "error.h"
+#include "shared_lockable.h"
 
-class RWSem : public Lockable, public ShareLockable
+class RWSem : public Lockable, public SharedLockable
 {
 public:
     RWSem();

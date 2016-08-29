@@ -1,6 +1,5 @@
 #pragma once
 
-#include "main.h"
 #include "list.h"
 #include "thread.h"
 #include "event.h"

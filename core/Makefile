@@ -3,7 +3,7 @@ include $(PROJ_ROOT)/Makefile.inc
 CFLAGS= $(COMMON_CFLAGS) -std=c++11 -mcmodel=kernel -D__CPP__ -ffreestanding -fno-inline -fno-exceptions -fno-rtti
 LIB_OUT = kstorage.a
 
-LIB_SRC = kapi.cpp init.cpp test.cpp new_delete.cpp atomic.cpp thread.cpp \
+LIB_SRC = kapi.cpp init.cpp test.cpp new.cpp atomic.cpp thread.cpp \
           event.cpp worker.cpp spinlock.cpp pure_virtual.cpp trace.cpp \
           astring.cpp list_entry.cpp smp.cpp rwsem.cpp error.cpp
 

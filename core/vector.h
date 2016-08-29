@@ -1,6 +1,11 @@
 #pragma once
 
-#include "main.h"
+#include "memory.h"
+#include "size.h"
+#include "error.h"
+#include "bug.h"
+#include "utility.h"
+#include "new.h"
 
 template<class T>
 class Vector

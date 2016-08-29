@@ -1,5 +1,5 @@
-#include "main.h"
-#include "new_delete.h"
+#include "kapi.h"
+#include "new.h"
 
 void *newFunc(size_t size, Memory::PoolType poolType)
 {

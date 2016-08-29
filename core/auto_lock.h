@@ -1,6 +1,5 @@
 #pragma once
 
-#include "main.h"
 #include "lockable.h"
 #include "trace.h"
 

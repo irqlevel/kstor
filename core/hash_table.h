@@ -1,9 +1,9 @@
 #pragma once
 
-#include "main.h"
 #include "list.h"
 #include "vector.h"
 #include "error.h"
+#include "bug.h"
 
 template <class K, class V>
 class HashTable

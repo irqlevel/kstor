@@ -1,6 +1,7 @@
 #pragma once
 
-#include "main.h"
+#include "kapi.h"
+#include "../inc/consts.h"
 
 class Trace
 {

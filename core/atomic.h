@@ -1,7 +1,6 @@
 #pragma once
 
-#include "main.h"
-#include "error.h"
+#include "kapi.h"
 
 class Atomic
 {
