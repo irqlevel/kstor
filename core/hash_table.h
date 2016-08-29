@@ -117,7 +117,7 @@ public:
 
     V& Get(const K& key)
     {
-        KBUG_ON(!Exists(key));
+        BUG_ON(!Exists(key));
 
         size_t bucket = KeyHash(key) % Buckets.GetSize();
         LinkedList<HashEntry>& list = Buckets[bucket];

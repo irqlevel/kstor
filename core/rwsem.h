@@ -9,7 +9,6 @@ class RWSem : public Lockable, public ShareLockable
 {
 public:
     RWSem();
-    RWSem(Error& err, Memory::PoolType poolType = Memory::PoolType::Kernel);
     virtual ~RWSem();
 
     void Acquire();
@@ -18,11 +17,11 @@ public:
     void AcquireShared();
     void ReleaseShared();
 
-    RWSem(RWSem&& other);
-    RWSem& operator=(RWSem&& other);
-
 private:
     RWSem(const RWSem& other) = delete;
+    RWSem(RWSem&& other) = delete;
     RWSem& operator=(const RWSem& other) = delete;
-    void* Lock;
+    RWSem& operator=(RWSem&& other) = delete;
+
+    struct kapi_rwsem Lock;
 };

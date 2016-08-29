@@ -14,11 +14,7 @@ public:
 
     Runnable()
     {
-    }
-
-    Runnable(Error& err)
-        : CompleteEvent(util::move(Event(err)))
-    {
+        SetStatus(Error::NotExecuted);
     }
 
     Error Execute(const Threadable& thread)
@@ -51,6 +47,7 @@ public:
 
 private:
     Runnable(const Runnable& other) = delete;
+    Runnable(Runnable&& other) = delete;
     Runnable& operator=(const Runnable& other) = delete;
     Runnable& operator=(Runnable&& other) = delete;
 

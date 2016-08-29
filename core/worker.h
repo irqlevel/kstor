@@ -20,6 +20,7 @@ public:
     Error Run(const Threadable& thread);
 private:
     Worker(const Worker& other) = delete;
+    Worker(Worker&& other) = delete;
     Worker& operator=(const Worker& other) = delete;
     Worker& operator=(Worker&& other) = delete;
 

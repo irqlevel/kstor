@@ -12,8 +12,6 @@
 #include "smp.h"
 #include "error.h"
 
-#include "public.h"
-
 class TJob : public Runnable
 {
 public:
@@ -115,22 +113,11 @@ int test_smp()
     return 0;
 }
 
-int core_init(struct kernel_api *api)
+void run_tests()
 {
-    kapi_init(api);
-    trace(1, "kstorage_init");
-
     test_worker();
     test_vector();
     test_astring();
     test_hash_table();
     test_smp();
-
-    trace(1, "kstorage_init completed");
-    return 0;
-}
-
-void core_deinit(void)
-{
-    trace(1,"kstorage_deinit");
 }

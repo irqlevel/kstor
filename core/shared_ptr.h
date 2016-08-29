@@ -20,15 +20,9 @@ public:
         trace(255, "this %p Ptr %p", this, ptr);
         Ptr = nullptr;
         Counter = nullptr;
-        Error err;
-        Atomic* counter = new Atomic(0, err);
+        Atomic* counter = new Atomic(0);
         if (counter == nullptr)
         {
-            return;
-        }
-        if (err != Error::Success)
-        {
-            delete counter;
             return;
         }
         Ptr = ptr;
@@ -135,7 +129,7 @@ private:
         {
             trace(255, "this %p Deleting Ptr %p Counter %p %d",
                   this, Ptr, Counter, Counter->Get());
-            KBUG_ON(!Counter);
+            BUG_ON(!Counter);
             if (Ptr)
                 delete Ptr;
             delete Counter;

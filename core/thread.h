@@ -20,8 +20,10 @@ public:
 
 private:
     Thread(const Thread& other) = delete;
+    Thread(Thread&& other) = delete;
     Thread& operator=(const Thread& other) = delete;
     Thread& operator=(Thread&& other) = delete;
+
     static int StartRoutine(void* context);
     Error ExecuteRoutine();
     Runnable* Routine;

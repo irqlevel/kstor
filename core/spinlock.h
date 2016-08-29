@@ -8,16 +8,15 @@ class SpinLock : public Lockable
 {
 public:
     SpinLock();
-    SpinLock(Error& err,  Memory::PoolType poolType = Memory::PoolType::Kernel);
     virtual ~SpinLock();
     void Acquire();
     void Release();
 
-    SpinLock(SpinLock&& other);
-    SpinLock& operator=(SpinLock&& other);
-
 private:
     SpinLock(const SpinLock& other) = delete;
     SpinLock& operator=(const SpinLock& other) = delete;
-    void* Lock;
+    SpinLock(SpinLock&& other) = delete;
+    SpinLock& operator=(SpinLock&& other) = delete;
+
+    struct kapi_spinlock Lock;
 };

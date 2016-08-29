@@ -3,7 +3,7 @@
 
 void *newFunc(size_t size, Memory::PoolType poolType)
 {
-    return get_kapi()->kmalloc(size, get_kapi_gfp_flags(poolType));
+    return get_kapi()->kmalloc(size, get_kapi_pool_type(poolType));
 }
 
 void deleteFunc(void *ptr)

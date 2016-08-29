@@ -21,6 +21,8 @@ public:
 
     static const int Cancelled = 125;
 
+    static const int NotExecuted = 500;
+
     bool operator!= (const Error& other) const;
 
 private:

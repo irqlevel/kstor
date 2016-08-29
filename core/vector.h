@@ -24,7 +24,7 @@ public:
 
     T& operator[](size_t index)
     {
-        KBUG_ON(index < 0 || index >= Size);
+        BUG_ON(index < 0 || index >= Size);
         return Arr[index];
     }
 

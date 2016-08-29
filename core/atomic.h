@@ -7,8 +7,7 @@ class Atomic
 {
 public:
     Atomic();
-    Atomic(int value, Error& err,
-           Memory::PoolType poolType = Memory::PoolType::Kernel);
+    Atomic(int value);
     void Inc();
     bool DecAndTest();
     int Get();
@@ -21,5 +20,5 @@ public:
 private:
     Atomic(const Atomic& other) = delete;
     Atomic& operator=(const Atomic& other) = delete;
-    void *pAtomic;
+    struct kapi_atomic Value;
 };

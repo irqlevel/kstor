@@ -57,8 +57,8 @@ Error Worker::Run(const Threadable& thread)
 }
 
 Worker::Worker(Error& err)
-    : Runnable(err), Stopping(false), Running(false), Lock(err),
-      TaskList(Memory::PoolType::Kernel), TaskEvent(err),
+    : Stopping(false), Running(false),
+      TaskList(Memory::PoolType::Kernel),
       WorkerThread(this, err)
 {
     if (err != Error::Success)

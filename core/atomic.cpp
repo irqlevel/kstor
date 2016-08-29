@@ -3,61 +3,45 @@
 
 Atomic::Atomic()
 {
+    Set(0);
 }
 
-Atomic::Atomic(int value, Error& err, Memory::PoolType poolType)
+Atomic::Atomic(int value)
 {
-    if (err != Error::Success)
-        return;
-
-    pAtomic = get_kapi()->atomic_create(value, get_kapi_gfp_flags(poolType));
-    if (!pAtomic)
-    {
-        err = Error::NoMemory;
-        return;
-    }
+    Set(value);
 }
 
 void Atomic::Inc()
 {
-    get_kapi()->atomic_inc(pAtomic);
+    get_kapi()->atomic_inc(&Value);
 }
 
 bool Atomic::DecAndTest()
 {
-    return get_kapi()->atomic_dec_and_test(pAtomic);
+    return get_kapi()->atomic_dec_and_test(&Value);
 }
 
 void Atomic::Set(int value)
 {
-    get_kapi()->atomic_set(pAtomic, value);
+    get_kapi()->atomic_set(&Value, value);
 }
 
 int Atomic::Get()
 {
-    return get_kapi()->atomic_read(pAtomic);
+    return get_kapi()->atomic_read(&Value);
 }
 
 Atomic::~Atomic()
 {
-    if (pAtomic)
-        get_kapi()->atomic_delete(pAtomic);
 }
 
 Atomic::Atomic(Atomic&& other)
 {
-    pAtomic = other.pAtomic;
-    other.pAtomic = nullptr;
+    Set(other.Get());
 }
 
 Atomic& Atomic::operator=(Atomic&& other)
 {
-    if (pAtomic)
-    {
-        get_kapi()->atomic_delete(pAtomic);
-        pAtomic = nullptr;
-    }
-    pAtomic = other.pAtomic;
-    other.pAtomic = nullptr;
+    Set(other.Get());
     return *this;
 }

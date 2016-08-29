@@ -7,8 +7,7 @@ Thread::Thread()
 }
 
 Thread::Thread(Runnable* routine, Error& err)
-   : Routine(nullptr), Task(nullptr), Stopping(false), Running(false),
-     CompEvent(err)
+   : Routine(nullptr), Task(nullptr), Stopping(false), Running(false)
 {
     if (err != Error::Success)
     {

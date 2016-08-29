@@ -8,7 +8,7 @@
 #include "base.h"
 #include "kapi_internal.h"
 
-#include "../core/public.h"
+#include "../core/init.h"
 
 MODULE_LICENSE("GPL");
 

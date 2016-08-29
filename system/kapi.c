@@ -17,25 +17,32 @@
 
 #include "malloc_checker.h"
 
-static void *kapi_kmalloc(size_t size, unsigned long type)
+_Static_assert(sizeof(struct kapi_spinlock) >= sizeof(spinlock_t), "Bad size");
+_Static_assert(sizeof(struct kapi_atomic) >= sizeof(atomic_t), "Bad size");
+_Static_assert(sizeof(struct kapi_completion) >= sizeof(struct completion),
+              "Bad size");
+_Static_assert(sizeof(struct kapi_rwsem) >= sizeof(struct rw_semaphore),
+              "Bad size");
+
+static void *kapi_kmalloc(size_t size, unsigned long pool_type)
 {
     gfp_t flags;
 
-    switch (type)
+    switch (pool_type)
     {
-    case KAPI_GFP_ATOMIC:
+    case KAPI_POOL_TYPE_ATOMIC:
         flags = GFP_ATOMIC;
         break;
-    case KAPI_GFP_KERNEL:
+    case KAPI_POOL_TYPE_KERNEL:
         flags = GFP_KERNEL;
         break;
-    case KAPI_GFP_NOIO:
+    case KAPI_POOL_TYPE_NOIO:
         flags = GFP_NOIO;
         break;
-    case KAPI_GFP_NOFS:
+    case KAPI_POOL_TYPE_NOFS:
         flags = GFP_NOFS;
         break;
-    case KAPI_GFP_USER:
+    case KAPI_POOL_TYPE_USER:
         flags = GFP_USER;
         break;
     default:
@@ -74,11 +81,11 @@ static void kapi_bug_on(bool condition)
     }
 }
 
-static void *kapi_atomic_create(int value, unsigned long mem_flag)
+static void *kapi_atomic_create(int value, unsigned long pool_type)
 {
     atomic_t *atomic;
 
-    atomic = kapi_kmalloc(sizeof(*atomic), mem_flag);
+    atomic = kapi_kmalloc(sizeof(*atomic), pool_type);
     if (!atomic)
         return NULL;
     atomic_set(atomic, value);
@@ -110,15 +117,20 @@ static void kapi_atomic_set(void *atomic, int value)
     atomic_set((atomic_t *)atomic, value);
 }
 
-static void *kapi_completion_create(unsigned long mem_flag)
+static void *kapi_completion_create(unsigned long pool_type)
 {
     struct completion *comp;
 
-    comp = kapi_kmalloc(sizeof(*comp), mem_flag);
+    comp = kapi_kmalloc(sizeof(*comp), pool_type);
     if (!comp)
         return NULL;
     init_completion(comp);
     return comp;
+}
+
+static void kapi_completion_init(void *comp)
+{
+    init_completion((struct completion *)comp);
 }
 
 static void kapi_completion_wait(void *comp)
@@ -192,15 +204,20 @@ static void kapi_msleep(unsigned int msecs)
     msleep(msecs);
 }
 
-static void* kapi_spinlock_create(unsigned long mem_flag)
+static void* kapi_spinlock_create(unsigned long pool_type)
 {
     spinlock_t *lock;
 
-    lock = kapi_kmalloc(sizeof(*lock), mem_flag);
+    lock = kapi_kmalloc(sizeof(*lock), pool_type);
     if (!lock)
         return NULL;
     spin_lock_init(lock);
     return lock;
+}
+
+static void kapi_spinlock_init(void *lock)
+{
+    spin_lock_init((spinlock_t *)lock);
 }
 
 static void kapi_spinlock_delete(void *lock)
@@ -264,16 +281,21 @@ static int kapi_smp_processor_id(void)
     return smp_processor_id();
 }
 
-static void *kapi_rwsem_create(unsigned long mem_flag)
+static void *kapi_rwsem_create(unsigned long pool_type)
 {
     struct rw_semaphore *sem;
 
-    sem = kapi_kmalloc(sizeof(*sem), mem_flag);
+    sem = kapi_kmalloc(sizeof(*sem), pool_type);
     if (!sem)
         return NULL;
 
     init_rwsem(sem);
     return sem;
+}
+
+static void kapi_rwsem_init(void *sem)
+{
+    init_rwsem((struct rw_semaphore *)sem);
 }
 
 static void kapi_rwsem_down_write(void *sem)
@@ -314,6 +336,7 @@ static struct kernel_api g_kapi =
     .atomic_read = kapi_atomic_read,
     .atomic_set = kapi_atomic_set,
     .completion_create = kapi_completion_create,
+    .completion_init = kapi_completion_init,
     .completion_delete = kapi_completion_delete,
     .completion_wait = kapi_completion_wait,
     .completion_complete = kapi_completion_complete,
@@ -328,6 +351,7 @@ static struct kernel_api g_kapi =
     .task_current = kapi_task_current,
     .msleep = kapi_msleep,
     .spinlock_create = kapi_spinlock_create,
+    .spinlock_init = kapi_spinlock_init,
     .spinlock_delete = kapi_spinlock_delete,
     .spinlock_lock = kapi_spinlock_lock,
     .spinlock_unlock = kapi_spinlock_unlock,
@@ -341,6 +365,7 @@ static struct kernel_api g_kapi =
     .preempt_enable = kapi_preempt_enable,
     .smp_processor_id = kapi_smp_processor_id,
     .rwsem_create = kapi_rwsem_create,
+    .rwsem_init = kapi_rwsem_init,
     .rwsem_down_write = kapi_rwsem_down_write,
     .rwsem_up_write = kapi_rwsem_up_write,
     .rwsem_down_read = kapi_rwsem_down_read,

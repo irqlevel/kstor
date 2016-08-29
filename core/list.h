@@ -17,7 +17,7 @@ public:
         }
         T& Get()
         {
-            KBUG_ON(CurrListEntry == EndList);
+            BUG_ON(CurrListEntry == EndList);
             LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
                                                      LinkedListNode,
                                                      ListLink);
@@ -39,7 +39,7 @@ public:
 
         void Erase()
         {
-            KBUG_ON(!IsValid());
+            BUG_ON(!IsValid());
 
             ListEntry* next = CurrListEntry->Flink;
 
@@ -116,7 +116,7 @@ public:
     {
         LinkedListNode* node;
 
-        KBUG_ON(IsListEmpty(&ListHead));
+        BUG_ON(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(ListHead.Flink, LinkedListNode, ListLink);
         return node->Value;
     }
@@ -125,7 +125,7 @@ public:
     {
         LinkedListNode* node;
 
-        KBUG_ON(IsListEmpty(&ListHead));
+        BUG_ON(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(ListHead.Blink, LinkedListNode, ListLink);
         return node->Value;
     }
@@ -134,7 +134,7 @@ public:
     {
         LinkedListNode* node;
 
-        KBUG_ON(IsListEmpty(&ListHead));
+        BUG_ON(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
                                  LinkedListNode, ListLink);
         delete node;
@@ -144,7 +144,7 @@ public:
     {
         LinkedListNode* node;
 
-        KBUG_ON(IsListEmpty(&ListHead));
+        BUG_ON(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveTailList(&ListHead),
                                  LinkedListNode, ListLink);
         delete node;

@@ -53,15 +53,9 @@ void Smp::BlockAndWait(void *data)
     }
 }
 
-bool Smp::CallFunctionCurrCpuOnly(void (*function)(void *data), void *data)
+void Smp::CallFunctionCurrCpuOnly(void (*function)(void *data), void *data)
 {
-    Error err = Error::Success;
-    Atomic counter(0, err, Memory::PoolType::Atomic);
-    if (err != Error::Success)
-        return false;
-    Atomic block(0, err, Memory::PoolType::Atomic);
-    if (err != Error::Success)
-        return false;
+    Atomic counter, block;
 
     LockOnlineCpus();
     PreemptDisable();
@@ -91,5 +85,4 @@ bool Smp::CallFunctionCurrCpuOnly(void (*function)(void *data), void *data)
 
     PreemptEnable();
     UnlockOnlineCpus();
-    return true;
 }

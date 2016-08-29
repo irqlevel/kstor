@@ -13,7 +13,7 @@ public:
     static void UnlockOnlineCpus();
     static void CallFunctionOtherCpus(void (*function)(void *data),
                                       void *data, bool wait);
-    static bool CallFunctionCurrCpuOnly(void (*function)(void *data),
+    static void CallFunctionCurrCpuOnly(void (*function)(void *data),
                                         void *data);
     static void Pause();
 private:

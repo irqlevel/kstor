@@ -7,18 +7,16 @@
 class Event
 {
 public:
-    Event(Error& err, Memory::PoolType poolType = Memory::PoolType::Kernel);
     Event();
     void Set();
     void SetAll();
     void Wait();
     virtual ~Event();
 
-    Event& operator=(Event&& other);
-    Event(Event&& other);
-
 private:
     Event(const Event& other) = delete;
+    Event(Event&& other) = delete;
     Event& operator=(const Event& other) = delete;
-    void *Completion;
+    Event& operator=(Event&& other) = delete;
+    struct kapi_completion Completion;
 };
