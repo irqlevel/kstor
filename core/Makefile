@@ -5,7 +5,7 @@ LIB_OUT = core.a
 
 LIB_SRC = kapi.cpp init.cpp new.cpp atomic.cpp thread.cpp \
           event.cpp worker.cpp spinlock.cpp pure_virtual.cpp trace.cpp \
-          astring.cpp list_entry.cpp smp.cpp rwsem.cpp error.cpp
+          astring.cpp list_entry.cpp smp.cpp rwsem.cpp error.cpp page.cpp \
 
 all:
 	rm -rf *.o *.a

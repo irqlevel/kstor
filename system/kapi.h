@@ -75,6 +75,11 @@ struct kernel_api
     void (*rwsem_down_read)(void *sem);
     void (*rwsem_up_read)(void *sem);
     void (*rwsem_delete)(void *sem);
+
+    void *(*alloc_page)(unsigned long pool_type);
+    void *(*map_page)(void *page);
+    void (*unmap_page)(void *page);
+    void (*free_page)(void *page);
 };
 
 struct kapi_atomic

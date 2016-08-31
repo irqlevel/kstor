@@ -15,6 +15,9 @@ Module.symvers
 *.lock
 *.out
 *.patch
+*db
+*db-shm
+*db-wal
 tags
 tests/logs/
 bin/

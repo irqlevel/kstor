@@ -10,12 +10,14 @@
 #include <linux/smp.h>
 #include <linux/cpu.h>
 #include <linux/preempt.h>
+#include <linux/highmem.h>
 
 #include <stdarg.h>
 
 #include "kapi_internal.h"
 
 #include "malloc_checker.h"
+#include "page_checker.h"
 
 _Static_assert(sizeof(struct kapi_spinlock) >= sizeof(spinlock_t), "Bad size");
 _Static_assert(sizeof(struct kapi_atomic) >= sizeof(atomic_t), "Bad size");
@@ -24,7 +26,7 @@ _Static_assert(sizeof(struct kapi_completion) >= sizeof(struct completion),
 _Static_assert(sizeof(struct kapi_rwsem) >= sizeof(struct rw_semaphore),
               "Bad size");
 
-static void *kapi_kmalloc(size_t size, unsigned long pool_type)
+static gfp_t kapi_get_gfp_flags(unsigned long pool_type)
 {
     gfp_t flags;
 
@@ -46,8 +48,16 @@ static void *kapi_kmalloc(size_t size, unsigned long pool_type)
         flags = GFP_USER;
         break;
     default:
+        flags = 0;
         BUG();
+        break;
     }
+
+    return flags;
+}
+
+void *kapi_kmalloc_gfp(size_t size, gfp_t flags)
+{
 #ifdef __MALLOC_CHECKER__
     return malloc_checker_kmalloc(size, flags);
 #else
@@ -55,7 +65,12 @@ static void *kapi_kmalloc(size_t size, unsigned long pool_type)
 #endif
 }
 
-static void kapi_kfree(void *ptr)
+static void *kapi_kmalloc(size_t size, unsigned long pool_type)
+{
+    return kapi_kmalloc_gfp(size, kapi_get_gfp_flags(pool_type));
+}
+
+void kapi_kfree(void *ptr)
 {
 #ifdef __MALLOC_CHECKER__
     malloc_checker_kfree(ptr);
@@ -323,6 +338,41 @@ static void kapi_rwsem_delete(void *sem)
     kapi_kfree(sem);
 }
 
+static void *kapi_alloc_page(unsigned long pool_type)
+{
+    struct page *page;
+
+#ifdef __PAGE_CHECKER__
+    page = page_checker_alloc_page(kapi_get_gfp_flags(pool_type));
+#else
+    page = alloc_page(kapi_get_gfp_flags(pool_type));
+#endif
+    if (!page)
+    {
+        return NULL;
+    }
+    return page;
+}
+
+static void *kapi_map_page(void *page)
+{
+    return kmap((struct page *)page);
+}
+
+void kapi_unmap_page(void *page)
+{
+    kunmap((struct page *)page);
+}
+
+static void kapi_free_page(void *page)
+{
+#ifdef __PAGE_CHECKER__
+    page_checker_free_page((struct page *)page);
+#else
+    put_page((struct page *)page);
+#endif
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -370,7 +420,13 @@ static struct kernel_api g_kapi =
     .rwsem_up_write = kapi_rwsem_up_write,
     .rwsem_down_read = kapi_rwsem_down_read,
     .rwsem_up_read = kapi_rwsem_up_read,
-    .rwsem_delete = kapi_rwsem_delete
+    .rwsem_delete = kapi_rwsem_delete,
+
+    .alloc_page = kapi_alloc_page,
+    .map_page = kapi_map_page,
+    .unmap_page = kapi_unmap_page,
+    .free_page = kapi_free_page
+
 };
 
 int kapi_init(void)
@@ -382,11 +438,31 @@ int kapi_init(void)
 #else
     r = 0;
 #endif
+    if (r)
+        return r;
+
+#ifdef __PAGE_CHECKER__
+    r = page_checker_init();
+#else
+    r = 0;
+#endif
+    if (r)
+        goto deinit_malloc_checker;
+
+    return 0;
+
+deinit_malloc_checker:
+#ifdef __MALLOC_CHECKER__
+    malloc_checker_deinit();
+#endif
     return r;
 }
 
 void kapi_deinit(void)
 {
+#ifdef __PAGE_CHECKER__
+    page_checker_deinit();
+#endif
 #ifdef __MALLOC_CHECKER__
     malloc_checker_deinit();
 #endif

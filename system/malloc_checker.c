@@ -129,7 +129,7 @@ int malloc_checker_delay_thread(void *data)
         }
     }
 
-    PRINTK("Stopping\n");
+    PRINTK("stopping\n");
 
     return 0;
 }
@@ -140,7 +140,7 @@ int malloc_checker_init(void)
     struct malloc_checker *checker = &g_malloc_checker;
     unsigned long i;
 
-    PRINTK("Malloc checker init\n");
+    PRINTK("malloc checker init\n");
 
     for (i = 0; i < ARRAY_SIZE(checker->entries_list); i++)
     {
@@ -159,7 +159,7 @@ int malloc_checker_init(void)
         }
 
         thread = kthread_create(malloc_checker_delay_thread, checker,
-                                "%s", "malloc-checker-thread");
+                                "%s", __MODULE_NAME__"memory-check");
         if (IS_ERR(thread))
         {
             return PTR_ERR(thread);
@@ -170,23 +170,6 @@ int malloc_checker_init(void)
     }
 #endif
     return 0;
-}
-
-static unsigned long hash_ptr(void *ptr)
-{
-    unsigned long val = (unsigned long)ptr;
-    unsigned long hash, i, c;
-
-    hash = 5381;
-    val = val >> 3;
-    for (i = 0; i < sizeof(val); i++)
-    {
-        c = (unsigned char)val & 0xFF;
-        hash = ((hash << 5) + hash) + c;
-        val = val >> 8;
-    }
-
-    return hash;
 }
 
 void *malloc_checker_kmalloc(size_t size, gfp_t flags)
@@ -315,7 +298,7 @@ void malloc_checker_deinit(void)
     struct malloc_entry *curr, *tmp;
     struct malloc_checker *checker = &g_malloc_checker;
 
-    PRINTK("Malloc checker deinit\n");
+    PRINTK("malloc checker deinit\n");
 
 #ifdef __MALLOC_CHECKER_DELAY_FREE__
     kthread_stop(checker->delay_check_thread);

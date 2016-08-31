@@ -10,6 +10,7 @@
 #include <core/hash_table.h>
 #include <core/smp.h>
 #include <core/error.h>
+#include <core/page.h>
 
 class TJob : public Runnable
 {
@@ -112,6 +113,26 @@ int test_smp()
     return 0;
 }
 
+void test_atomic()
+{
+    Atomic s;
+    s.Set(1);
+}
+
+void test_page()
+{
+    Error err;
+    Page p(Memory::PoolType::Kernel, err);
+    if (err != Error::Success)
+    {
+        trace(1, "can't allocate page");
+        return;
+    }
+
+    trace(1, "page map 0x%p", p.Map());
+    p.Unmap();
+}
+
 void run_tests()
 {
     test_worker();
@@ -119,4 +140,6 @@ void run_tests()
     test_astring();
     test_hash_table();
     test_smp();
+    test_atomic();
+    test_page();
 }
