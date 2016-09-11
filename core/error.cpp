@@ -40,3 +40,8 @@ bool Error::operator!= (const Error& other) const
 {
     return GetCode() != other.GetCode();
 }
+
+bool Error::operator== (const Error& other) const
+{
+    return GetCode() == other.GetCode();
+}

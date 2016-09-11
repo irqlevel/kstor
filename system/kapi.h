@@ -80,7 +80,14 @@ struct kernel_api
     void *(*map_page)(void *page);
     void (*unmap_page)(void *page);
     void (*free_page)(void *page);
+
+    int (*bdev_get_by_path)(const char *path, int mode, void *holder, void **pbdev);
+    void (*bdev_put)(void *bdev, int mode);
 };
+
+#define KAPI_BDEV_MODE_READ         0x1
+#define KAPI_BDEV_MODE_WRITE        0x2
+#define KAPI_BDEV_MODE_EXCLUSIVE    0x4
 
 struct kapi_atomic
 {

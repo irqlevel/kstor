@@ -373,6 +373,39 @@ static void kapi_free_page(void *page)
 #endif
 }
 
+static fmode_t kapi_get_fmode_by_mode(int mode)
+{
+    fmode_t fmode = 0;
+
+    if (mode & KAPI_BDEV_MODE_READ)
+        fmode |= FMODE_READ;
+    if (mode & KAPI_BDEV_MODE_WRITE)
+        fmode |= FMODE_WRITE;
+    if (mode & KAPI_BDEV_MODE_EXCLUSIVE)
+        fmode |= FMODE_EXCL;
+
+    return fmode;
+}
+
+static int kapi_bdev_get_by_path(const char *path, int mode, void *holder, void **pbdev)
+{
+    struct block_device *bdev;
+
+    bdev = blkdev_get_by_path(path, kapi_get_fmode_by_mode(mode), holder);
+    if (IS_ERR(bdev))
+    {
+        return PTR_ERR(bdev);
+    }
+
+    *pbdev = bdev;
+    return 0;
+}
+
+static void kapi_bdev_put(void *bdev, int mode)
+{
+    blkdev_put(bdev, kapi_get_fmode_by_mode(mode));
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -425,7 +458,10 @@ static struct kernel_api g_kapi =
     .alloc_page = kapi_alloc_page,
     .map_page = kapi_map_page,
     .unmap_page = kapi_unmap_page,
-    .free_page = kapi_free_page
+    .free_page = kapi_free_page,
+
+    .bdev_get_by_path = kapi_bdev_get_by_path,
+    .bdev_put = kapi_bdev_put,
 
 };
 

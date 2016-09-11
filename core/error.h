@@ -25,6 +25,8 @@ public:
 
     bool operator!= (const Error& other) const;
 
+    bool operator== (const Error& other) const;
+
 private:
     int Code;
 };
