@@ -10,6 +10,7 @@
 #include <linux/kthread.h>
 #include <linux/delay.h>
 #include <linux/highmem.h>
+#include <linux/version.h>
 
 #define PAGE_CHECKER_STACK_ENTRIES 10
 #define PAGE_CHECKER_NR_LISTS 9973
@@ -267,7 +268,11 @@ void page_checker_free_page(struct page *page)
 	struct page_entry *curr, *tmp;
 	struct list_head entries_list;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 5)
+	WARN_ON(page_ref_count(page) != 1);
+#else
 	WARN_ON(atomic_read(&page->_count) != 1);
+#endif
 
 	INIT_LIST_HEAD(&entries_list);
 	i = hash_ptr(page) % ARRAY_SIZE(checker->entries_list);
