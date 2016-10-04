@@ -10,7 +10,7 @@
         },
         {
             "name": "Linux",
-            "includePath": ["/usr/include", "/usr/src/kernels/$(shell uname -r)/include/"],
+            "includePath": ["/usr/include", "/usr/src/kernels/4.7.5-200.fc24.x86_64/include/"],
             "browse" : {
                 "limitSymbolsToIncludedHeaders" : true,
                 "databaseFilename" : ""

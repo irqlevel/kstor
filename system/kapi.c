@@ -11,6 +11,8 @@
 #include <linux/cpu.h>
 #include <linux/preempt.h>
 #include <linux/highmem.h>
+#include <linux/bio.h>
+#include <linux/version.h>
 
 #include <stdarg.h>
 
@@ -359,7 +361,7 @@ static void *kapi_map_page(void *page)
     return kmap((struct page *)page);
 }
 
-void kapi_unmap_page(void *page)
+static void kapi_unmap_page(void *page)
 {
     kunmap((struct page *)page);
 }
@@ -371,6 +373,11 @@ static void kapi_free_page(void *page)
 #else
     put_page((struct page *)page);
 #endif
+}
+
+static int kapi_get_page_size(void)
+{
+    return PAGE_SIZE;
 }
 
 static fmode_t kapi_get_fmode_by_mode(int mode)
@@ -404,6 +411,181 @@ static int kapi_bdev_get_by_path(const char *path, int mode, void *holder, void 
 static void kapi_bdev_put(void *bdev, int mode)
 {
     blkdev_put(bdev, kapi_get_fmode_by_mode(mode));
+}
+
+static void* kapi_alloc_bio(int page_count)
+{
+    return bio_alloc(GFP_NOIO, page_count);
+}
+
+struct kapi_bio_private
+{
+    void* bio;
+    void* priv;
+    void (*bio_end_io)(void* bio, int err);
+};
+
+static void kapi_free_bio(void* bio)
+{
+    struct bio* bio_ = (struct bio*)bio;
+    struct kapi_bio_private* priv = (struct kapi_bio_private*)bio_->bi_private;
+
+    if (priv)
+    {
+        kapi_kfree(priv);
+        bio_->bi_private = NULL;
+    }
+
+    bio_put(bio_);
+}
+
+static int kapi_set_bio_page(void* bio, int page_index, void* page, int offset, int len)
+{
+    struct bio* bio_ = (struct bio*)bio;
+
+    if (page_index >= bio_->bi_max_vecs ||
+        bio_->bi_vcnt >= bio_->bi_max_vecs ||
+        bio_->bi_io_vec[page_index].bv_page)
+    {
+        return -EINVAL;
+    }
+
+    bio_->bi_io_vec[page_index].bv_page = page;
+    bio_->bi_io_vec[page_index].bv_offset = offset;
+    bio_->bi_io_vec[page_index].bv_len = len;
+    bio_->bi_vcnt++;
+    return 0;
+}
+
+static struct kapi_bio_private* kapi_get_or_create_bio_private(struct bio* bio)
+{
+    struct kapi_bio_private* priv = bio->bi_private;
+
+    if (priv)
+    {
+        return priv;
+    }
+
+    priv = (struct kapi_bio_private*)kapi_kmalloc_gfp(GFP_NOIO, sizeof(*priv));
+    if (!priv)
+    {
+        return NULL;
+    }
+
+    memset(priv, 0, sizeof(*priv));
+    priv->bio = bio;
+    bio->bi_private = priv;
+    return priv;
+}
+
+static int kapi_set_bio_private(void* bio, void* priv)
+{
+    struct bio* bio_ = (struct bio*)bio;
+    struct kapi_bio_private* priv_ = kapi_get_or_create_bio_private(bio_);
+
+    if (!priv_)
+    {
+        return -ENOMEM;
+    }
+
+    priv_->priv = priv;
+    return 0;
+}
+
+static void __kapi_io_end_bio(struct bio* bio, int err)
+{
+    struct kapi_bio_private* private = bio->bi_private;
+
+    if (private && private->bio_end_io)
+    {
+        private->bio_end_io(bio, err);
+    }
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
+static void kapi_io_end_bio(struct bio *bio)
+{
+    __kapi_io_end_bio(bio, bio->bi_error);
+}
+#else
+static void kapi_io_end_bio(struct bio *bio, int err)
+{
+    __kapi_io_end_bio(bio, err);
+}
+#endif
+
+static int kapi_set_bio_end_io(void* bio, void (*bio_end_io)(void* bio, int err))
+{
+    struct bio* bio_ = (struct bio*)bio;
+    struct kapi_bio_private* priv;
+
+    priv = kapi_get_or_create_bio_private(bio_);
+    if (!priv)
+    {
+        return -ENOMEM;
+    }
+    priv->bio_end_io = bio_end_io;
+    bio_->bi_end_io = kapi_io_end_bio;
+    return 0;
+}
+
+static void kapi_set_bio_bdev(void* bio, void* bdev)
+{
+    struct bio* bio_ = (struct bio*)bio;
+
+    bio_->bi_bdev = (struct block_device*)bdev;
+}
+
+static void kapi_set_bio_rw(void* bio, int rw)
+{
+    struct bio* bio_ = (struct bio*)bio;
+
+    if (rw & KAPI_BIO_READ)
+    {
+        bio_->bi_rw |= READ;
+    }
+
+    if (rw & KAPI_BIO_WRITE)
+    {
+        bio_->bi_rw |= WRITE;
+    }
+
+    if (rw & KAPI_BIO_FLUSH)
+    {
+        bio_->bi_rw |= REQ_FLUSH;
+    }
+
+    if (rw & KAPI_BIO_FUA)
+    {
+        bio_->bi_rw |= REQ_FUA;
+    }
+}
+
+static void kapi_set_bio_flags(void* bio, int flags)
+{
+    struct bio* bio_ = (struct bio*)bio;
+
+    bio_->bi_flags = flags;
+}
+
+static void* kapi_get_bio_private(void* bio)
+{
+    struct bio* bio_ = (struct bio *)bio;
+    struct kapi_bio_private* priv = (struct kapi_bio_private*)bio_->bi_private;
+
+    if (!priv)
+    {
+        return NULL;
+    }
+
+    return priv->priv;
+}
+
+static void kapi_submit_bio(void* bio)
+{
+    struct bio* bio_ = (struct bio*)bio;
+
+    submit_bio(bio_->bi_rw, bio_);
 }
 
 static struct kernel_api g_kapi =
@@ -459,10 +641,21 @@ static struct kernel_api g_kapi =
     .map_page = kapi_map_page,
     .unmap_page = kapi_unmap_page,
     .free_page = kapi_free_page,
+    .get_page_size = kapi_get_page_size,
 
     .bdev_get_by_path = kapi_bdev_get_by_path,
     .bdev_put = kapi_bdev_put,
 
+    .alloc_bio = kapi_alloc_bio,
+    .free_bio = kapi_free_bio,
+    .set_bio_page = kapi_set_bio_page,
+    .set_bio_private = kapi_set_bio_private,
+    .set_bio_end_io = kapi_set_bio_end_io,
+    .set_bio_bdev = kapi_set_bio_bdev,
+    .set_bio_rw = kapi_set_bio_rw,
+    .set_bio_flags = kapi_set_bio_flags,
+    .get_bio_private = kapi_get_bio_private,
+    .submit_bio = kapi_submit_bio
 };
 
 int kapi_init(void)

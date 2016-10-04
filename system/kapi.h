@@ -80,14 +80,31 @@ struct kernel_api
     void *(*map_page)(void *page);
     void (*unmap_page)(void *page);
     void (*free_page)(void *page);
+    int (*get_page_size)(void);
 
     int (*bdev_get_by_path)(const char *path, int mode, void *holder, void **pbdev);
     void (*bdev_put)(void *bdev, int mode);
+
+    void* (*alloc_bio)(int page_count);
+    void (*free_bio)(void* bio);
+    int (*set_bio_page)(void* bio, int page_index, void* page, int offset, int len);
+    int (*set_bio_private)(void* bio, void* priv);
+    int (*set_bio_end_io)(void* bio, void (*bio_end_io)(void* bio, int err));
+    void (*set_bio_bdev)(void* bio, void* bdev);
+    void (*set_bio_rw)(void* bio, int rw);
+    void (*set_bio_flags)(void* bio, int flags);
+    void* (*get_bio_private)(void* bio);
+    void (*submit_bio)(void* bio);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1
 #define KAPI_BDEV_MODE_WRITE        0x2
 #define KAPI_BDEV_MODE_EXCLUSIVE    0x4
+
+#define KAPI_BIO_READ 0x1
+#define KAPI_BIO_WRITE 0x2
+#define KAPI_BIO_FLUSH 0x4
+#define KAPI_BIO_FUA 0x8
 
 struct kapi_atomic
 {
