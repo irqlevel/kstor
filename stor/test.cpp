@@ -11,6 +11,7 @@
 #include <core/smp.h>
 #include <core/error.h>
 #include <core/page.h>
+#include <core/block_device.h>
 
 class TJob : public Runnable
 {
@@ -133,6 +134,23 @@ void test_page()
     p.Unmap();
 }
 
+void test_bdev()
+{
+    Error err;
+    AString name("/dev/loop1", Memory::PoolType::Kernel, err);
+    if (err != Error::Success)
+    {
+        trace(1, "can't allocate string, err %d", err.GetCode());
+        return;
+    }
+    BlockDevice bdev(name, err);
+    if (err != Error::Success)
+    {
+        trace(1, "can't create bdev, err %d", err.GetCode());
+        return;
+    }
+}
+
 void run_tests()
 {
     test_worker();
@@ -142,4 +160,5 @@ void run_tests()
     test_smp();
     test_atomic();
     test_page();
+    test_bdev();
 }
