@@ -24,4 +24,15 @@ namespace util
     {
         get_kapi()->memset(ptr, c, size);
     }
+
+    static inline int memcmp(void* ptr1, void* ptr2, size_t size)
+    {
+        return get_kapi()->memcmp(ptr1, ptr2, size);
+    }
+
+    static inline void memcpy(void* dst, void* src, size_t size)
+    {
+        get_kapi()->memcpy(dst, src, size);
+    }
+
 }

@@ -87,6 +87,16 @@ static void kapi_memset(void* ptr, int c, size_t size)
     memset(ptr, c, size);
 }
 
+static int kapi_memcmp(void* ptr1, void* ptr2, size_t size)
+{
+    return memcmp(ptr1, ptr2, size);
+}
+
+static void kapi_memcpy(void* dst, void* src, size_t size)
+{
+    memcpy(dst, src, size);
+}
+
 static void kapi_printk(const char *fmt, ...)
 {
     va_list args;
@@ -649,7 +659,10 @@ static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
     .kfree = kapi_kfree,
+
     .memset = kapi_memset,
+    .memcmp = kapi_memcmp,
+    .memcpy = kapi_memcpy,
 
     .printk = kapi_printk,
     .bug_on = kapi_bug_on,
