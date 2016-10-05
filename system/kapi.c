@@ -433,12 +433,27 @@ struct kapi_bio_private
     void (*bio_end_io)(void* bio, int err);
 };
 
-static void kapi_free_bio(void* bio)
+static struct kapi_bio_private* kapi_get_bio_private_(struct bio* bio)
 {
     struct bio* bio_ = (struct bio*)bio;
     struct kapi_bio_private* priv = (struct kapi_bio_private*)bio_->bi_private;
+
+    if (!priv)
+    {
+        return NULL;
+    }
+
+    BUG_ON(priv->bio != bio);
+    return priv;
+}
+
+static void kapi_free_bio(void* bio)
+{
+    struct bio* bio_ = (struct bio*)bio;
+    struct kapi_bio_private* priv;
     int i;
 
+    priv = kapi_get_bio_private_(bio_);
     if (priv)
     {
         kapi_kfree(priv);
@@ -484,10 +499,11 @@ static struct kapi_bio_private* kapi_get_or_create_bio_private(struct bio* bio)
 
     if (priv)
     {
+        BUG_ON(priv->bio != bio);
         return priv;
     }
 
-    priv = (struct kapi_bio_private*)kapi_kmalloc_gfp(GFP_NOIO, sizeof(*priv));
+    priv = (struct kapi_bio_private*)kapi_kmalloc_gfp(sizeof(*priv), GFP_NOIO);
     if (!priv)
     {
         return NULL;
@@ -499,27 +515,13 @@ static struct kapi_bio_private* kapi_get_or_create_bio_private(struct bio* bio)
     return priv;
 }
 
-static int kapi_set_bio_private(void* bio, void* priv)
-{
-    struct bio* bio_ = (struct bio*)bio;
-    struct kapi_bio_private* priv_ = kapi_get_or_create_bio_private(bio_);
-
-    if (!priv_)
-    {
-        return -ENOMEM;
-    }
-
-    priv_->priv = priv;
-    return 0;
-}
-
 static void __kapi_io_end_bio(struct bio* bio, int err)
 {
-    struct kapi_bio_private* private = bio->bi_private;
+    struct kapi_bio_private* priv = kapi_get_bio_private_(bio);
 
-    if (private && private->bio_end_io)
+    if (priv && priv->bio_end_io)
     {
-        private->bio_end_io(bio, err);
+        priv->bio_end_io(bio, err);
     }
 }
 
@@ -535,17 +537,18 @@ static void kapi_io_end_bio(struct bio *bio, int err)
 }
 #endif
 
-static int kapi_set_bio_end_io(void* bio, void (*bio_end_io)(void* bio, int err))
+static int kapi_set_bio_end_io(void* bio, void (*bio_end_io)(void* bio, int err), void* priv)
 {
     struct bio* bio_ = (struct bio*)bio;
-    struct kapi_bio_private* priv;
+    struct kapi_bio_private* priv_;
 
-    priv = kapi_get_or_create_bio_private(bio_);
-    if (!priv)
+    priv_ = kapi_get_or_create_bio_private(bio_);
+    if (!priv_)
     {
         return -ENOMEM;
     }
-    priv->bio_end_io = bio_end_io;
+    priv_->priv = priv;
+    priv_->bio_end_io = bio_end_io;
     bio_->bi_end_io = kapi_io_end_bio;
     return 0;
 }
@@ -586,7 +589,7 @@ static void kapi_set_bio_flags(void* bio, int flags)
 {
     struct bio* bio_ = (struct bio*)bio;
 
-    bio_->bi_flags = flags;
+    bio_->bi_flags |= flags;
 }
 
 static void kapi_set_bio_position(void* bio, unsigned long long sector)
@@ -598,15 +601,14 @@ static void kapi_set_bio_position(void* bio, unsigned long long sector)
 
 static void* kapi_get_bio_private(void* bio)
 {
-    struct bio* bio_ = (struct bio *)bio;
-    struct kapi_bio_private* priv = (struct kapi_bio_private*)bio_->bi_private;
-
-    if (!priv)
+    struct bio* bio_ = (struct bio*)bio;
+    struct kapi_bio_private* priv_ = kapi_get_bio_private_(bio_);
+    if (!priv_)
     {
         return NULL;
     }
 
-    return priv->priv;
+    return priv_->priv;
 }
 
 static void kapi_submit_bio(void* bio)
@@ -677,7 +679,6 @@ static struct kernel_api g_kapi =
     .alloc_bio = kapi_alloc_bio,
     .free_bio = kapi_free_bio,
     .set_bio_page = kapi_set_bio_page,
-    .set_bio_private = kapi_set_bio_private,
     .set_bio_end_io = kapi_set_bio_end_io,
     .set_bio_bdev = kapi_set_bio_bdev,
     .set_bio_rw = kapi_set_bio_rw,

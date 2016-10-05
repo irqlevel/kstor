@@ -11,6 +11,8 @@ public:
 
     int GetCode() const;
 
+    void SetCode(int code);
+
     const char* GetDescription() const;
 
     static const int Success = 0;

@@ -27,6 +27,16 @@ void Page::Unmap()
     get_kapi()->unmap_page(PagePtr);
 }
 
+void* Page::GetPage()
+{
+    return PagePtr;
+}
+
+int Page::GetPageSize()
+{
+    return get_kapi()->get_page_size();
+}
+
 Page::~Page()
 {
     if (PagePtr != nullptr)

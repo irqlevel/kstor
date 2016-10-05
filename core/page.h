@@ -9,6 +9,8 @@ public:
     Page(Memory::PoolType poolType, Error& err);
     void* Map();
     void Unmap();
+    void* GetPage();
+    int GetPageSize();
     virtual ~Page();
 private:
     Page(const Page& other) = delete;

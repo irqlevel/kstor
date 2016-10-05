@@ -1,4 +1,5 @@
 #include "block_device.h"
+#include "trace.h"
 
 BlockDevice::BlockDevice(const AString& deviceName, Error& err)
     : BDevPtr(nullptr)
@@ -13,9 +14,12 @@ BlockDevice::BlockDevice(const AString& deviceName, Error& err)
         Mode, this, &BDevPtr);
     if (rc != 0)
     {
+        trace(0, "Can't get bdev %s, err %d", deviceName.GetBuf(), rc);
         err = Error(rc);
         return;
     }
+
+    trace(1, "Bdev 0x%p bdev 0x%p constructed", this, BDevPtr);
 }
 
 void* BlockDevice::GetBdev()
@@ -25,6 +29,8 @@ void* BlockDevice::GetBdev()
 
 BlockDevice::~BlockDevice()
 {
+    trace(1, "Bdev 0x%p bdev 0x%p destructor", this, BDevPtr);
+
     if (BDevPtr != nullptr)
     {
         get_kapi()->bdev_put(BDevPtr, Mode);

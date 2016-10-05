@@ -19,6 +19,11 @@ int Error::GetCode() const
     return Code;
 }
 
+void Error::SetCode(int code)
+{
+    Code = code;
+}
+
 const char* Error::GetDescription() const
 {
     switch (Code)

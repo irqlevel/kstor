@@ -12,6 +12,7 @@
 #include <core/error.h>
 #include <core/page.h>
 #include <core/block_device.h>
+#include <core/bio.h>
 
 class TJob : public Runnable
 {
@@ -137,18 +138,65 @@ void test_page()
 void test_bdev()
 {
     Error err;
-    AString name("/dev/loop1", Memory::PoolType::Kernel, err);
+    AString name("/dev/loop10", Memory::PoolType::Kernel, err);
     if (err != Error::Success)
     {
-        trace(1, "can't allocate string, err %d", err.GetCode());
+        trace(0, "Can't allocate string, err %d", err.GetCode());
         return;
     }
+
     BlockDevice bdev(name, err);
     if (err != Error::Success)
     {
-        trace(1, "can't create bdev, err %d", err.GetCode());
+        trace(0, "Can't create bdev, err %d", err.GetCode());
         return;
     }
+}
+
+void test_bio()
+{
+    Error err;
+    AString name("/dev/loop10", Memory::PoolType::Kernel, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't allocate string, err %d", err.GetCode());
+        return;
+    }
+
+    BlockDevice bdev(name, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't create bdev, err %d", err.GetCode());
+        return;
+    }
+
+    Page page(Memory::PoolType::Kernel, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't allocate page");
+        return;
+    }
+
+    Bio bio(1, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't init Bio, err %d", err.GetCode());
+        return;
+    }
+
+    bio.SetBdev(bdev);
+    bio.SetRead();
+    bio.SetPosition(0);
+    err = bio.SetPage(0, page, 0, page.GetPageSize());
+    if (err != Error::Success)
+    {
+        trace(0, "Can't set Bio page, err %d", err.GetCode());
+        return;
+    }
+
+    bio.Submit();
+    bio.Wait();
+    trace(1, "Bio result %d", bio.GetError().GetCode());
 }
 
 void run_tests()
@@ -161,4 +209,5 @@ void run_tests()
     test_atomic();
     test_page();
     test_bdev();
+    test_bio();
 }

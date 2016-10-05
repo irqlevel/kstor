@@ -88,8 +88,7 @@ struct kernel_api
     void* (*alloc_bio)(int page_count);
     void (*free_bio)(void* bio);
     int (*set_bio_page)(void* bio, int page_index, void* page, int offset, int len);
-    int (*set_bio_private)(void* bio, void* priv);
-    int (*set_bio_end_io)(void* bio, void (*bio_end_io)(void* bio, int err));
+    int (*set_bio_end_io)(void* bio, void (*bio_end_io)(void* bio, int err), void* priv);
     void (*set_bio_bdev)(void* bio, void* bdev);
     void (*set_bio_rw)(void* bio, int rw);
     void (*set_bio_flags)(void* bio, int flags);
