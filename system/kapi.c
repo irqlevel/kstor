@@ -270,6 +270,19 @@ static void kapi_spinlock_unlock(void *lock)
     spin_unlock((spinlock_t *)lock);
 }
 
+static void kapi_spinlock_lock_irqsave(void* lock, unsigned long* irq_flags)
+{
+    unsigned long irq_flags_ = 0;
+
+    spin_lock_irqsave((spinlock_t *)lock, irq_flags_);
+    *irq_flags = irq_flags_;
+}
+
+static void kapi_spinlock_unlock_irqrestore(void* lock, unsigned long irq_flags)
+{
+    spin_unlock_irqrestore((spinlock_t *)lock, irq_flags);
+}
+
 static unsigned long kapi_get_symbol_address(const char *symbol)
 {
     return kallsyms_lookup_name(symbol);
@@ -800,6 +813,8 @@ static struct kernel_api g_kapi =
     .spinlock_delete = kapi_spinlock_delete,
     .spinlock_lock = kapi_spinlock_lock,
     .spinlock_unlock = kapi_spinlock_unlock,
+    .spinlock_lock_irqsave = kapi_spinlock_lock_irqsave,
+    .spinlock_unlock_irqrestore = kapi_spinlock_unlock_irqrestore,
 
     .get_symbol_address = kapi_get_symbol_address,
     .probe_kernel_read = kapi_probe_kernel_read,

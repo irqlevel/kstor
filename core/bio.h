@@ -22,9 +22,11 @@ public:
     void SetFlush();
     void SetPosition(unsigned long long sector);
     Error SetPage(int pageIndex, Page& page, int offset, int len);
+
     void Submit();
     void Wait();
     Error GetError();
+
     virtual ~Bio();
 
 private:

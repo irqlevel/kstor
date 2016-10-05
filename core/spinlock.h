@@ -18,4 +18,5 @@ private:
     SpinLock& operator=(SpinLock&& other) = delete;
 
     struct kapi_spinlock Lock;
+    unsigned long IrqFlags;
 };

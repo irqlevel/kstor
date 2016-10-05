@@ -58,6 +58,8 @@ struct kernel_api
     void (*spinlock_delete)(void* spinlock);
     void (*spinlock_lock)(void* spinlock);
     void (*spinlock_unlock)(void* spinlock);
+    void (*spinlock_lock_irqsave)(void* spinlock, unsigned long* irq_flags);
+    void (*spinlock_unlock_irqrestore)(void* spinlock, unsigned long irq_flags);
 
     unsigned long (*get_symbol_address)(const char *symbol);
 
