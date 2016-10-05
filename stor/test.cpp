@@ -13,6 +13,7 @@
 #include <core/page.h>
 #include <core/block_device.h>
 #include <core/bio.h>
+#include <core/random.h>
 
 class TJob : public Runnable
 {
@@ -170,24 +171,77 @@ void test_bio()
         return;
     }
 
+    Random rng(err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't create rng, err %d", err.GetCode());
+        return;
+    }
+
     Page page(Memory::PoolType::Kernel, err);
     if (err != Error::Success)
     {
         trace(0, "Can't allocate page");
         return;
     }
-    page.Zero();
 
-    Bio bio(bdev, page, 0, err);
+    err = page.FillRandom(rng);
     if (err != Error::Success)
     {
-        trace(0, "Can't init Bio, err %d", err.GetCode());
+        trace(0, "Can't fill page by rng, err %d", err.GetCode());
         return;
     }
 
-    bio.Submit();
-    bio.Wait();
-    trace(1, "Bio result %d", bio.GetError().GetCode());
+    {
+        Bio bio(bdev, page, 0, err, true);
+        if (err != Error::Success)
+        {
+            trace(0, "Can't init Bio, err %d", err.GetCode());
+            return;
+        }
+
+        bio.Submit();
+        bio.Wait();
+        trace(1, "Bio write result %d", bio.GetError().GetCode());
+    }
+
+    Page pageRead(Memory::PoolType::Kernel, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't allocate page");
+        return;
+    }
+
+    {
+        Bio bio(bdev, pageRead, 0, err);
+        if (err != Error::Success)
+        {
+            trace(0, "Can't init Bio, err %d", err.GetCode());
+            return;
+        }
+
+        bio.Submit();
+        bio.Wait();
+        trace(1, "Bio read result %d", bio.GetError().GetCode());
+    }
+
+    trace(1, "Compare pages content result %d", page.CompareContent(pageRead));
+}
+
+void test_random()
+{
+    Error err;
+    Random rng(err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't create rng, err %d", err.GetCode());
+        return;
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+        trace(1, "random[%d]=%lu", i, rng.GetUlong() % 10);
+    }
 }
 
 void run_tests()
@@ -201,4 +255,5 @@ void run_tests()
     test_page();
     test_bdev();
     test_bio();
+    test_random();
 }

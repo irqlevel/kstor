@@ -25,6 +25,8 @@ public:
 
     static const int NotExecuted = 500;
 
+    static const int InvalidState = 501;
+
     bool operator!= (const Error& other) const;
 
     bool operator== (const Error& other) const;

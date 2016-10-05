@@ -102,6 +102,12 @@ struct kernel_api
     void (*set_bio_position)(void* bio, unsigned long long sector);
     void* (*get_bio_private)(void* bio);
     void (*submit_bio)(void* bio);
+
+    int (*vfs_file_open)(const char *path, int flags, void** file);
+    int (*vfs_file_write)(void* file, void* buf, int len, unsigned long long offset);
+    int (*vfs_file_read)(void* file, void* buf, int len, unsigned long long offset);
+    int (*vfs_file_sync)(void* file);
+    void (*vfs_file_close)(void* file);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1
@@ -112,6 +118,12 @@ struct kernel_api
 #define KAPI_BIO_WRITE 0x2
 #define KAPI_BIO_FLUSH 0x4
 #define KAPI_BIO_FUA 0x8
+
+#define KAPI_VFS_FILE_RDONLY 0x1
+#define KAPI_VFS_FILE_WRONLY 0x2
+#define KAPI_VFS_FILE_RDWR 0x4
+#define KAPI_VFS_FILE_CREAT 0x8
+#define KAPI_VFS_FILE_EXCL 0x10
 
 struct kapi_atomic
 {

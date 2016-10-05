@@ -55,6 +55,24 @@ void Page::Zero()
     UnmapAtomic(va);
 }
 
+Error Page::FillRandom(Random& rng)
+{
+    void* va = MapAtomic();
+    Error err = rng.GetBytes(va, GetPageSize());
+    UnmapAtomic(va);
+    return err;
+}
+
+int Page::CompareContent(Page& other)
+{
+    void* va = MapAtomic();
+    void* vaOther = other.MapAtomic();
+    int rc = util::memcmp(va, vaOther, GetPageSize());
+    other.UnmapAtomic(vaOther);
+    UnmapAtomic(va);
+    return rc;
+}
+
 Page::~Page()
 {
     if (PagePtr != nullptr)

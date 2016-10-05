@@ -2,6 +2,7 @@
 
 #include "memory.h"
 #include "error.h"
+#include "random.h"
 
 class Page
 {
@@ -16,6 +17,8 @@ public:
     int GetPageSize();
 
     void Zero();
+    Error FillRandom(Random& rng);
+    int CompareContent(Page& other);
 
     virtual ~Page();
 

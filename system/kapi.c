@@ -13,6 +13,8 @@
 #include <linux/highmem.h>
 #include <linux/bio.h>
 #include <linux/version.h>
+#include <linux/fs.h>
+#include <linux/file.h>
 
 #include <stdarg.h>
 
@@ -655,6 +657,108 @@ static void kapi_submit_bio(void* bio)
     submit_bio(bio_->bi_rw, bio_);
 }
 
+static int kapi_vfs_file_open(const char *path, int flags, void** file)
+{
+    struct file* file_;
+    int flags_ = 0;
+
+    if (flags & KAPI_VFS_FILE_RDONLY)
+    {
+        flags_ |= O_RDONLY;
+    }
+    if (flags & KAPI_VFS_FILE_WRONLY)
+    {
+        flags_ |= O_WRONLY;
+    }
+    if (flags_ & KAPI_VFS_FILE_CREAT)
+    {
+        flags_ |= O_CREAT;
+    }
+    if (flags_ & KAPI_VFS_FILE_EXCL)
+    {
+        flags_ |= O_EXCL;
+    }
+
+    file_ = filp_open(path, flags_, 0);
+    if (IS_ERR(file_))
+    {
+        return PTR_ERR(file_);
+    }
+    else
+    {
+        *file = file_;
+        return 0;
+    }
+}
+
+static int kapi_vfs_file_write(void* file, void* buf, int len, unsigned long long offset)
+{
+    struct file* file_ = (struct file*)file;
+    int ret;
+    mm_segment_t old_fs;
+    u32 pos = 0;
+    loff_t off = offset;
+
+    old_fs = get_fs();
+    set_fs(get_ds());
+    while (pos < len) {
+            ret = vfs_write(file_, (char *)buf + pos, len - pos, &off);
+            if (ret < 0)
+                    goto out;
+            if (ret == 0) {
+                    ret = -EIO;
+                    goto out;
+            }
+            pos += ret;
+    }
+    ret = 0;
+out:
+    set_fs(old_fs);
+    return ret;
+}
+
+static int kapi_vfs_file_read(void* file, void* buf, int len, unsigned long long offset)
+{
+    struct file* file_ = (struct file*)file;
+    int ret;
+    mm_segment_t old_fs;
+    u32 pos = 0;
+    loff_t off = offset;
+
+    old_fs = get_fs();
+    set_fs(get_ds());
+    while (pos < len) {
+            ret = vfs_read(file_, (char *)buf + pos, len - pos, &off);
+            if (ret < 0) {
+                    goto out;
+            }
+
+            if (ret == 0) {
+                    ret = -EIO;
+                    goto out;
+            }
+            pos += ret;
+    }
+    ret = 0;
+out:
+    set_fs(old_fs);
+    return ret;
+}
+
+static int kapi_vfs_file_sync(void* file)
+{
+    struct file* file_ = (struct file*)file;
+
+    return vfs_fsync(file_, 0);
+}
+
+static void kapi_vfs_file_close(void* file)
+{
+    struct file* file_ = (struct file*)file;
+
+    fput(file_);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -736,7 +840,13 @@ static struct kernel_api g_kapi =
     .set_bio_flags = kapi_set_bio_flags,
     .set_bio_position = kapi_set_bio_position,
     .get_bio_private = kapi_get_bio_private,
-    .submit_bio = kapi_submit_bio
+    .submit_bio = kapi_submit_bio,
+
+    .vfs_file_open = kapi_vfs_file_open,
+    .vfs_file_read = kapi_vfs_file_read,
+    .vfs_file_write = kapi_vfs_file_write,
+    .vfs_file_sync = kapi_vfs_file_sync,
+    .vfs_file_close = kapi_vfs_file_close
 };
 
 int kapi_init(void)
