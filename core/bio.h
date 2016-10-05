@@ -11,6 +11,10 @@ class Bio
 {
 public:
     Bio(int pageCount, Error& err);
+    Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
+        Error& err, bool write = false, bool flush = false,
+        bool fua = false, int offset = 0, int len = 0);
+
     void SetBdev(BlockDevice& blockDevice);
     void SetRead();
     void SetWrite();

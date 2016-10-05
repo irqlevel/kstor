@@ -1,5 +1,7 @@
 #pragma once
 
+#include "kapi.h"
+
 namespace util
 {
 
@@ -18,4 +20,8 @@ namespace util
         T c(move(a)); a=move(b); b=move(c);
     }
 
+    static inline void memset(void* ptr, int c, size_t size)
+    {
+        get_kapi()->memset(ptr, c, size);
+    }
 }

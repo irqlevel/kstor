@@ -18,6 +18,7 @@
 
 #include "kapi_internal.h"
 
+#include "base.h"
 #include "malloc_checker.h"
 #include "page_checker.h"
 
@@ -79,6 +80,11 @@ void kapi_kfree(void *ptr)
 #else
     kfree(ptr);
 #endif
+}
+
+static void kapi_memset(void* ptr, int c, size_t size)
+{
+    memset(ptr, c, size);
 }
 
 static void kapi_printk(const char *fmt, ...)
@@ -366,6 +372,17 @@ static void kapi_unmap_page(void *page)
     kunmap((struct page *)page);
 }
 
+static void* kapi_map_page_atomic(void* page)
+{
+    struct page* page_ = (struct page*)page;
+    return kmap_atomic(page_);
+}
+
+static void kapi_unmap_page_atomic(void* va)
+{
+    kunmap_atomic(va);
+}
+
 static void kapi_free_page(void *page)
 {
 #ifdef __PAGE_CHECKER__
@@ -416,6 +433,8 @@ static void kapi_bdev_put(void *bdev, int mode)
 static void* kapi_alloc_bio(int page_count)
 {
     struct bio* bio = bio_alloc(GFP_NOIO, page_count);
+    int i;
+
     if (!bio)
     {
         return NULL;
@@ -423,6 +442,13 @@ static void* kapi_alloc_bio(int page_count)
     bio->bi_iter.bi_size = 0;
     bio->bi_iter.bi_sector = 0;
     bio->bi_vcnt = 0;
+    for (i = 0; i < bio->bi_max_vecs; i++)
+    {
+        bio->bi_io_vec[i].bv_page = NULL;
+        bio->bi_io_vec[i].bv_offset = 0;
+        bio->bi_io_vec[i].bv_len = 0;
+    }
+
     return bio;
 }
 
@@ -464,6 +490,7 @@ static void kapi_free_bio(void* bio)
     {
         struct page* page = bio_->bi_io_vec[i].bv_page;
 
+        BUG_ON(!page);
         put_page(page);
     }
 
@@ -478,7 +505,7 @@ static int kapi_set_bio_page(void* bio, int page_index, void* page, int offset, 
     if (page_index >= bio_->bi_max_vecs ||
         bio_->bi_vcnt >= bio_->bi_max_vecs ||
         bio_->bi_io_vec[page_index].bv_page ||
-        !page)
+        !page_ || len == 0 || (offset + len) > PAGE_SIZE)
     {
         return -EINVAL;
     }
@@ -622,20 +649,25 @@ static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
     .kfree = kapi_kfree,
+    .memset = kapi_memset,
+
     .printk = kapi_printk,
     .bug_on = kapi_bug_on,
+
     .atomic_create = kapi_atomic_create,
     .atomic_delete = kapi_atomic_delete,
     .atomic_inc = kapi_atomic_inc,
     .atomic_dec_and_test = kapi_atomic_dec_and_test,
     .atomic_read = kapi_atomic_read,
     .atomic_set = kapi_atomic_set,
+
     .completion_create = kapi_completion_create,
     .completion_init = kapi_completion_init,
     .completion_delete = kapi_completion_delete,
     .completion_wait = kapi_completion_wait,
     .completion_complete = kapi_completion_complete,
     .completion_complete_all = kapi_completion_complete_all,
+
     .task_create = kapi_task_create,
     .task_wakeup = kapi_task_wakeup,
     .task_stop = kapi_task_stop,
@@ -645,20 +677,24 @@ static struct kernel_api g_kapi =
     .task_get_id = kapi_task_get_id,
     .task_current = kapi_task_current,
     .msleep = kapi_msleep,
+
     .spinlock_create = kapi_spinlock_create,
     .spinlock_init = kapi_spinlock_init,
     .spinlock_delete = kapi_spinlock_delete,
     .spinlock_lock = kapi_spinlock_lock,
     .spinlock_unlock = kapi_spinlock_unlock,
+
     .get_symbol_address = kapi_get_symbol_address,
     .probe_kernel_read = kapi_probe_kernel_read,
     .probe_kernel_write = kapi_probe_kernel_write,
+
     .smp_call_function = kapi_smp_call_function,
     .get_online_cpus = kapi_get_online_cpus,
     .put_online_cpus = kapi_put_online_cpus,
     .preempt_disable = kapi_preempt_disable,
     .preempt_enable = kapi_preempt_enable,
     .smp_processor_id = kapi_smp_processor_id,
+
     .rwsem_create = kapi_rwsem_create,
     .rwsem_init = kapi_rwsem_init,
     .rwsem_down_write = kapi_rwsem_down_write,
@@ -672,6 +708,8 @@ static struct kernel_api g_kapi =
     .unmap_page = kapi_unmap_page,
     .free_page = kapi_free_page,
     .get_page_size = kapi_get_page_size,
+    .map_page_atomic = kapi_map_page_atomic,
+    .unmap_page_atomic = kapi_unmap_page_atomic,
 
     .bdev_get_by_path = kapi_bdev_get_by_path,
     .bdev_put = kapi_bdev_put,

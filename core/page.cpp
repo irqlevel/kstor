@@ -1,5 +1,6 @@
 #include "page.h"
 #include "kapi.h"
+#include "utility.h"
 
 Page::Page(Memory::PoolType poolType, Error& err)
     : PoolType(poolType)
@@ -27,6 +28,16 @@ void Page::Unmap()
     get_kapi()->unmap_page(PagePtr);
 }
 
+void* Page::MapAtomic()
+{
+    return get_kapi()->map_page_atomic(PagePtr);
+}
+
+void Page::UnmapAtomic(void* va)
+{
+    get_kapi()->unmap_page_atomic(va);
+}
+
 void* Page::GetPage()
 {
     return PagePtr;
@@ -35,6 +46,13 @@ void* Page::GetPage()
 int Page::GetPageSize()
 {
     return get_kapi()->get_page_size();
+}
+
+void Page::Zero()
+{
+    void* va = MapAtomic();
+    util::memset(va, 0, GetPageSize());
+    UnmapAtomic(va);
 }
 
 Page::~Page()

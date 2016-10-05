@@ -20,6 +20,8 @@ struct kernel_api
     void *(*kmalloc)(size_t size, unsigned long pool_type);
     void (*kfree)(void *ptr);
 
+    void (*memset)(void* ptr, int c, size_t size);
+
     void (*printk)(const char *fmt, ...);
     void (*bug_on)(bool condition);
 
@@ -79,6 +81,9 @@ struct kernel_api
     void *(*alloc_page)(unsigned long pool_type);
     void *(*map_page)(void *page);
     void (*unmap_page)(void *page);
+    void* (*map_page_atomic)(void* page);
+    void (*unmap_page_atomic)(void* va);
+
     void (*free_page)(void *page);
     int (*get_page_size)(void);
 

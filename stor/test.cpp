@@ -176,21 +176,12 @@ void test_bio()
         trace(0, "Can't allocate page");
         return;
     }
+    page.Zero();
 
-    Bio bio(1, err);
+    Bio bio(bdev, page, 0, err);
     if (err != Error::Success)
     {
         trace(0, "Can't init Bio, err %d", err.GetCode());
-        return;
-    }
-
-    bio.SetBdev(bdev);
-    bio.SetRead();
-    bio.SetPosition(0);
-    err = bio.SetPage(0, page, 0, page.GetPageSize());
-    if (err != Error::Success)
-    {
-        trace(0, "Can't set Bio page, err %d", err.GetCode());
         return;
     }
 

@@ -35,7 +35,42 @@ Bio::Bio(int pageCount, Error& err)
         return;
     }
 
-    trace(1, "Bio 0x%p bio 0x%p contructed\n", this, BioPtr);
+    trace(1, "Bio 0x%p bio 0x%p contructed", this, BioPtr);
+}
+
+Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
+    Error& err, bool write, bool flush, bool fua, int offset, int len)
+    : Bio(1, err)
+{
+    if (err != Error::Success)
+    {
+        return;
+    }
+
+    err = SetPage(0, page, offset, (len == 0) ? page.GetPageSize() : len);
+    if (err != Error::Success)
+    {
+        return;
+    }
+
+    if (write)
+    {
+        SetWrite();
+        if (fua)
+        {
+            SetFua();
+        }
+        if (flush)
+        {
+            SetFlush();
+        }
+    }
+    else
+    {
+        SetRead();
+    }
+
+    SetBdev(blockDevice);
 }
 
 void Bio::SetBdev(BlockDevice& blockDevice)
@@ -68,7 +103,7 @@ Error Bio::SetPage(int pageIndex, Page& page, int offset, int len)
     int rc = get_kapi()->set_bio_page(BioPtr, pageIndex, page.GetPage(), offset, len);
     if (rc)
     {
-        trace(0, "Can't set bio page, rc %d", rc);
+        trace(0, "Can't set bio page offset %d len %d, rc %d", offset, len, rc);
     }
     return Error(rc);
 }
