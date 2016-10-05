@@ -100,7 +100,16 @@ int AString::Compare(const AString& key1, const AString &key2)
 
 size_t AString::Hash() const
 {
-    return 0;
+    size_t hash = 5381;
+    size_t c;
+
+    for (size_t i = 0; i < GetLen(); i++)
+    {
+        c = GetBuf()[i];
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+
+    return hash;
 }
 
 size_t AString::Hash(const AString& key)
