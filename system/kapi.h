@@ -93,6 +93,7 @@ struct kernel_api
     void (*set_bio_bdev)(void* bio, void* bdev);
     void (*set_bio_rw)(void* bio, int rw);
     void (*set_bio_flags)(void* bio, int flags);
+    void (*set_bio_position)(void* bio, unsigned long long sector);
     void* (*get_bio_private)(void* bio);
     void (*submit_bio)(void* bio);
 };

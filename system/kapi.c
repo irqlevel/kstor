@@ -415,7 +415,15 @@ static void kapi_bdev_put(void *bdev, int mode)
 
 static void* kapi_alloc_bio(int page_count)
 {
-    return bio_alloc(GFP_NOIO, page_count);
+    struct bio* bio = bio_alloc(GFP_NOIO, page_count);
+    if (!bio)
+    {
+        return NULL;
+    }
+    bio->bi_iter.bi_size = 0;
+    bio->bi_iter.bi_sector = 0;
+    bio->bi_vcnt = 0;
+    return bio;
 }
 
 struct kapi_bio_private
@@ -429,11 +437,19 @@ static void kapi_free_bio(void* bio)
 {
     struct bio* bio_ = (struct bio*)bio;
     struct kapi_bio_private* priv = (struct kapi_bio_private*)bio_->bi_private;
+    int i;
 
     if (priv)
     {
         kapi_kfree(priv);
         bio_->bi_private = NULL;
+    }
+
+    for (i = 0; i < bio_->bi_vcnt; i++)
+    {
+        struct page* page = bio_->bi_io_vec[i].bv_page;
+
+        put_page(page);
     }
 
     bio_put(bio_);
@@ -442,18 +458,23 @@ static void kapi_free_bio(void* bio)
 static int kapi_set_bio_page(void* bio, int page_index, void* page, int offset, int len)
 {
     struct bio* bio_ = (struct bio*)bio;
+    struct page* page_ = (struct page*)page;
 
     if (page_index >= bio_->bi_max_vecs ||
         bio_->bi_vcnt >= bio_->bi_max_vecs ||
-        bio_->bi_io_vec[page_index].bv_page)
+        bio_->bi_io_vec[page_index].bv_page ||
+        !page)
     {
         return -EINVAL;
     }
 
-    bio_->bi_io_vec[page_index].bv_page = page;
+    get_page(page_);
+    bio_->bi_io_vec[page_index].bv_page = page_;
     bio_->bi_io_vec[page_index].bv_offset = offset;
     bio_->bi_io_vec[page_index].bv_len = len;
     bio_->bi_vcnt++;
+    bio_->bi_iter.bi_size+= len;
+
     return 0;
 }
 
@@ -568,6 +589,13 @@ static void kapi_set_bio_flags(void* bio, int flags)
     bio_->bi_flags = flags;
 }
 
+static void kapi_set_bio_position(void* bio, unsigned long long sector)
+{
+    struct bio* bio_ = (struct bio*)bio;
+
+    bio_->bi_iter.bi_sector = sector;
+}
+
 static void* kapi_get_bio_private(void* bio)
 {
     struct bio* bio_ = (struct bio *)bio;
@@ -654,6 +682,7 @@ static struct kernel_api g_kapi =
     .set_bio_bdev = kapi_set_bio_bdev,
     .set_bio_rw = kapi_set_bio_rw,
     .set_bio_flags = kapi_set_bio_flags,
+    .set_bio_position = kapi_set_bio_position,
     .get_bio_private = kapi_get_bio_private,
     .submit_bio = kapi_submit_bio
 };

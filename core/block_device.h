@@ -7,6 +7,7 @@ class BlockDevice
 {
 public:
     BlockDevice(const AString& deviceName, Error& err);
+    void* GetBdev();
     virtual ~BlockDevice();
 private:
     void* BDevPtr;

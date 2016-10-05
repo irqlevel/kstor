@@ -18,6 +18,11 @@ BlockDevice::BlockDevice(const AString& deviceName, Error& err)
     }
 }
 
+void* BlockDevice::GetBdev()
+{
+    return BDevPtr;
+}
+
 BlockDevice::~BlockDevice()
 {
     if (BDevPtr != nullptr)
