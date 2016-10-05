@@ -10,6 +10,7 @@ Page::Page(Memory::PoolType poolType, Error& err)
     {
         return;
     }
+
     PagePtr = get_kapi()->alloc_page(get_kapi_pool_type(PoolType));
     if (PagePtr == nullptr)
     {

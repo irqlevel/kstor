@@ -192,8 +192,9 @@ void test_bio()
         return;
     }
 
+    unsigned long long sector = 12;
     {
-        Bio bio(bdev, page, 0, err, true);
+        Bio bio(bdev, page, sector, err, true);
         if (err != Error::Success)
         {
             trace(0, "Can't init Bio, err %d", err.GetCode());
@@ -213,7 +214,7 @@ void test_bio()
     }
 
     {
-        Bio bio(bdev, pageRead, 0, err);
+        Bio bio(bdev, pageRead, sector, err);
         if (err != Error::Success)
         {
             trace(0, "Can't init Bio, err %d", err.GetCode());
