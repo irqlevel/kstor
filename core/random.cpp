@@ -44,11 +44,12 @@ unsigned long Random::GetUlong()
     Error err = GetBytes(&result, sizeof(result));
     if (err != Error::Success)
     {
-        return (unsigned long)-1;
+        return static_cast<unsigned long>(-1);
     }
 
     return result;
 }
+
 Random::~Random()
 {
     trace(1, "Random 0x%p desctructor", this);
