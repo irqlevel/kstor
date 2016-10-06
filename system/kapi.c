@@ -17,6 +17,7 @@
 #include <linux/file.h>
 #include <linux/device.h>
 #include <linux/miscdevice.h>
+#include <linux/timekeeping.h>
 
 #include <stdarg.h>
 
@@ -901,6 +902,7 @@ int kapi_misc_dev_register(const char* name, void* context,
     dev_ = kapi_kmalloc_gfp(sizeof(*dev_), GFP_KERNEL);
     if (!dev_)
     {
+        PRINTK("No memory\n");
         return -ENOMEM;
     }
 
@@ -936,6 +938,7 @@ int kapi_misc_dev_register(const char* name, void* context,
     rc = misc_register(&dev_->misc);
     if (rc)
     {
+        PRINTK("Misc %s register failed %d\n", name, rc);
         spin_lock(&misc_devs_lock);
         list_del_init(&dev_->list);
         spin_unlock(&misc_devs_lock);
@@ -967,6 +970,31 @@ void kapi_misc_dev_unregister(void* dev)
         kapi_misc_dev_put(dev_); // list
         kapi_misc_dev_put(dev_); // create
     }
+}
+
+static int kapi_copy_to_user(void* dst, void* src, unsigned long size)
+{
+    if (copy_to_user(dst, src, size))
+    {
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
+static int kapi_copy_from_user(void* dst, void* src, unsigned long size)
+{
+    if (copy_from_user(dst, src, size))
+    {
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
+static unsigned long long kapi_get_time(void)
+{
+    return ktime_get_ns();
 }
 
 static struct kernel_api g_kapi =
@@ -1061,7 +1089,13 @@ static struct kernel_api g_kapi =
     .vfs_file_close = kapi_vfs_file_close,
 
     .misc_dev_register = kapi_misc_dev_register,
-    .misc_dev_unregister = kapi_misc_dev_unregister
+    .misc_dev_unregister = kapi_misc_dev_unregister,
+
+    .copy_to_user = kapi_copy_to_user,
+    .copy_from_user = kapi_copy_from_user,
+
+    .get_time = kapi_get_time,
+
 };
 
 int kapi_init(void)

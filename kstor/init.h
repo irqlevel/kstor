@@ -5,8 +5,8 @@ extern "C"
 {
 #endif
 
-int stor_init(void);
-void stor_deinit(void);
+int KStorInit(void);
+void KStorDeinit(void);
 
 #ifdef __cplusplus
 }

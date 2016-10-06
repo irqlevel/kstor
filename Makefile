@@ -1,7 +1,7 @@
 export PROJ_ROOT=$(CURDIR)
 export ARCH_BITS=$(shell getconf LONG_BIT)
 
-SOURCE_DIRS = system core stor
+SOURCE_DIRS = system core kstor ctl
 BUILD_DIRS = bin lib obj
 
 SOURCE_DIRS_CLEAN = $(addsuffix .clean,$(SOURCE_DIRS))
@@ -27,6 +27,8 @@ $(BUILD_DIRS_CLEAN): %.clean:
 
 core: $(BUILD_DIRS)
 
-stor: core $(BUILD_DIRS)
+kstor: core $(BUILD_DIRS)
 
-system: core stor $(BUILD_DIRS)
+system: core kstor $(BUILD_DIRS)
+
+ctl: system $(BUILD_DIRS)

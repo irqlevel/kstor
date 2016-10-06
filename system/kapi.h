@@ -114,8 +114,13 @@ struct kernel_api
     int (*misc_dev_register)(const char* name, void* context,
         long (*ioctl)(void* context, unsigned int code, unsigned long arg),
         void** dev);
-
     void (*misc_dev_unregister)(void* dev);
+
+    int (*copy_to_user)(void* dst, void* src, unsigned long size);
+    int (*copy_from_user)(void* dst, void* src, unsigned long size);
+
+    unsigned long long (*get_time)(void);
+
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

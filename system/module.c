@@ -8,8 +8,8 @@
 #include "base.h"
 #include "kapi_internal.h"
 
-#include "../core/init.h"
-#include "../stor/init.h"
+#include <core/init.h>
+#include <kstor/init.h>
 
 MODULE_LICENSE("GPL");
 
@@ -27,7 +27,7 @@ static int __init kstor_module_init(void)
     if (err)
         goto deinit_kapi;
 
-    err = stor_init();
+    err = KStorInit();
     if (err)
         goto deinit_core;
 
@@ -46,7 +46,7 @@ out:
 static void __exit kstor_module_exit(void)
 {
     PRINTK("exiting\n");
-    stor_deinit();
+    KStorDeinit();
     core_deinit();
     kapi_deinit();
     PRINTK("exited\n");

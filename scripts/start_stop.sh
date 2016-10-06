@@ -8,7 +8,7 @@ do
     losetup -d /dev/loop10
     losetup /dev/loop10 lfile10
     insmod bin/kstor.ko
-    sleep 5
+    bin/kstor-ctl
     rmmod kstor
     losetup -d /dev/loop10
     rm -f lfile10
