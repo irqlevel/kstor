@@ -110,6 +110,12 @@ struct kernel_api
     int (*vfs_file_read)(void* file, void* buf, int len, unsigned long long offset);
     int (*vfs_file_sync)(void* file);
     void (*vfs_file_close)(void* file);
+
+    int (*misc_dev_register)(const char* name, void* context,
+        long (*ioctl)(void* context, unsigned int code, unsigned long arg),
+        void** dev);
+
+    void (*misc_dev_unregister)(void* dev);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

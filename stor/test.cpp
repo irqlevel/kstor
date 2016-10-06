@@ -14,6 +14,7 @@
 #include <core/block_device.h>
 #include <core/bio.h>
 #include <core/random.h>
+#include <core/misc_device.h>
 
 class TJob : public Runnable
 {
@@ -245,6 +246,42 @@ void test_random()
     }
 }
 
+void test_misc_device()
+{
+
+    class TestMiscDevice : public MiscDevice
+    {
+    public:
+        TestMiscDevice(const AString& devName, Error& err)
+            : MiscDevice(devName, err)
+        {
+        }
+
+        Error Ioctl(unsigned int code, unsigned long arg) override
+        {
+            return Error::NotImplemented;
+        }
+        virtual ~TestMiscDevice()
+        {
+        }
+    };
+
+    Error err;
+    AString devName("kapi_ctl", Memory::PoolType::Kernel, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't copy string");
+        return;
+    }
+
+    TestMiscDevice dev(devName, err);
+    if (err != Error::Success)
+    {
+        trace(0, "Can't create device, err %d", err.GetCode());
+        return;
+    }
+}
+
 void run_tests()
 {
     test_worker();
@@ -257,4 +294,5 @@ void run_tests()
     test_bdev();
     test_bio();
     test_random();
+    test_misc_device();
 }

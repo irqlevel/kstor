@@ -30,6 +30,11 @@ AString::AString(const char* s, Memory::PoolType poolType, Error& err)
     err = Error::Success;
 }
 
+AString::AString(const AString& s, Memory::PoolType poolType, Error& err)
+    : AString(s.GetBuf(), poolType, err)
+{
+}
+
 const char* AString::GetBuf() const
 {
     return Buf.GetBuf();

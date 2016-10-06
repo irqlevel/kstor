@@ -10,6 +10,8 @@ class AString
 public:
     AString();
     AString(const char* s, Memory::PoolType poolType, Error& err);
+    AString(const AString& s, Memory::PoolType poolType, Error& err);
+
     virtual ~AString();
 
     const char* GetBuf() const;

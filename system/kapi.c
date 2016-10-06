@@ -15,6 +15,8 @@
 #include <linux/version.h>
 #include <linux/fs.h>
 #include <linux/file.h>
+#include <linux/device.h>
+#include <linux/miscdevice.h>
 
 #include <stdarg.h>
 
@@ -772,6 +774,201 @@ static void kapi_vfs_file_close(void* file)
     fput(file_);
 }
 
+struct kapi_misc_dev
+{
+    struct miscdevice misc;
+    void* context;
+    struct list_head list;
+    atomic_t ref_count;
+    long (*ioctl)(void* context, unsigned int code, unsigned long arg);
+};
+
+static LIST_HEAD(misc_devs);
+static DEFINE_SPINLOCK(misc_devs_lock);
+
+void kapi_misc_dev_get(struct kapi_misc_dev* dev)
+{
+    atomic_inc(&dev->ref_count);
+}
+
+void kapi_misc_dev_put(struct kapi_misc_dev* dev)
+{
+    if (atomic_dec_and_test(&dev->ref_count))
+    {
+        kapi_kfree(dev);
+    }
+}
+
+struct kapi_misc_dev* kapi_misc_dev_find_by_context(void *context)
+{
+    struct kapi_misc_dev* curr;
+
+    list_for_each_entry(curr, &misc_devs, list)
+    {
+        if (curr->context == context)
+        {
+            kapi_misc_dev_get(curr);
+            return curr;
+        }
+    }
+
+    return NULL;
+}
+
+struct kapi_misc_dev* kapi_misc_dev_find_by_dev(void* dev)
+{
+    struct kapi_misc_dev* dev_ = (struct kapi_misc_dev*)dev;
+    struct kapi_misc_dev* curr;
+
+    list_for_each_entry(curr, &misc_devs, list)
+    {
+        if (curr == dev_)
+        {
+            kapi_misc_dev_get(curr);
+            return curr;
+        }
+    }
+
+    return NULL;
+}
+
+static struct kapi_misc_dev* kapi_misc_dev_find_by_devt(dev_t devt)
+{
+    struct kapi_misc_dev* curr;
+
+    list_for_each_entry(curr, &misc_devs, list)
+    {
+        if (curr->misc.this_device && curr->misc.this_device->devt == devt)
+        {
+            kapi_misc_dev_get(curr);
+            return curr;
+        }
+    }
+
+    return NULL;
+}
+
+static long kapi_ioctl(struct file* file, unsigned int code, unsigned long arg)
+{
+    struct kapi_misc_dev* dev;
+
+    spin_lock(&misc_devs_lock);
+    dev = kapi_misc_dev_find_by_devt(file->f_inode->i_rdev);
+    spin_unlock(&misc_devs_lock);
+
+    if (dev)
+    {
+        int rc = dev->ioctl(dev->context, code, arg);
+        kapi_misc_dev_put(dev);
+        return rc;
+    }
+
+    return -EFAULT;
+}
+
+static int kapi_module_get(struct inode *inode, struct file *file)
+{
+    if (!try_module_get(THIS_MODULE))
+    {
+            return -EINVAL;
+    }
+    return 0;
+}
+
+static int kapi_module_put(struct inode *inode, struct file *file)
+{
+    module_put(THIS_MODULE);
+    return 0;
+}
+
+static const struct file_operations kapi_fops =
+{
+    .owner = THIS_MODULE,
+    .open = kapi_module_get,
+    .release = kapi_module_put,
+    .unlocked_ioctl = kapi_ioctl,
+};
+
+int kapi_misc_dev_register(const char* name, void* context,
+    long (*ioctl)(void* context, unsigned int code, unsigned long arg),
+    void** dev)
+{
+    struct kapi_misc_dev* dev_;
+    struct kapi_misc_dev* existing_dev;
+    int rc;
+    int inserted;
+
+    dev_ = kapi_kmalloc_gfp(sizeof(*dev_), GFP_KERNEL);
+    if (!dev_)
+    {
+        return -ENOMEM;
+    }
+
+    memset(dev_, 0, sizeof(*dev_));
+    dev_->misc.fops = &kapi_fops;
+    dev_->misc.minor = MISC_DYNAMIC_MINOR;
+    dev_->misc.name = name;
+    dev_->context = context;
+    dev_->ioctl = ioctl;
+    atomic_set(&dev_->ref_count, 1);
+
+    inserted = 0;
+    spin_lock(&misc_devs_lock);
+    existing_dev = kapi_misc_dev_find_by_context(context);
+    if (!existing_dev)
+    {
+        kapi_misc_dev_get(dev_);
+        list_add_tail(&dev_->list, &misc_devs);
+        inserted = 1;
+    }
+    else
+    {
+        kapi_misc_dev_put(existing_dev);
+    }
+    spin_unlock(&misc_devs_lock);
+
+    if (!inserted)
+    {
+        kapi_misc_dev_put(dev_);
+        return -EFAULT;
+    }
+
+    rc = misc_register(&dev_->misc);
+    if (rc)
+    {
+        spin_lock(&misc_devs_lock);
+        list_del_init(&dev_->list);
+        spin_unlock(&misc_devs_lock);
+        kapi_misc_dev_put(dev_); //list
+        kapi_misc_dev_put(dev_); //create
+        return rc;
+    }
+
+    *dev = dev_;
+    return 0;
+}
+
+void kapi_misc_dev_unregister(void* dev)
+{
+    struct kapi_misc_dev* dev_ = NULL;
+
+    spin_lock(&misc_devs_lock);
+    dev_ = kapi_misc_dev_find_by_dev(dev);
+    if (dev_)
+    {
+        list_del_init(&dev_->list);
+    }
+    spin_unlock(&misc_devs_lock);
+
+    if (dev_)
+    {
+        misc_deregister(&dev_->misc);
+        kapi_misc_dev_put(dev_); // find
+        kapi_misc_dev_put(dev_); // list
+        kapi_misc_dev_put(dev_); // create
+    }
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -861,7 +1058,10 @@ static struct kernel_api g_kapi =
     .vfs_file_read = kapi_vfs_file_read,
     .vfs_file_write = kapi_vfs_file_write,
     .vfs_file_sync = kapi_vfs_file_sync,
-    .vfs_file_close = kapi_vfs_file_close
+    .vfs_file_close = kapi_vfs_file_close,
+
+    .misc_dev_register = kapi_misc_dev_register,
+    .misc_dev_unregister = kapi_misc_dev_unregister
 };
 
 int kapi_init(void)

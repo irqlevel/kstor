@@ -27,6 +27,10 @@ public:
 
     static const int InvalidState = 501;
 
+    static const int Unsuccessful = 502;
+
+    static const int NotImplemented = 503;
+
     bool operator!= (const Error& other) const;
 
     bool operator== (const Error& other) const;
