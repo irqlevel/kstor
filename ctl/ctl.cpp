@@ -34,6 +34,7 @@ int KStorCtl::GetTime(unsigned long long& time)
 {
     KStorCtlCmd cmd;
 
+    time = 0;
     memset(&cmd, 0, sizeof(cmd));
     int err = ioctl(DevFd, IOCTL_KSTOR_GET_TIME, &cmd);
     if (!err)

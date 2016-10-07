@@ -34,4 +34,4 @@ private:
     Vector<char> Buf;
 };
 
-typedef shared_ptr<AString> AStringRef;
+typedef SharedPtr<AString> AStringRef;

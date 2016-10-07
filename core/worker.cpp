@@ -26,8 +26,8 @@ bool Worker::ExecuteAndWait(RunnableRef task, Error& err)
     if (!Execute(task))
         return false;
 
-    task.get()->Wait();
-    err = task.get()->GetStatus();
+    task->Wait();
+    err = task->GetStatus();
     return true;
 }
 
@@ -48,8 +48,10 @@ Error Worker::Run(const Threadable& thread)
             }
             trace(255, "De-locking");
         }
-        if (task.get())
+        if (task.Get())
+        {
             task->Execute(thread);
+        }
     }
 
     trace(255, "Stopping");
@@ -92,7 +94,9 @@ Worker::~Worker()
                 bHasTasks = !TaskList.IsEmpty();
             }
         }
-        if (task.get())
+        if (task.Get())
+        {
             task->Cancel();
+        }
     } while (bHasTasks);
 }

@@ -6,16 +6,16 @@
 #include "bug.h"
 
 template<class T>
-class shared_ptr
+class SharedPtr
 {
 public:
-    shared_ptr()
+    SharedPtr()
     {
         trace(255, "this %p", this);
         Ptr = nullptr;
         Counter = nullptr;
     }
-    shared_ptr(T *ptr)
+    SharedPtr(T *ptr)
     {
         trace(255, "this %p Ptr %p", this, ptr);
         Ptr = nullptr;
@@ -29,7 +29,7 @@ public:
         Counter = counter;
         Counter->Inc();
     }
-    shared_ptr(const shared_ptr<T>& other)
+    SharedPtr(const SharedPtr<T>& other)
     {
         Counter = other.Counter;
         Ptr = other.Ptr;
@@ -40,7 +40,7 @@ public:
             Acquire();
         }
     }
-    shared_ptr(const shared_ptr<T>& other, Error& err)
+    SharedPtr(const SharedPtr<T>& other, Error& err)
     {
         if (err != Error::Success)
             return;
@@ -54,7 +54,7 @@ public:
             Acquire();
         }
     }
-    shared_ptr(shared_ptr<T>&& other)
+    SharedPtr(SharedPtr<T>&& other)
     {
         Counter = other.Counter;
         Ptr = other.Ptr;
@@ -62,8 +62,7 @@ public:
         other.Counter = nullptr;
         other.Ptr = nullptr;
     }
-
-    shared_ptr<T>& operator=(const shared_ptr<T>& other)
+    SharedPtr<T>& operator=(const SharedPtr<T>& other)
     {
         Reset();
         Counter = other.Counter;
@@ -75,7 +74,7 @@ public:
         }
         return *this;
     }
-    shared_ptr<T>& operator=(shared_ptr<T>&& other)
+    SharedPtr<T>& operator=(SharedPtr<T>&& other)
     {
         Reset();
         Counter = other.Counter;
@@ -85,23 +84,23 @@ public:
         other.Ptr = nullptr;
         return *this;
     }
-    T* get() const
+    T* Get() const
     {
         return Ptr;
     }
     T& operator*()
     {
-        return *get();
+        return *Get();
     }
     T* operator->()
     {
-        return get();
+        return Get();
     }
     int GetCounter()
     {
         return Counter->Get();
     }
-    virtual ~shared_ptr()
+    virtual ~SharedPtr()
     {
         trace(255, "dtor %p", this);
         Reset();

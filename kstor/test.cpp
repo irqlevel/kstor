@@ -41,11 +41,11 @@ void test_worker()
 
     Error err = Error::Success;
     WorkerRef worker(new (Memory::PoolType::Atomic) Worker(err));
-    if (!worker.get() || err != Error::Success)
+    if (!worker.Get() || err != Error::Success)
         return;
 
     RunnableRef job(new TJob());
-    if (!job.get() || err != Error::Success)
+    if (!job.Get() || err != Error::Success)
         return;
 
     if (!worker->ExecuteAndWait(job, err))

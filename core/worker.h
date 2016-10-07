@@ -32,4 +32,4 @@ private:
     Thread WorkerThread;
 };
 
-typedef shared_ptr<Worker> WorkerRef;
+typedef SharedPtr<Worker> WorkerRef;

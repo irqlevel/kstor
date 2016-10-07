@@ -57,4 +57,4 @@ private:
     Event CompleteEvent;
 };
 
-typedef shared_ptr<Runnable> RunnableRef;
+typedef SharedPtr<Runnable> RunnableRef;
