@@ -33,6 +33,8 @@ public:
 
     static const int UnknownCode = -504;
 
+    static const int NotFound = -505;
+
     bool operator!= (const Error& other) const;
 
     bool operator== (const Error& other) const;

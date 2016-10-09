@@ -10,14 +10,15 @@ public:
         : Lock(lock)
     {
         Lock.Acquire();
-        trace(255,"lock %p acquired", &Lock);
+        trace(255, "Lock 0x%p acquired", &Lock);
     }
 
     virtual ~AutoLock()
     {
         Lock.Release();
-        trace(255,"lock %p released", &Lock);
+        trace(255, "Lock 0x%p released", &Lock);
     }
+
 private:
     AutoLock(const AutoLock& other) = delete;
     AutoLock(AutoLock&& other) = delete;

@@ -12,25 +12,22 @@ int main(int argc, char* argv[])
         return err;
     }
 
-    unsigned long long time;
-    err = ctl.GetTime(time);
+    unsigned long deviceId;
+
+    err = ctl.DeviceAdd("/dev/loop10", true, deviceId);
     if (err)
     {
-        printf("GetTime err %d\n", err);
+        printf("Ctl device add err %d\n", err);
         return err;
     }
-    printf("Time is %llu\n", time);
 
-    for (int i = 0; i < 10; i++)
+    printf("Ctl deviceId is 0x%lx\n", deviceId);
+
+    err = ctl.DeviceRemove(deviceId);
+    if (err)
     {
-        unsigned long value;
-        err = ctl.GetRandomUlong(value);
-        if (err)
-        {
-            printf("GetRandomUlong err %d\n", err);
-            return err;
-        }
-        printf("Random is %lu\n", value);
+        printf("Ctl device remove err %d\n", err);
+        return err;
     }
 
     return 0;

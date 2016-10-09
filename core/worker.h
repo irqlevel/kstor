@@ -28,7 +28,7 @@ private:
     bool Running;
 
     SpinLock Lock;
-    LinkedList<RunnableRef> TaskList;
+    LinkedList<RunnableRef, Memory::PoolType::Kernel> TaskList;
     Event TaskEvent;
     Thread WorkerThread;
 };

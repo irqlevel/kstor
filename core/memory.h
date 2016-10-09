@@ -36,4 +36,19 @@ namespace Memory
         get_kapi()->memcpy(dst, src, size);
     }
 
+    static inline size_t StrLen(const char* s)
+    {
+        size_t i = 0;
+        while (s[i] != 0)
+        {
+            i++;
+        }
+        return i;
+    }
+
+    template <typename T,unsigned S>
+    inline unsigned ArraySize(const T (&v)[S])
+    {
+        return S;
+    }
 }

@@ -56,7 +56,7 @@ void test_worker()
 
 void test_vector()
 {
-    Vector<char> v(Memory::PoolType::Atomic);
+    Vector<char, Memory::PoolType::Atomic> v;
 
     v.PushBack('a');
     v.PushBack('b');
@@ -67,7 +67,7 @@ void test_vector()
 void test_astring()
 {
     Error err;
-    AString s("blabla", Memory::PoolType::Atomic, err);
+    AStringBase<Memory::PoolType::Atomic> s("blabla", err);
     if (err != Error::Success)
         return;
 
@@ -92,7 +92,7 @@ size_t IntHash(const int& key)
 int test_hash_table()
 {
     Error err;
-    HashTable<int, int> ht(Memory::PoolType::Kernel, 256, err, IntCmp, IntHash);
+    HashTable<int, int, Memory::PoolType::Kernel> ht(256, err, IntCmp, IntHash);
     if (err != Error::Success)
         return err.GetCode();
 
@@ -140,7 +140,7 @@ void test_page()
 void test_bdev()
 {
     Error err;
-    AString name("/dev/loop10", Memory::PoolType::Kernel, err);
+    AString name("/dev/loop10", err);
     if (err != Error::Success)
     {
         trace(0, "Can't allocate string, err %d", err.GetCode());
@@ -158,7 +158,7 @@ void test_bdev()
 void test_bio()
 {
     Error err;
-    AString name("/dev/loop10", Memory::PoolType::Kernel, err);
+    AString name("/dev/loop10", err);
     if (err != Error::Success)
     {
         trace(0, "Can't allocate string, err %d", err.GetCode());
@@ -267,7 +267,7 @@ void test_misc_device()
     };
 
     Error err;
-    AString devName("kapi_ctl", Memory::PoolType::Kernel, err);
+    AString devName("kapi_ctl", err);
     if (err != Error::Success)
     {
         trace(0, "Can't copy string");

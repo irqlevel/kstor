@@ -6,13 +6,12 @@
 #include "bug.h"
 #include "new.h"
 
-template<class T>
+template<class T, Memory::PoolType PoolType>
 class Vector
 {
 public:
-    Vector(Memory::PoolType poolType)
-        : Arr(nullptr), Size(0), Capacity(0),
-         PoolType(poolType)
+    Vector()
+        : Arr(nullptr), Size(0), Capacity(0)
     {
     }
 
@@ -96,11 +95,9 @@ public:
         Arr = other.Arr;
         Size = other.Size;
         Capacity = other.Capacity;
-        PoolType = other.PoolType;
         other.Arr = nullptr;
         other.Size = 0;
         other.Capacity = 0;
-        other.PoolType = Memory::PoolType::Undefined;
     }
 
     Vector& operator=(Vector&& other)
@@ -109,11 +106,9 @@ public:
         Arr = other.Arr;
         Size = other.Size;
         Capacity = other.Capacity;
-        PoolType = other.PoolType;
         other.Arr = nullptr;
         other.Size = 0;
         other.Capacity = 0;
-        other.PoolType = Memory::PoolType::Kernel;
         return *this;
     }
 
@@ -135,7 +130,6 @@ public:
         }
         Size = other.Size;
         Capacity = other.Capacity;
-        PoolType = other.PoolType;
     }
 
 private:
@@ -156,5 +150,4 @@ private:
     T* Arr;
     size_t Size;
     size_t Capacity;
-    Memory::PoolType PoolType;
 };

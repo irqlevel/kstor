@@ -5,15 +5,14 @@
 #include "error.h"
 #include "bug.h"
 
-template <class K, class V>
+template <class K, class V, Memory::PoolType PoolType>
 class HashTable
 {
 public:
-    HashTable(Memory::PoolType poolType, size_t nrBuckets, Error& err,
+    HashTable(size_t nrBuckets, Error& err,
               int (*keyCmp)(const K& key1, const K& key2),
               size_t (*keyHash)(const K& key))
-        : Buckets(poolType), KeyCmp(keyCmp), KeyHash(keyHash),
-          PoolType(poolType)
+        : Buckets(), KeyCmp(keyCmp), KeyHash(keyHash)
     {
         if (err != Error::Success)
             return;
@@ -26,7 +25,7 @@ public:
 
         for (size_t i = 0; i < nrBuckets; i++)
         {
-            LinkedList<HashEntry> list(poolType);
+            LinkedList<HashEntry, PoolType> list;
             if (!Buckets.PushBack(Memory::Move(list)))
             {
                 err = Error::NoMemory;
@@ -38,8 +37,8 @@ public:
     bool Insert(const K& key, const V& value)
     {
         size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry>& list = Buckets[bucket];
-        typename LinkedList<HashEntry>::Iterator it(list);
+        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
@@ -60,8 +59,8 @@ public:
             return false;
 
         size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry>& list = Buckets[bucket];
-        typename LinkedList<HashEntry>::Iterator it(list);
+        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
@@ -81,8 +80,8 @@ public:
     bool Insert(K&& key, V&&value)
     {
         size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry>& list = Buckets[bucket];
-        typename LinkedList<HashEntry>::Iterator it(list);
+        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
@@ -101,8 +100,8 @@ public:
     bool Remove(const K& key)
     {
         size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry>& list = Buckets[bucket];
-        typename LinkedList<HashEntry>::Iterator it(list);
+        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
@@ -120,8 +119,8 @@ public:
         BUG_ON(!Exists(key));
 
         size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry>& list = Buckets[bucket];
-        typename LinkedList<HashEntry>::Iterator it(list);
+        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
@@ -136,8 +135,8 @@ public:
     bool Exists(const K& key)
     {
         size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry>& list = Buckets[bucket];
-        typename LinkedList<HashEntry>::Iterator it(list);
+        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
@@ -194,9 +193,8 @@ private:
         HashEntry(const HashEntry& other) = delete;
         HashEntry& operator=(const HashEntry& other) = delete;
     };
-    Vector<LinkedList<HashEntry>> Buckets;
+    Vector<LinkedList<HashEntry, PoolType>, PoolType> Buckets;
     int (*KeyCmp)(const K& key1, const K& key2);
     size_t (*KeyHash)(const K& key);
-    Memory::PoolType PoolType;
     V EmptyValue;
 };

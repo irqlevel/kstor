@@ -5,18 +5,54 @@
 #include "bug.h"
 #include "new.h"
 
-template <class T> class LinkedList
+template <typename T, Memory::PoolType PoolType> class LinkedList
 {
 public:
 
     class Iterator
     {
     public:
+        Iterator()
+            : CurrListEntry(nullptr)
+            , EndList(nullptr)
+        {
+        }
+
+        Iterator(const Iterator& other)
+        {
+            CurrListEntry = other.CurrListEntry;
+            EndList = other.EndList;
+        }
+
         Iterator(LinkedList& List)
+            : Iterator()
         {
             CurrListEntry = List.ListHead.Flink;
             EndList = &List.ListHead;
         }
+
+        Iterator& operator=(const Iterator& other)
+        {
+            if (this != &other)
+            {
+                CurrListEntry = other.CurrListEntry;
+                EndList = other.EndList;
+            }
+            return *this;
+        }
+
+        Iterator& operator=(Iterator&& other)
+        {
+            if (this != &other)
+            {
+                CurrListEntry = other.CurrListEntry;
+                EndList = other.EndList;
+                other.CurrListEntry = nullptr;
+                other.EndList = nullptr; 
+            }
+            return *this;
+        }
+
         T& Get()
         {
             BUG_ON(CurrListEntry == EndList);
@@ -28,7 +64,14 @@ public:
 
         bool IsValid()
         {
-            return (CurrListEntry != EndList) ? true : false;
+            if (CurrListEntry != nullptr && EndList != nullptr)
+            {
+                return (CurrListEntry != EndList) ? true : false;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         void Next()
@@ -58,22 +101,11 @@ public:
 
         }
     private:
-        Iterator() = delete;
-        Iterator(const Iterator& other) = delete;
-        Iterator& operator=(const Iterator& other) = delete;
-        Iterator& operator=(Iterator&& other) = delete;
         ListEntry* CurrListEntry;
         ListEntry* EndList;
     };
 
     LinkedList()
-        : PoolType(Memory::PoolType::Kernel)
-    {
-        InitializeListHead(&ListHead);
-    }
-
-    LinkedList(Memory::PoolType poolType)
-        : PoolType(poolType)
     {
         InitializeListHead(&ListHead);
     }
@@ -169,7 +201,6 @@ public:
         else
             InitializeListHead(&ListHead);
 
-        PoolType = other.PoolType;
         InitializeListHead(&other.ListHead);
     }
 
@@ -182,9 +213,13 @@ public:
         else
             InitializeListHead(&ListHead);
 
-        PoolType = other.PoolType;
         InitializeListHead(&other.ListHead);
         return *this;
+    }
+
+    Iterator GetIterator()
+    {
+        return Iterator(*this);
     }
 
 private:
@@ -226,5 +261,4 @@ private:
         LinkedListNode& operator=(LinkedListNode&& other) = delete;
     };
     ListEntry ListHead;
-    Memory::PoolType PoolType;
 };

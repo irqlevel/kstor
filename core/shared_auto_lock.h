@@ -3,26 +3,26 @@
 #include "shared_lockable.h"
 #include "trace.h"
 
-class ShareAutoLock
+class SharedAutoLock
 {
 public:
-    ShareAutoLock(ShareLockable& lock)
+    SharedAutoLock(SharedLockable& lock)
+        : Lock(lock)
     {
-        Lock = &lock;
         Lock.AcquireShared();
-        trace(255,"lock %p acquired", Lock);
+        trace(255, "Lock 0x%p acquired", &Lock);
     }
 
-    virtual ~ShareAutoLock()
+    virtual ~SharedAutoLock()
     {
         Lock.ReleaseShared();
-        trace(255,"lock %p released", Lock);
+        trace(255, "Lock 0x%p released", &Lock);
     }
 private:
-    ShareAutoLock(const ShareAutoLock& other) = delete;
-    ShareAutoLock(ShareAutoLock&& other) = delete;
-    ShareAutoLock() = delete;
-    ShareAutoLock& operator=(const ShareAutoLock& other) = delete;
-    ShareAutoLock& operator=(ShareAutoLock&& other) = delete;
-    ShareLockable& Lock;
+    SharedAutoLock(const SharedAutoLock& other) = delete;
+    SharedAutoLock(SharedAutoLock&& other) = delete;
+    SharedAutoLock() = delete;
+    SharedAutoLock& operator=(const SharedAutoLock& other) = delete;
+    SharedAutoLock& operator=(SharedAutoLock&& other) = delete;
+    SharedLockable& Lock;
 };

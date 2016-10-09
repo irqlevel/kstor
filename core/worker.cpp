@@ -3,7 +3,7 @@
 #include "trace.h"
 
 Worker::Worker()
-    : Stopping(false), Running(false), TaskList(Memory::PoolType::Kernel)
+    : Stopping(false), Running(false)
 {
 }
 
@@ -60,7 +60,6 @@ Error Worker::Run(const Threadable& thread)
 
 Worker::Worker(Error& err)
     : Stopping(false), Running(false),
-      TaskList(Memory::PoolType::Kernel),
       WorkerThread(this, err)
 {
     if (err != Error::Success)

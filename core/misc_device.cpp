@@ -31,7 +31,7 @@ Error MiscDevice::Create(const char* devName)
 {
     Error err;
 
-    AString devName_(devName, Memory::PoolType::Kernel, err);
+    AString devName_(devName, err);
     if (err != Error::Success)
     {
         return err;

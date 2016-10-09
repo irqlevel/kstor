@@ -10,7 +10,7 @@ Random::Random(Error& err, bool pseudoRandom)
         return;
     }
 
-    AString devName((pseudoRandom) ? "/dev/urandom" : "/dev/random", Memory::PoolType::Kernel, err);
+    AString devName((pseudoRandom) ? "/dev/urandom" : "/dev/random", err);
     if (err != Error::Success)
     {
         trace(0, "Can't allocate string");

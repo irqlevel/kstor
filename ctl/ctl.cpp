@@ -1,4 +1,5 @@
 #include "ctl.h"
+#include "memory.h"
 
 #include <include/ctl.h>
 
@@ -8,7 +9,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <memory.h>
 
 KStorCtl::KStorCtl(int& err)
@@ -58,6 +60,34 @@ int KStorCtl::GetRandomUlong(unsigned long& value)
     }
 
     return err;
+}
+
+int KStorCtl::DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId)
+{
+    KStorCtlCmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+
+    snprintf(cmd.Union.DeviceAdd.DeviceName, ArraySize(cmd.Union.DeviceAdd.DeviceName), "%s", deviceName);
+    cmd.Union.DeviceAdd.Format = format;
+
+    int err = ioctl(DevFd, IOCTL_KSTOR_DEVICE_ADD, &cmd);
+    if (!err)
+    {
+        deviceId = cmd.Union.DeviceAdd.DeviceId;
+    }
+
+    return err;
+}
+
+int KStorCtl::DeviceRemove(unsigned long& deviceId)
+{
+    KStorCtlCmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+    cmd.Union.DeviceRemove.DeviceId = deviceId;
+
+    return ioctl(DevFd, IOCTL_KSTOR_DEVICE_REMOVE, &cmd);
 }
 
 KStorCtl::~KStorCtl()
