@@ -45,6 +45,21 @@ int KStorCtl::GetTime(unsigned long long& time)
     return err;
 }
 
+int KStorCtl::GetRandomUlong(unsigned long& value)
+{
+    KStorCtlCmd cmd;
+
+    value = -1;
+    memset(&cmd, 0, sizeof(cmd));
+    int err = ioctl(DevFd, IOCTL_KSTOR_GET_RANDOM_ULONG, &cmd);
+    if (!err)
+    {
+        value = cmd.Union.GetRandomUlong.Value;
+    }
+
+    return err;
+}
+
 KStorCtl::~KStorCtl()
 {
     if (DevFd >= 0)

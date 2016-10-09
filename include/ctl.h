@@ -16,9 +16,14 @@ struct KStorCtlCmd
         {
             unsigned long long Time;
         } GetTime;
+        struct
+        {
+            unsigned long Value;
+        } GetRandomUlong;
     } Union;
 };
 
 #pragma pack(pop)
 
-#define IOCTL_KSTOR_GET_TIME      _IOWR(KSTOR_IOC_MAGIC, 1, KStorCtlCmd*)
+#define IOCTL_KSTOR_GET_TIME            _IOWR(KSTOR_IOC_MAGIC, 1, KStorCtlCmd*)
+#define IOCTL_KSTOR_GET_RANDOM_ULONG    _IOWR(KSTOR_IOC_MAGIC, 2, KStorCtlCmd*)

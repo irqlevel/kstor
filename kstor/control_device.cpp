@@ -9,6 +9,7 @@
 
 ControlDevice::ControlDevice(Error& err)
     : MiscDevice(KSTOR_CONTROL_DEVICE, err)
+    , Rng(err)
 {
 }
 
@@ -35,6 +36,9 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     {
     case IOCTL_KSTOR_GET_TIME:
         cmd->Union.GetTime.Time = Time::GetTime();
+        break;
+    case IOCTL_KSTOR_GET_RANDOM_ULONG:
+        cmd->Union.GetRandomUlong.Value = Rng.GetUlong();
         break;
     default:
         trace(0, "Unknown ioctl 0x%x", code);

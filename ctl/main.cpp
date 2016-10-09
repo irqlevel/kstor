@@ -12,16 +12,25 @@ int main(int argc, char* argv[])
         return err;
     }
 
+    unsigned long long time;
+    err = ctl.GetTime(time);
+    if (err)
+    {
+        printf("GetTime err %d\n", err);
+        return err;
+    }
+    printf("Time is %llu\n", time);
+
     for (int i = 0; i < 10; i++)
     {
-        unsigned long long time;
-        err = ctl.GetTime(time);
+        unsigned long value;
+        err = ctl.GetRandomUlong(value);
         if (err)
         {
-            printf("Get time err %d\n", err);
+            printf("GetRandomUlong err %d\n", err);
             return err;
         }
-        printf("Time is %llu\n", time);
+        printf("Random is %lu\n", value);
     }
 
     return 0;

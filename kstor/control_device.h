@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/misc_device.h>
+#include <core/random.h>
 
 class ControlDevice : public MiscDevice
 {
@@ -13,4 +14,5 @@ public:
 
 private:
 
+    Random Rng;
 };
