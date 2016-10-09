@@ -1,6 +1,5 @@
 #include "page.h"
 #include "kapi.h"
-#include "utility.h"
 
 Page::Page(Memory::PoolType poolType, Error& err)
     : PoolType(poolType)
@@ -52,7 +51,7 @@ int Page::GetPageSize()
 void Page::Zero()
 {
     void* va = MapAtomic();
-    util::memset(va, 0, GetPageSize());
+    Memory::MemSet(va, 0, GetPageSize());
     UnmapAtomic(va);
 }
 
@@ -68,7 +67,7 @@ int Page::CompareContent(Page& other)
 {
     void* va = MapAtomic();
     void* vaOther = other.MapAtomic();
-    int rc = util::memcmp(va, vaOther, GetPageSize());
+    int rc = Memory::MemCmp(va, vaOther, GetPageSize());
     other.UnmapAtomic(vaOther);
     UnmapAtomic(va);
     return rc;

@@ -49,14 +49,14 @@ size_t AString::GetLen() const
 }
 
 AString::AString(AString&& other)
-    : Buf(util::move(other.Buf))
+    : Buf(Memory::Move(other.Buf))
 {
 }
 
 AString& AString::operator=(AString&& other)
 {
     Buf.Clear();
-    Buf = util::move(other.Buf);
+    Buf = Memory::Move(other.Buf);
     return *this;
 }
 

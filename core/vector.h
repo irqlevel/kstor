@@ -4,7 +4,6 @@
 #include "size.h"
 #include "error.h"
 #include "bug.h"
-#include "utility.h"
 #include "new.h"
 
 template<class T>
@@ -46,7 +45,7 @@ public:
         {
             for (size_t i = 0; i < Size; i++)
             {
-                newArr[i] = util::move(Arr[i]);
+                newArr[i] = Memory::Move(Arr[i]);
             }
             delete[] Arr;
         }
@@ -62,7 +61,7 @@ public:
             if (!Reserve(Size + 1))
                 return false;
         }
-        Arr[Size++] = util::move(e);
+        Arr[Size++] = Memory::Move(e);
         return true;
     }
 

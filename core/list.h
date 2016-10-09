@@ -3,7 +3,6 @@
 #include "list_entry.h"
 #include "containing_record.h"
 #include "bug.h"
-#include "utility.h"
 #include "new.h"
 
 template <class T> class LinkedList
@@ -106,7 +105,7 @@ public:
     bool AddTail(T&& value)
     {
         LinkedListNode* node = new (PoolType)
-                                LinkedListNode(util::move(value));
+                                LinkedListNode(Memory::Move(value));
         if (!node)
         {
             return false;
@@ -213,7 +212,7 @@ private:
         LinkedListNode(T&& value)
         {
             InitializeListHead(&ListLink);
-            Value = util::move(value);
+            Value = Memory::Move(value);
         }
         virtual ~LinkedListNode()
         {

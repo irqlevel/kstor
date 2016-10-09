@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../system/kapi.h"
-#include "memory.h"
+#include "pool_type.h"
 
 void kapi_init(struct kernel_api* api);
 

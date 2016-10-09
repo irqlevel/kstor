@@ -27,7 +27,7 @@ public:
         for (size_t i = 0; i < nrBuckets; i++)
         {
             LinkedList<HashEntry> list(poolType);
-            if (!Buckets.PushBack(util::move(list)))
+            if (!Buckets.PushBack(Memory::Move(list)))
             {
                 err = Error::NoMemory;
                 return;
@@ -49,7 +49,7 @@ public:
             }
         }
         HashEntry entry(key, value);
-        list.AddTail(util::move(entry));
+        list.AddTail(Memory::Move(entry));
 
         return true;
     }
@@ -74,7 +74,7 @@ public:
         if (err != Error::Success)
             return false;
 
-        list.AddTail(util::move(entry));
+        list.AddTail(Memory::Move(entry));
         return true;
     }
 
@@ -91,8 +91,8 @@ public:
                 return false;
             }
         }
-        HashEntry entry(util::move(key), util::move(value));
-        list.AddTail(util::move(entry));
+        HashEntry entry(Memory::Move(key), Memory::Move(value));
+        list.AddTail(Memory::Move(entry));
 
         return true;
     }
@@ -168,14 +168,14 @@ private:
         virtual ~HashEntry() {}
         HashEntry(HashEntry&& other)
         {
-            Key = util::move(other.Key);
-            Value = util::move(other.Value);
+            Key = Memory::Move(other.Key);
+            Value = Memory::Move(other.Value);
         }
 
         HashEntry& operator=(HashEntry&& other)
         {
-            Key = util::move(other.Key);
-            Value = util::move(other.Value);
+            Key = Memory::Move(other.Key);
+            Value = Memory::Move(other.Value);
             return *this;
         }
 
