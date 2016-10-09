@@ -27,6 +27,11 @@ void* BlockDevice::GetBdev()
     return BDevPtr;
 }
 
+unsigned long long BlockDevice::GetSize()
+{
+    return get_kapi()->bdev_get_size(BDevPtr);
+}
+
 BlockDevice::~BlockDevice()
 {
     trace(1, "Bdev 0x%p bdev 0x%p destructor", this, BDevPtr);

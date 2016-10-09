@@ -11,6 +11,8 @@ Device::Device(const char* deviceName, bool format, Error& err)
         goto out;
     }
 
+    trace(1, "Device 0x%p size 0x%llx", this, BDev.GetSize());
+
     if (format)
     {
         err = Format();

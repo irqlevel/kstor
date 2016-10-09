@@ -93,6 +93,7 @@ struct kernel_api
 
     int (*bdev_get_by_path)(const char *path, int mode, void *holder, void **pbdev);
     void (*bdev_put)(void *bdev, int mode);
+    unsigned long long (*bdev_get_size)(void* bdev);
 
     void* (*alloc_bio)(int page_count);
     void (*free_bio)(void* bio);

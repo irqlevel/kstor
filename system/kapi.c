@@ -458,6 +458,11 @@ static void kapi_bdev_put(void *bdev, int mode)
     blkdev_put(bdev, kapi_get_fmode_by_mode(mode));
 }
 
+static unsigned long long kapi_bdev_get_size(void* bdev)
+{
+    return i_size_read(((struct block_device*)bdev)->bd_inode);
+}
+
 static void* kapi_alloc_bio(int page_count)
 {
     struct bio* bio = bio_alloc(GFP_NOIO, page_count);
@@ -1070,6 +1075,7 @@ static struct kernel_api g_kapi =
 
     .bdev_get_by_path = kapi_bdev_get_by_path,
     .bdev_put = kapi_bdev_put,
+    .bdev_get_size = kapi_bdev_get_size,
 
     .alloc_bio = kapi_alloc_bio,
     .free_bio = kapi_free_bio,
