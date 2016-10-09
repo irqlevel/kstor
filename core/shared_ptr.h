@@ -4,136 +4,146 @@
 #include "error.h"
 #include "trace.h"
 #include "bug.h"
+#include "memory.h"
 
-template<class T>
+template<typename T, Memory::PoolType PoolType>
 class SharedPtr
 {
 public:
+
+    class ObjectReference
+    {
+    public:
+        Atomic Counter;
+        T* Object;
+
+        ObjectReference(T* object)
+            : Object(nullptr)
+        {
+            Counter.Set(1);
+            Object = object;
+        }
+
+        virtual ~ObjectReference()
+        {
+        }
+
+    private:
+        ObjectReference() = delete;
+        ObjectReference(const ObjectReference& other) = delete;
+        ObjectReference(ObjectReference&& other) = delete;
+        ObjectReference& operator=(const ObjectReference& other) = delete;
+        ObjectReference& operator=(ObjectReference&& other) = delete;
+    };
+
     SharedPtr()
     {
-        trace(255, "this %p", this);
-        Ptr = nullptr;
-        Counter = nullptr;
+        ObjectRef = nullptr;
     }
-    SharedPtr(T *ptr)
-    {
-        trace(255, "this %p Ptr %p", this, ptr);
-        Ptr = nullptr;
-        Counter = nullptr;
-        Atomic* counter = new Atomic(0);
-        if (counter == nullptr)
-        {
-            return;
-        }
-        Ptr = ptr;
-        Counter = counter;
-        Counter->Inc();
-    }
-    SharedPtr(const SharedPtr<T>& other)
-    {
-        Counter = other.Counter;
-        Ptr = other.Ptr;
-        trace(255, "this %p Ptr %p Counter %p other %p",
-              this, Ptr, Counter, &other);
-        if (Counter != nullptr)
-        {
-            Acquire();
-        }
-    }
-    SharedPtr(const SharedPtr<T>& other, Error& err)
-    {
-        if (err != Error::Success)
-            return;
 
-        Counter = other.Counter;
-        Ptr = other.Ptr;
-        trace(255, "this %p Ptr %p Counter %p other %p",
-              this, Ptr, Counter, &other);
-        if (Counter != nullptr)
+    SharedPtr(T *object)
+        : SharedPtr()
+    {
+        Reset(object);
+    }
+
+    SharedPtr(const SharedPtr<T, PoolType>& other)
+        : SharedPtr()
+    {
+        ObjectRef = other.ObjectRef;
+        if (ObjectRef != nullptr)
         {
-            Acquire();
+            ObjectRef->Counter.Inc();
         }
     }
-    SharedPtr(SharedPtr<T>&& other)
+
+    SharedPtr(SharedPtr<T, PoolType>&& other)
+        : SharedPtr()
     {
-        Counter = other.Counter;
-        Ptr = other.Ptr;
-        trace(255, "this %p Ptr %p Counter %p", this, Ptr, Counter);
-        other.Counter = nullptr;
-        other.Ptr = nullptr;
+        ObjectRef = other.ObjectRef;
+        other.ObjectRef = nullptr;
     }
-    SharedPtr<T>& operator=(const SharedPtr<T>& other)
+
+    SharedPtr<T, PoolType>& operator=(const SharedPtr<T, PoolType>& other)
     {
-        Reset();
-        Counter = other.Counter;
-        Ptr = other.Ptr;
-        trace(255, "this %p Ptr %p Counter %p", this, Ptr, Counter);
-        if (Counter != nullptr)
+        if (this != &other)
         {
-            Acquire();
+            Reset(nullptr);
+            ObjectRef = other.ObjectRef;
+            if (ObjectRef != nullptr)
+            {
+                ObjectRef->Counter.Inc();
+            }
         }
         return *this;
     }
-    SharedPtr<T>& operator=(SharedPtr<T>&& other)
+
+    SharedPtr<T, PoolType>& operator=(SharedPtr<T, PoolType>&& other)
     {
-        Reset();
-        Counter = other.Counter;
-        Ptr = other.Ptr;
-        trace(255, "this %p Ptr %p Counter %p", this, Ptr, Counter);
-        other.Counter = nullptr;
-        other.Ptr = nullptr;
+        if (this != &other)
+        {
+            Reset(nullptr);
+            ObjectRef = other.ObjectRef;
+            other.ObjectRef = nullptr;
+        }
         return *this;
     }
+
     T* Get() const
     {
-        return Ptr;
+        return (ObjectRef != nullptr) ? ObjectRef->Object : nullptr;
     }
+
     T& operator*()
     {
         return *Get();
     }
+
     T* operator->()
     {
         return Get();
     }
+
     int GetCounter()
     {
-        return Counter->Get();
+        return (ObjectRef != nullptr) ? ObjectRef->Counter.Get() : 0;
     }
+
     virtual ~SharedPtr()
     {
-        trace(255, "dtor %p", this);
-        Reset();
+        Reset(nullptr);
     }
-    void Reset()
+
+    void Reset(T* object)
     {
-        Release();
-        Counter = nullptr;
-        Ptr = nullptr;
-    }
-private:
-    void Acquire()
-    {
-        Counter->Inc();
-        trace(255, "this %p Ptr %p Counter %p %d",
-               this, Ptr, Counter, Counter->Get());
-    }
-    void Release()
-    {
-        trace(255, "this %p Ptr %p Counter %p %d",
-              this, Ptr, Counter, (Counter) ? Counter->Get() : 0);
-        if (Counter == nullptr)
-            return;
-        if (Counter->DecAndTest())
+        if (ObjectRef != nullptr)
         {
-            trace(255, "this %p Deleting Ptr %p Counter %p %d",
-                  this, Ptr, Counter, Counter->Get());
-            BUG_ON(!Counter);
-            if (Ptr)
-                delete Ptr;
-            delete Counter;
+            if (ObjectRef->Counter.DecAndTest())
+            {
+                trace(255, "SharedPtr 0x%p Delete ObjectRef 0x%p Object 0x%p",
+                    this, ObjectRef, ObjectRef->Object);
+
+                delete ObjectRef->Object;
+                delete ObjectRef;
+            }
+        }
+
+        ObjectRef = nullptr;
+
+        if (object != nullptr)
+        {
+            ObjectRef = new (PoolType) ObjectReference(object);
+            if (ObjectRef == nullptr)
+            {
+                trace(0, "SharedPtr 0x%p can't allocate object reference", this);
+                return;
+            }
+
+            trace(255, "SharedPtr 0x%p New ObjectRef 0x%p Object 0x%p",
+                    this, ObjectRef, ObjectRef->Object);
         }
     }
-    T* Ptr;
-    Atomic* Counter;
+
+private:
+    ObjectReference* ObjectRef;
 };

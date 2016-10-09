@@ -12,7 +12,7 @@ int KStorInit(void)
 {
     trace(1, "initing");
 
-//  run_tests();
+    run_tests();
 
     Error err;
     ControlDevicePtr = new (Memory::PoolType::Kernel) ControlDevice(err);

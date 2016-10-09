@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "shared_ptr.h"
 #include "error.h"
+#include "memory.h"
 
 class Worker : public Runnable
 {
@@ -32,4 +33,4 @@ private:
     Thread WorkerThread;
 };
 
-typedef SharedPtr<Worker> WorkerRef;
+typedef SharedPtr<Worker, Memory::PoolType::Kernel> WorkerRef;

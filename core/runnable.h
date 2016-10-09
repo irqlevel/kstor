@@ -4,6 +4,7 @@
 #include "threadable.h"
 #include "shared_ptr.h"
 #include "event.h"
+#include "memory.h"
 
 class Runnable
 {
@@ -57,4 +58,4 @@ private:
     Event CompleteEvent;
 };
 
-typedef SharedPtr<Runnable> RunnableRef;
+typedef SharedPtr<Runnable, Memory::PoolType::Kernel> RunnableRef;
