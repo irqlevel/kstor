@@ -18,17 +18,12 @@ int Trace::GetLevel()
 
 void Trace::Output(int level, const char *fmt, ...)
 {
-    char output[256];
-    va_list args;
-
     if (level > Level)
         return;
 
+    va_list args;
     va_start(args, fmt);
-    vsnprintf(output, sizeof(output), fmt, args);
+    get_kapi()->trace_msg(fmt, args);
     va_end(args);
 
-    output[sizeof(output)/sizeof(char) - 1] = '\0';
-
-    get_kapi()->trace_println(output);
 }

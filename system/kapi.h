@@ -7,6 +7,7 @@ extern "C"
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
 #define KAPI_POOL_TYPE_UNKNOWN    0UL
 #define KAPI_POOL_TYPE_ATOMIC     1UL
@@ -122,7 +123,7 @@ struct kernel_api
 
     unsigned long long (*get_time)(void);
 
-    void (*trace_println)(const char* msg);
+    void (*trace_msg)(const char* fmt, va_list args);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

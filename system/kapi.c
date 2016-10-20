@@ -1003,9 +1003,9 @@ static unsigned long long kapi_get_time(void)
     return ktime_get_ns();
 }
 
-static void kapi_trace_println(const char* msg)
+static void kapi_trace_msg(const char* fmt, va_list args)
 {
-    trace_msg(msg);
+    trace_msg(fmt, args);
 }
 
 static struct kernel_api g_kapi =
@@ -1108,7 +1108,7 @@ static struct kernel_api g_kapi =
 
     .get_time = kapi_get_time,
 
-    .trace_println = kapi_trace_println,
+    .trace_msg = kapi_trace_msg,
 
 };
 

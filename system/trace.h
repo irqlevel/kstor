@@ -9,18 +9,18 @@
 #define KAPI_TRACE_MSG_CHARS 200
 
 TRACE_EVENT(msg,
-        TP_PROTO(const char *message),
-        TP_ARGS(message),
+        TP_PROTO(const char *fmt, va_list args),
+        TP_ARGS(fmt, args),
 
         TP_STRUCT__entry(
                 __dynamic_array(char, message, KAPI_TRACE_MSG_CHARS)
         ),
 
         TP_fast_assign(
-                char *output = __get_str(message);
+                char *msg = __get_str(message);
 
-                snprintf(output, KAPI_TRACE_MSG_CHARS, "%s", message);
-                output[KAPI_TRACE_MSG_CHARS - 1] = '\0';
+                vsnprintf(msg, KAPI_TRACE_MSG_CHARS, fmt, args);
+                msg[KAPI_TRACE_MSG_CHARS - 1] = '\0';
         ),
 
         TP_printk("%s", __get_str(message))
