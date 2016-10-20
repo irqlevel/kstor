@@ -15,8 +15,12 @@ public:
     Error Ioctl(unsigned int code, unsigned long arg) override;
 
     Error DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId);
+
     DeviceRef DeviceLookup(unsigned long deviceId);
+    DeviceRef DeviceLookup(const AString& deviceName);
+
     Error DeviceRemove(unsigned long deviceId);
+    Error DeviceRemove(const AString& deviceName);
 
     virtual ~ControlDevice();
 

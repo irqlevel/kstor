@@ -8,7 +8,7 @@ class BlockDevice
 public:
     BlockDevice(const AString& deviceName, Error& err);
     void* GetBdev();
-    unsigned long long GetSize();
+    unsigned long long GetSize() const;
     virtual ~BlockDevice();
 private:
     void* BDevPtr;

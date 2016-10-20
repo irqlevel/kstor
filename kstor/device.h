@@ -10,10 +10,15 @@ class Device
 {
 public:
     Device(const char* deviceName, bool format, Error& err);
+    virtual ~Device();
+
     Error Format();
     Error Load();
-    unsigned long GetDeviceId();
-    virtual ~Device();
+
+    unsigned long GetId() const;
+    unsigned long long GetSize() const;
+
+    const AString& GetName() const;
 
 private:
     AString DeviceName;

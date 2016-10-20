@@ -55,7 +55,7 @@ Error MiscDevice::Create(const AString& devName)
 
 MiscDevice::~MiscDevice()
 {
-    trace(1, "Device 0x%p dev 0x%p destructor", this, MiscDevPtr);
+    trace(1, "Device 0x%p dev 0x%p dtor", this, MiscDevPtr);
 
     if (MiscDevPtr != nullptr)
     {

@@ -26,6 +26,7 @@
 #include "base.h"
 #include "malloc_checker.h"
 #include "page_checker.h"
+#include "trace.h"
 
 _Static_assert(sizeof(struct kapi_spinlock) >= sizeof(spinlock_t), "Bad size");
 _Static_assert(sizeof(struct kapi_atomic) >= sizeof(atomic_t), "Bad size");
@@ -1002,6 +1003,11 @@ static unsigned long long kapi_get_time(void)
     return ktime_get_ns();
 }
 
+static void kapi_trace_println(const char* msg)
+{
+    trace_msg(msg);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1101,6 +1107,8 @@ static struct kernel_api g_kapi =
     .copy_from_user = kapi_copy_from_user,
 
     .get_time = kapi_get_time,
+
+    .trace_println = kapi_trace_println,
 
 };
 

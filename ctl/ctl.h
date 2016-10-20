@@ -9,6 +9,7 @@ public:
 
     int DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId);
     int DeviceRemove(unsigned long& deviceId);
+    int DeviceRemove(const char* deviceName);
 
     virtual ~KStorCtl();
 private:

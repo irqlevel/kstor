@@ -122,6 +122,7 @@ struct kernel_api
 
     unsigned long long (*get_time)(void);
 
+    void (*trace_println)(const char* msg);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

@@ -36,13 +36,19 @@ struct KStorCtlCmd
             unsigned long DeviceId;
         } DeviceRemove;
 
+        struct
+        {
+            char DeviceName[DeviceNameMaxChars];
+        } DeviceRemoveByName;
+
     } Union;
 };
 
 #pragma pack(pop)
 
-#define IOCTL_KSTOR_GET_TIME            _IOWR(KSTOR_IOC_MAGIC, 1, KStorCtlCmd*)
-#define IOCTL_KSTOR_GET_RANDOM_ULONG    _IOWR(KSTOR_IOC_MAGIC, 2, KStorCtlCmd*)
+#define IOCTL_KSTOR_GET_TIME                _IOWR(KSTOR_IOC_MAGIC, 1, KStorCtlCmd*)
+#define IOCTL_KSTOR_GET_RANDOM_ULONG        _IOWR(KSTOR_IOC_MAGIC, 2, KStorCtlCmd*)
 
-#define IOCTL_KSTOR_DEVICE_ADD          _IOWR(KSTOR_IOC_MAGIC, 3, KStorCtlCmd*)
-#define IOCTL_KSTOR_DEVICE_REMOVE       _IOWR(KSTOR_IOC_MAGIC, 4, KStorCtlCmd*)
+#define IOCTL_KSTOR_DEVICE_ADD              _IOWR(KSTOR_IOC_MAGIC, 3, KStorCtlCmd*)
+#define IOCTL_KSTOR_DEVICE_REMOVE           _IOWR(KSTOR_IOC_MAGIC, 4, KStorCtlCmd*)
+#define IOCTL_KSTOR_DEVICE_REMOVE_BY_NAME   _IOWR(KSTOR_IOC_MAGIC, 5, KStorCtlCmd*)

@@ -35,7 +35,7 @@ Bio::Bio(int pageCount, Error& err)
         return;
     }
 
-    trace(1, "Bio 0x%p bio 0x%p constructed", this, BioPtr);
+    trace(1, "Bio 0x%p bio 0x%p ctor", this, BioPtr);
 }
 
 Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
@@ -144,7 +144,7 @@ Error Bio::GetError()
 
 Bio::~Bio()
 {
-    trace(1, "Bio 0x%p bio 0x%p destructor", this, BioPtr);
+    trace(1, "Bio 0x%p bio 0x%p dtor", this, BioPtr);
     if (BioPtr != nullptr)
     {
         get_kapi()->free_bio(BioPtr);

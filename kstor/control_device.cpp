@@ -43,7 +43,7 @@ Error ControlDevice::DeviceAdd(const char* deviceName, bool format, unsigned lon
         return err;
     }
 
-    deviceId = device->GetDeviceId();
+    deviceId = device->GetId();
     err = Error::Success;
     return err;
 }
@@ -56,7 +56,25 @@ DeviceRef ControlDevice::DeviceLookup(unsigned long deviceId)
     while (it.IsValid())
     {
         auto device = it.Get();
-        if (device->GetDeviceId() == deviceId)
+        if (device->GetId() == deviceId)
+        {
+            return device;
+        }
+        it.Next();
+    }
+
+    return DeviceRef();
+}
+
+DeviceRef ControlDevice::DeviceLookup(const AString& deviceName)
+{
+    SharedAutoLock lock(DeviceListLock);
+
+    auto it = DeviceList.GetIterator();
+    while (it.IsValid())
+    {
+        auto device = it.Get();
+        if (device->GetName().Compare(deviceName) == 0)
         {
             return device;
         }
@@ -79,7 +97,32 @@ Error ControlDevice::DeviceRemove(unsigned long deviceId)
     while (it.IsValid())
     {
         auto device = it.Get();
-        if (device->GetDeviceId() == deviceId)
+        if (device->GetId() == deviceId)
+        {
+            it.Erase();
+        } else
+        {
+            it.Next();
+        }
+    }
+
+    return Error::Success;
+}
+
+Error ControlDevice::DeviceRemove(const AString& deviceName)
+{
+    DeviceRef device = DeviceLookup(deviceName);
+    if (device.Get() == nullptr)
+    {
+        return Error::NotFound;
+    }
+
+    AutoLock lock(DeviceListLock);
+    auto it = DeviceList.GetIterator();
+    while (it.IsValid())
+    {
+        auto device = it.Get();
+        if (device->GetName().Compare(deviceName) == 0)
         {
             it.Erase();
         } else
@@ -131,6 +174,24 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     case IOCTL_KSTOR_DEVICE_REMOVE:
         err = DeviceRemove(cmd->Union.DeviceRemove.DeviceId);
         break;
+    case IOCTL_KSTOR_DEVICE_REMOVE_BY_NAME:
+    {
+        if (cmd->Union.DeviceRemoveByName.DeviceName[
+                Memory::ArraySize(cmd->Union.DeviceRemoveByName.DeviceName) - 1] != '\0')
+        {
+            err = Error::InvalidValue;
+            break;
+        }
+
+        AString deviceName(cmd->Union.DeviceRemoveByName.DeviceName, err);
+        if (err != Error::Success)
+        {
+            break;
+        }
+
+        err = DeviceRemove(deviceName);
+        break;
+    }
     default:
         trace(0, "Unknown ioctl 0x%x", code);
         err = Error::UnknownCode;

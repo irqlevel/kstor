@@ -90,6 +90,17 @@ int KStorCtl::DeviceRemove(unsigned long& deviceId)
     return ioctl(DevFd, IOCTL_KSTOR_DEVICE_REMOVE, &cmd);
 }
 
+int KStorCtl::DeviceRemove(const char* deviceName)
+{
+    KStorCtlCmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+    snprintf(cmd.Union.DeviceRemoveByName.DeviceName, ArraySize(cmd.Union.DeviceRemoveByName.DeviceName),
+        "%s", deviceName);
+
+    return ioctl(DevFd, IOCTL_KSTOR_DEVICE_REMOVE_BY_NAME, &cmd);
+}
+
 KStorCtl::~KStorCtl()
 {
     if (DevFd >= 0)

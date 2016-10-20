@@ -19,7 +19,7 @@ BlockDevice::BlockDevice(const AString& deviceName, Error& err)
         return;
     }
 
-    trace(1, "Bdev 0x%p bdev 0x%p constructed", this, BDevPtr);
+    trace(1, "Bdev 0x%p bdev 0x%p ctor", this, BDevPtr);
 }
 
 void* BlockDevice::GetBdev()
@@ -27,14 +27,14 @@ void* BlockDevice::GetBdev()
     return BDevPtr;
 }
 
-unsigned long long BlockDevice::GetSize()
+unsigned long long BlockDevice::GetSize() const
 {
     return get_kapi()->bdev_get_size(BDevPtr);
 }
 
 BlockDevice::~BlockDevice()
 {
-    trace(1, "Bdev 0x%p bdev 0x%p destructor", this, BDevPtr);
+    trace(1, "Bdev 0x%p bdev 0x%p dtor", this, BDevPtr);
 
     if (BDevPtr != nullptr)
     {
