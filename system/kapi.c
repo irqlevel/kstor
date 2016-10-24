@@ -1008,6 +1008,26 @@ static void kapi_trace_msg(const char* fmt, va_list args)
     trace_msg(fmt, args);
 }
 
+static void kapi_set_bit(long nr, unsigned long *addr)
+{
+    set_bit(nr, addr);
+}
+
+static void kapi_clear_bit(long nr, unsigned long *addr)
+{
+    clear_bit(nr, addr);
+}
+
+static int kapi_test_and_clear_bit(long nr, unsigned long *addr)
+{
+    return test_and_clear_bit(nr, addr);
+}
+
+static int kapi_test_and_set_bit(long nr, unsigned long *addr)
+{
+    return test_and_set_bit(nr, addr);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1109,6 +1129,11 @@ static struct kernel_api g_kapi =
     .get_time = kapi_get_time,
 
     .trace_msg = kapi_trace_msg,
+
+    .set_bit = kapi_set_bit,
+    .clear_bit = kapi_clear_bit,
+    .test_and_set_bit = kapi_test_and_set_bit,
+    .test_and_clear_bit = kapi_test_and_clear_bit,
 
 };
 

@@ -124,6 +124,12 @@ struct kernel_api
     unsigned long long (*get_time)(void);
 
     void (*trace_msg)(const char* fmt, va_list args);
+
+    void (*set_bit)(long nr, unsigned long *addr);
+    void (*clear_bit)(long nr, unsigned long *addr);
+    int (*test_and_clear_bit)(long nr, unsigned long *addr);
+    int (*test_and_set_bit)(long nr, unsigned long *addr);
+
 };
 
 #define KAPI_BDEV_MODE_READ         0x1
