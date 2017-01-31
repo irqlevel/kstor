@@ -1,5 +1,5 @@
 #include "control_device.h"
-#include "device.h"
+#include "super_block.h"
 
 #include <core/trace.h>
 #include <core/copy_user.h>
@@ -17,12 +17,12 @@ ControlDevice::ControlDevice(Error& err)
 {
 }
 
-Error ControlDevice::DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId)
+Error ControlDevice::Mount(const char* deviceName, bool format, unsigned long& deviceId)
 {
     Error err;
 
-    DeviceRef device(new (Memory::PoolType::Kernel) Device(deviceName, format, err));
-    if (device.Get() == nullptr)
+    SuperBlockRef super(new (Memory::PoolType::Kernel) SuperBlock(deviceName, format, err));
+    if (super.Get() == nullptr)
     {
         trace(1, "CtrlDev 0x%p can't allocate device", this);
         err = Error::NoMemory;
@@ -35,69 +35,69 @@ Error ControlDevice::DeviceAdd(const char* deviceName, bool format, unsigned lon
         return err;
     }
 
-    AutoLock lock(DeviceListLock);
-    if (!DeviceList.AddHead(device))
+    AutoLock lock(SuperBlockListLock);
+    if (!SuperBlockList.AddHead(super))
     {
         trace(1, "CtrlDev 0x%p can't add device into list");
         err = Error::NoMemory;
         return err;
     }
 
-    deviceId = device->GetId();
+    deviceId = super->GetId();
     err = Error::Success;
     return err;
 }
 
-DeviceRef ControlDevice::DeviceLookup(unsigned long deviceId)
+SuperBlockRef ControlDevice::LookupMount(unsigned long deviceId)
 {
-    SharedAutoLock lock(DeviceListLock);
+    SharedAutoLock lock(SuperBlockListLock);
 
-    auto it = DeviceList.GetIterator();
+    auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
     {
-        auto device = it.Get();
-        if (device->GetId() == deviceId)
+        auto super = it.Get();
+        if (super->GetId() == deviceId)
         {
-            return device;
+            return super;
         }
         it.Next();
     }
 
-    return DeviceRef();
+    return SuperBlockRef();
 }
 
-DeviceRef ControlDevice::DeviceLookup(const AString& deviceName)
+SuperBlockRef ControlDevice::LookupMount(const AString& deviceName)
 {
-    SharedAutoLock lock(DeviceListLock);
+    SharedAutoLock lock(SuperBlockListLock);
 
-    auto it = DeviceList.GetIterator();
+    auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
     {
-        auto device = it.Get();
-        if (device->GetName().Compare(deviceName) == 0)
+        auto super = it.Get();
+        if (super->GetName().Compare(deviceName) == 0)
         {
-            return device;
+            return super;
         }
         it.Next();
     }
 
-    return DeviceRef();
+    return SuperBlockRef();
 }
 
-Error ControlDevice::DeviceRemove(unsigned long deviceId)
+Error ControlDevice::Unmount(unsigned long deviceId)
 {
-    DeviceRef device = DeviceLookup(deviceId);
-    if (device.Get() == nullptr)
+    SuperBlockRef super = LookupMount(deviceId);
+    if (super.Get() == nullptr)
     {
         return Error::NotFound;
     }
 
-    AutoLock lock(DeviceListLock);
-    auto it = DeviceList.GetIterator();
+    AutoLock lock(SuperBlockListLock);
+    auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
     {
-        auto device = it.Get();
-        if (device->GetId() == deviceId)
+        auto super = it.Get();
+        if (super->GetId() == deviceId)
         {
             it.Erase();
         } else
@@ -109,20 +109,20 @@ Error ControlDevice::DeviceRemove(unsigned long deviceId)
     return Error::Success;
 }
 
-Error ControlDevice::DeviceRemove(const AString& deviceName)
+Error ControlDevice::Unmount(const AString& deviceName)
 {
-    DeviceRef device = DeviceLookup(deviceName);
-    if (device.Get() == nullptr)
+    SuperBlockRef super = LookupMount(deviceName);
+    if (super.Get() == nullptr)
     {
         return Error::NotFound;
     }
 
-    AutoLock lock(DeviceListLock);
-    auto it = DeviceList.GetIterator();
+    AutoLock lock(SuperBlockListLock);
+    auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
     {
-        auto device = it.Get();
-        if (device->GetName().Compare(deviceName) == 0)
+        auto super = it.Get();
+        if (super->GetName().Compare(deviceName) == 0)
         {
             it.Erase();
         } else
@@ -161,35 +161,35 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     case IOCTL_KSTOR_GET_RANDOM_ULONG:
         cmd->Union.GetRandomUlong.Value = Rng.GetUlong();
         break;
-    case IOCTL_KSTOR_DEVICE_ADD:
-        if (cmd->Union.DeviceAdd.DeviceName[Memory::ArraySize(cmd->Union.DeviceAdd.DeviceName) - 1] != '\0')
+    case IOCTL_KSTOR_MOUNT:
+        if (cmd->Union.Mount.DeviceName[Memory::ArraySize(cmd->Union.Mount.DeviceName) - 1] != '\0')
         {
             err = Error::InvalidValue;
             break;
         }
 
-        err = DeviceAdd(cmd->Union.DeviceAdd.DeviceName, cmd->Union.DeviceAdd.Format,
-            cmd->Union.DeviceAdd.DeviceId);
+        err = Mount(cmd->Union.Mount.DeviceName, cmd->Union.Mount.Format,
+            cmd->Union.Mount.DeviceId);
         break;
-    case IOCTL_KSTOR_DEVICE_REMOVE:
-        err = DeviceRemove(cmd->Union.DeviceRemove.DeviceId);
+    case IOCTL_KSTOR_UNMOUNT:
+        err = Unmount(cmd->Union.Unmount.DeviceId);
         break;
-    case IOCTL_KSTOR_DEVICE_REMOVE_BY_NAME:
+    case IOCTL_KSTOR_UNMOUNT_BY_NAME:
     {
-        if (cmd->Union.DeviceRemoveByName.DeviceName[
-                Memory::ArraySize(cmd->Union.DeviceRemoveByName.DeviceName) - 1] != '\0')
+        if (cmd->Union.UnmountByName.DeviceName[
+                Memory::ArraySize(cmd->Union.UnmountByName.DeviceName) - 1] != '\0')
         {
             err = Error::InvalidValue;
             break;
         }
 
-        AString deviceName(cmd->Union.DeviceRemoveByName.DeviceName, err);
+        AString deviceName(cmd->Union.UnmountByName.DeviceName, err);
         if (err != Error::Success)
         {
             break;
         }
 
-        err = DeviceRemove(deviceName);
+        err = Unmount(deviceName);
         break;
     }
     default:

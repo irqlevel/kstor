@@ -66,5 +66,8 @@ bool Bitmap::TestAndClearBit(long bitNumber)
 
 Bitmap::~Bitmap()
 {
-    delete [] Bits;
+    if (Bits != nullptr)
+    {
+        delete [] Bits;
+    }
 }

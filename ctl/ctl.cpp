@@ -62,43 +62,43 @@ int KStorCtl::GetRandomUlong(unsigned long& value)
     return err;
 }
 
-int KStorCtl::DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId)
+int KStorCtl::Mount(const char* deviceName, bool format, unsigned long& deviceId)
 {
     KStorCtlCmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
 
-    snprintf(cmd.Union.DeviceAdd.DeviceName, ArraySize(cmd.Union.DeviceAdd.DeviceName), "%s", deviceName);
-    cmd.Union.DeviceAdd.Format = format;
+    snprintf(cmd.Union.Mount.DeviceName, ArraySize(cmd.Union.Mount.DeviceName), "%s", deviceName);
+    cmd.Union.Mount.Format = format;
 
-    int err = ioctl(DevFd, IOCTL_KSTOR_DEVICE_ADD, &cmd);
+    int err = ioctl(DevFd, IOCTL_KSTOR_MOUNT, &cmd);
     if (!err)
     {
-        deviceId = cmd.Union.DeviceAdd.DeviceId;
+        deviceId = cmd.Union.Mount.DeviceId;
     }
 
     return err;
 }
 
-int KStorCtl::DeviceRemove(unsigned long& deviceId)
+int KStorCtl::Unmount(unsigned long& deviceId)
 {
     KStorCtlCmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
-    cmd.Union.DeviceRemove.DeviceId = deviceId;
+    cmd.Union.Unmount.DeviceId = deviceId;
 
-    return ioctl(DevFd, IOCTL_KSTOR_DEVICE_REMOVE, &cmd);
+    return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT, &cmd);
 }
 
-int KStorCtl::DeviceRemove(const char* deviceName)
+int KStorCtl::Unmount(const char* deviceName)
 {
     KStorCtlCmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
-    snprintf(cmd.Union.DeviceRemoveByName.DeviceName, ArraySize(cmd.Union.DeviceRemoveByName.DeviceName),
+    snprintf(cmd.Union.UnmountByName.DeviceName, ArraySize(cmd.Union.UnmountByName.DeviceName),
         "%s", deviceName);
 
-    return ioctl(DevFd, IOCTL_KSTOR_DEVICE_REMOVE_BY_NAME, &cmd);
+    return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT_BY_NAME, &cmd);
 }
 
 KStorCtl::~KStorCtl()

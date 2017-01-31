@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     }
 
     std::string cmd(argv[1]);
-    if (cmd == "device-add")
+    if (cmd == "mount")
     {
         if (argc != 3)
         {
@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 
         std::string deviceName(argv[2]);
         unsigned long deviceId;
-        err = ctl.DeviceAdd(deviceName.c_str(), true, deviceId);
+        err = ctl.Mount(deviceName.c_str(), true, deviceId);
         if (err)
         {
             printf("Ctl device add err %d\n", err);
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
         return 0;
     }
-    else if (cmd == "device-remove")
+    else if (cmd == "umount")
     {
         if (argc != 3)
         {
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         }
 
         std::string deviceName(argv[2]);
-        err = ctl.DeviceRemove(deviceName.c_str());
+        err = ctl.Unmount(deviceName.c_str());
         if (err)
         {
             printf("Ctl device remove err %d\n", err);

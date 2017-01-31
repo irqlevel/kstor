@@ -1,9 +1,9 @@
-#include "device.h"
+#include "super_block.h"
 
 #include <core/trace.h>
 #include <core/bio.h>
 
-Device::Device(const char* deviceName, bool format, Error& err)
+SuperBlock::SuperBlock(const char* deviceName, bool format, Error& err)
     : DeviceName(deviceName, err)
     , BDev(DeviceName, err)
 {
@@ -30,12 +30,12 @@ out:
     trace(1, "Device 0x%p name %s ctor err %d", this, deviceName, err.GetCode());
 }
 
-Device::~Device()
+SuperBlock::~SuperBlock()
 {
     trace(1, "Device 0x%p dtor", this);
 }
 
-Error Device::Format()
+Error SuperBlock::Format()
 {
     Error err;
 
@@ -65,7 +65,7 @@ Error Device::Format()
     return err;
 }
 
-Error Device::Load()
+Error SuperBlock::Load()
 {
     Error err;
 
@@ -74,17 +74,22 @@ Error Device::Load()
     return err;
 }
 
-unsigned long Device::GetId() const
+unsigned long SuperBlock::GetId() const
 {
     return reinterpret_cast<unsigned long>(this);
 }
 
-unsigned long long Device::GetSize() const
+unsigned long long SuperBlock::GetSize() const
 {
     return BDev.GetSize();
 }
 
-const AString& Device::GetName() const
+const AString& SuperBlock::GetName() const
 {
     return DeviceName;
+}
+
+BlockDevice& SuperBlock::GetBDev()
+{
+    return BDev;
 }

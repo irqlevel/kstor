@@ -5,7 +5,7 @@
 #include <core/rwsem.h>
 #include <core/list.h>
 
-#include "device.h"
+#include "super_block.h"
 
 class ControlDevice : public MiscDevice
 {
@@ -14,13 +14,13 @@ public:
 
     Error Ioctl(unsigned int code, unsigned long arg) override;
 
-    Error DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId);
+    Error Mount(const char* deviceName, bool format, unsigned long& deviceId);
 
-    DeviceRef DeviceLookup(unsigned long deviceId);
-    DeviceRef DeviceLookup(const AString& deviceName);
+    SuperBlockRef LookupMount(unsigned long deviceId);
+    SuperBlockRef LookupMount(const AString& deviceName);
 
-    Error DeviceRemove(unsigned long deviceId);
-    Error DeviceRemove(const AString& deviceName);
+    Error Unmount(unsigned long deviceId);
+    Error Unmount(const AString& deviceName);
 
     virtual ~ControlDevice();
 
@@ -28,6 +28,6 @@ private:
 
     Random Rng;
 
-    RWSem DeviceListLock;
-    LinkedList<DeviceRef, Memory::PoolType::Kernel> DeviceList;
+    RWSem SuperBlockListLock;
+    LinkedList<SuperBlockRef, Memory::PoolType::Kernel> SuperBlockList;
 };

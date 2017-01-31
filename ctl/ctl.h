@@ -4,12 +4,13 @@ class KStorCtl
 {
 public:
     KStorCtl(int& err);
+
     int GetTime(unsigned long long& time);
     int GetRandomUlong(unsigned long& value);
 
-    int DeviceAdd(const char* deviceName, bool format, unsigned long& deviceId);
-    int DeviceRemove(unsigned long& deviceId);
-    int DeviceRemove(const char* deviceName);
+    int Mount(const char* deviceName, bool format, unsigned long& deviceId);
+    int Unmount(unsigned long& deviceId);
+    int Unmount(const char* deviceName);
 
     virtual ~KStorCtl();
 private:

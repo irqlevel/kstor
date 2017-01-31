@@ -6,11 +6,11 @@
 #include <core/shared_ptr.h>
 #include <core/astring.h>
 
-class Device
+class SuperBlock
 {
 public:
-    Device(const char* deviceName, bool format, Error& err);
-    virtual ~Device();
+    SuperBlock(const char* deviceName, bool format, Error& err);
+    virtual ~SuperBlock();
 
     Error Format();
     Error Load();
@@ -20,9 +20,11 @@ public:
 
     const AString& GetName() const;
 
+    BlockDevice& GetBDev();
+
 private:
     AString DeviceName;
     BlockDevice BDev;
 };
 
-typedef SharedPtr<Device, Memory::PoolType::Kernel> DeviceRef;
+typedef SharedPtr<SuperBlock, Memory::PoolType::Kernel> SuperBlockRef;

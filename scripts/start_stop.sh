@@ -1,7 +1,7 @@
 #!/bin/bash -xv
 
 WDIR=temp
-LOOP_NAME=loop11
+LOOP_NAME=loop21
 LOOP_FILE=loop10-file
 
 rm -rf $WDIR
@@ -21,8 +21,8 @@ echo '' > /sys/kernel/debug/tracing/trace
 echo 1 > /sys/kernel/debug/tracing/events/kstor/enable
 echo 1 > /sys/kernel/debug/tracing/tracing_on
 
-bin/kstor-ctl device-add /dev/$LOOP_NAME
-bin/kstor-ctl device-remove /dev/$LOOP_NAME
+bin/kstor-ctl mount /dev/$LOOP_NAME
+bin/kstor-ctl umount /dev/$LOOP_NAME
 
 echo 0 > /sys/kernel/debug/tracing/tracing_on
 cat /sys/kernel/debug/tracing/trace > $WDIR/trace
