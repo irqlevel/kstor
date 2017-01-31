@@ -27,6 +27,7 @@
 #include "malloc_checker.h"
 #include "page_checker.h"
 #include "trace.h"
+#include "ksocket.h"
 
 _Static_assert(sizeof(struct kapi_spinlock) >= sizeof(spinlock_t), "Bad size");
 _Static_assert(sizeof(struct kapi_atomic) >= sizeof(atomic_t), "Bad size");
@@ -1028,6 +1029,41 @@ static int kapi_test_and_set_bit(long nr, unsigned long *addr)
     return test_and_set_bit(nr, addr);
 }
 
+static int kapi_sock_connect(void **sockp, char *host, unsigned short port)
+{
+    return ksock_connect_host((struct socket **)sockp, host, port);
+}
+
+static int kapi_sock_listen(void **sockp, char *host, int port, int backlog)
+{
+    return ksock_listen_host((struct socket **)sockp, host, port, backlog);
+}
+
+static void kapi_sock_release(void *sockp)
+{
+    ksock_release((struct socket *)sockp);
+}
+
+static int kapi_sock_send(void *sockp, void *buf, int len)
+{
+    return ksock_send((struct socket *)sockp, buf, len);
+}
+
+static int kapi_sock_recv(void *sockp, void *buf, int len)
+{
+    return ksock_recv((struct socket *)sockp, buf, len);
+}
+
+static int kapi_sock_accept(void **newsockp, void *sockp)
+{
+    return ksock_accept((struct socket **)newsockp, (struct socket *)sockp);
+}
+
+static void kapi_sock_abort_accept(void *sockp)
+{
+    return ksock_abort_accept((struct socket *)sockp);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1134,6 +1170,14 @@ static struct kernel_api g_kapi =
     .clear_bit = kapi_clear_bit,
     .test_and_set_bit = kapi_test_and_set_bit,
     .test_and_clear_bit = kapi_test_and_clear_bit,
+
+    .sock_connect = kapi_sock_connect,
+    .sock_listen = kapi_sock_listen,
+    .sock_release = kapi_sock_release,
+    .sock_send = kapi_sock_send,
+    .sock_recv = kapi_sock_recv,
+    .sock_accept = kapi_sock_accept,
+    .sock_abort_accept = kapi_sock_abort_accept,
 
 };
 

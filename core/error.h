@@ -35,6 +35,12 @@ public:
 
     static const int NotFound = -505;
 
+    static const int EOF = -506;
+
+    static const int BufToBig = -507;
+
+    static const int IO = -508;
+
     bool operator!= (const Error& other) const;
 
     bool operator== (const Error& other) const;

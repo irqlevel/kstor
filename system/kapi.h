@@ -130,6 +130,14 @@ struct kernel_api
     int (*test_and_clear_bit)(long nr, unsigned long *addr);
     int (*test_and_set_bit)(long nr, unsigned long *addr);
 
+    int (*sock_connect)(void **sockp, char *host, unsigned short port);
+    int (*sock_listen)(void **sockp, char *host, int port, int backlog);
+    void (*sock_release)(void *sockp);
+    int (*sock_send)(void *sockp, void *buf, int len);
+    int (*sock_recv)(void *sockp, void *buf, int len);
+    int (*sock_accept)(void **newsockp, void *sockp);
+    void (*sock_abort_accept)(void *sockp);
+
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

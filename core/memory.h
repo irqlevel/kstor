@@ -21,6 +21,11 @@ namespace Memory
         T c(Move(a)); a=Move(b); b=Move(c);
     }
 
+    static inline void *MemAdd(void *ptr, unsigned long len)
+    {
+        return reinterpret_cast<void *>(reinterpret_cast<unsigned long>(ptr) + len);
+    }
+
     static inline void MemSet(void* ptr, int c, size_t size)
     {
         get_kapi()->memset(ptr, c, size);
@@ -51,4 +56,9 @@ namespace Memory
     {
         return S;
     }
+
+    static const unsigned int IntBitCount = 8 * sizeof(int);
+    static const unsigned int LongBitCount = 8 * sizeof(unsigned long);
+    static const unsigned int MaxInt = (static_cast<unsigned int>(1) << (IntBitCount - 1)) - 1;
+
 }
