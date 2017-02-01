@@ -5,6 +5,7 @@ class UniquePtr
 {
 public:
     UniquePtr(UniquePtr&& other)
+        : UniquePtr()
     {
         Reset(other.Release());
     }

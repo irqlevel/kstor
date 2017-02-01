@@ -4,41 +4,30 @@ Server::Server()
 {
 }
 
-Server::Connection::Connection(Server& srv, UniquePtr<Socket>&& socket, Error &err)
+Server::Connection::Connection(Server& srv, UniquePtr<Socket>&& socket)
     : Srv(srv), Sock(Memory::Move(socket))
 {
+    trace(1, "Connection 0x%p created", this);
+}
+
+Error Server::Connection::Start()
+{
+    trace(1, "Connection 0x%p starting", this);
+
     AutoLock lock(StateLock);
-
-    if (err != Error::Success)
-        return;
-
-    if (TransThread.Get() != nullptr)
+    if (TransThread.Get() != nullptr || Sock.Get() == nullptr)
     {
-        err = Error::InvalidState;
-        return;
+        return Error::InvalidState;
     }
 
-    if (Sock.Get() == nullptr)
-    {
-        err = Error::InvalidState;
-        return;
-    }
-
+    Error err;
     TransThread.Reset(new Thread(this, err));
     if (TransThread.Get() == nullptr)
     {
-        err = Error::NoMemory;
-        Sock.Reset();
-        return;
+        return Error::NoMemory;
     }
 
-    if (err != Error::Success) {
-        Sock.Reset();
-        TransThread.Reset();
-        return;
-    }
-
-    trace(1, "Connection 0x%p created", this);
+    return Error::Success;
 }
 
 void Server::Connection::Stop()
@@ -94,7 +83,7 @@ Error Server::Run(const Threadable &thread)
                 continue;
             }
 
-            ConnectionPtr conn(new (Memory::PoolType::Kernel) Connection(*this, Memory::Move(socket), err));
+            ConnectionPtr conn(new (Memory::PoolType::Kernel) Connection(*this, Memory::Move(socket)));
             if (conn.Get() == nullptr)
             {
                 err = Error::NoMemory;
@@ -108,10 +97,20 @@ Error Server::Run(const Threadable &thread)
 
             {
                 AutoLock lock(ConnListLock);
-                if (!thread.IsStopping()) {
-                    if (!ConnList.AddTail(conn)) {
+                if (!thread.IsStopping())
+                {
+                    if (!ConnList.AddTail(conn))
+                    {
                         err = Error::NoMemory;
                         trace(0, "Server 0x%p can't insert connection err %d", this, err.GetCode());
+                        continue;
+                    }
+                    err = conn->Start();
+                    if (err != Error::Success)
+                    {
+                        trace(0, "Server 0x%p can't start connection err %d", this, err.GetCode());
+                        ConnList.PopTail();
+                        continue;
                     }
                 }
             }

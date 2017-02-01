@@ -24,7 +24,8 @@ public:
 private:
     class Connection : public Runnable {
     public:
-        Connection(Server& srv, UniquePtr<Socket>&& sock, Error &err);
+        Connection(Server& srv, UniquePtr<Socket>&& sock);
+        Error Start();
         void Stop();
         virtual ~Connection();
     private:
