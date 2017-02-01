@@ -88,11 +88,7 @@ Error Server::Run(const Threadable &thread)
         if (ListenSocket.Get() != nullptr)
         {
             UniquePtr<Socket> socket(ListenSocket->Accept(err));
-            if (socket.Get() == nullptr)
-            {
-                err = Error::NoMemory;
-            }
-            if (err != Error::Success)
+            if (socket.Get() == nullptr || err != Error::Success)
             {
                 trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
                 continue;

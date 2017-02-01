@@ -17,7 +17,7 @@ ControlDevice::ControlDevice(Error& err)
 {
 }
 
-Error ControlDevice::Mount(const char* deviceName, bool format, unsigned long& deviceId)
+Error ControlDevice::Mount(const AString& deviceName, bool format, unsigned long& deviceId)
 {
     Error err;
 
@@ -134,6 +134,17 @@ Error ControlDevice::Unmount(const AString& deviceName)
     return Error::Success;
 }
 
+Error ControlDevice::StartServer(const AString& host, unsigned short port)
+{
+    return Srv.Start(host, port);
+}
+
+Error ControlDevice::StopServer()
+{
+    Srv.Stop();
+    return Error::Success;
+}
+
 Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
 {
     trace(1, "Ioctl 0x%x arg 0x%lx", code, arg);
@@ -162,28 +173,36 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         cmd->Union.GetRandomUlong.Value = Rng.GetUlong();
         break;
     case IOCTL_KSTOR_MOUNT:
-        if (cmd->Union.Mount.DeviceName[Memory::ArraySize(cmd->Union.Mount.DeviceName) - 1] != '\0')
+    {
+        auto& params = cmd->Union.Mount;
+        if (params.DeviceName[Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
             err = Error::InvalidValue;
             break;
         }
 
-        err = Mount(cmd->Union.Mount.DeviceName, cmd->Union.Mount.Format,
-            cmd->Union.Mount.DeviceId);
+        AString deviceName(params.DeviceName, Memory::ArraySize(params.DeviceName) - 1, err);
+        if (err != Error::Success)
+        {
+            break;
+        }
+
+        err = Mount(deviceName, params.Format, params.DeviceId);
         break;
+    }
     case IOCTL_KSTOR_UNMOUNT:
         err = Unmount(cmd->Union.Unmount.DeviceId);
         break;
     case IOCTL_KSTOR_UNMOUNT_BY_NAME:
     {
-        if (cmd->Union.UnmountByName.DeviceName[
-                Memory::ArraySize(cmd->Union.UnmountByName.DeviceName) - 1] != '\0')
+        auto& params = cmd->Union.UnmountByName;
+        if (params.DeviceName[Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
             err = Error::InvalidValue;
             break;
         }
 
-        AString deviceName(cmd->Union.UnmountByName.DeviceName, err);
+        AString deviceName(params.DeviceName, Memory::ArraySize(params.DeviceName) - 1, err);
         if (err != Error::Success)
         {
             break;
@@ -192,6 +211,27 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         err = Unmount(deviceName);
         break;
     }
+    case IOCTL_KSTOR_START_SERVER:
+    {
+        auto& params = cmd->Union.StartServer;
+        if (params.Host[Memory::ArraySize(params.Host) - 1] != '\0')
+        {
+            err = Error::InvalidValue;
+            break;
+        }
+
+        AString host(params.Host, Memory::ArraySize(params.Host) - 1, err);
+        if (err != Error::Success)
+        {
+            break;
+        }
+
+        err = StartServer(host, params.Port);
+        break;
+    }
+    case IOCTL_KSTOR_STOP_SERVER:
+        err = StopServer();
+        break;
     default:
         trace(0, "Unknown ioctl 0x%x", code);
         err = Error::UnknownCode;

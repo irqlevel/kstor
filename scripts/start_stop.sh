@@ -12,6 +12,7 @@ dd if=/dev/zero of=$WDIR/$LOOP_FILE bs=1M count=100
 losetup -d /dev/$LOOP_NAME
 losetup /dev/$LOOP_NAME $WDIR/$LOOP_FILE
 
+modprobe dns-resolver
 insmod bin/kstor.ko
 
 echo 0 > /sys/kernel/debug/tracing/tracing_on
@@ -22,6 +23,8 @@ echo 1 > /sys/kernel/debug/tracing/events/kstor/enable
 echo 1 > /sys/kernel/debug/tracing/tracing_on
 
 bin/kstor-ctl mount /dev/$LOOP_NAME
+bin/kstor-ctl start-server 127.0.0.1 8111
+bin/kstor-ctl stop-server
 bin/kstor-ctl umount /dev/$LOOP_NAME
 
 echo 0 > /sys/kernel/debug/tracing/tracing_on

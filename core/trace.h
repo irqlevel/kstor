@@ -11,5 +11,5 @@ private:
 };
 
 #define trace(level, fmt, ...)                              \
-              Trace::Output(level, "%d:%s(),%s,%d: " fmt,   \
+              Trace::Output(level, "%d: %s(),%s,%d: " fmt,   \
                             level, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)

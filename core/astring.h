@@ -13,27 +13,46 @@ public:
     {        
     }
 
-    AStringBase(const char* s, Error& err)
+    AStringBase(const char* s, size_t len, Error& err)
     {
         if (err != Error::Success)
         {
             return;
         }
 
-        size_t len = Memory::StrLen(s);
-        size_t size = len + 1;
-
-        if (!Buf.Reserve(size))
+        if (!Buf.Reserve(len + 1))
         {
             err = Error::NoMemory;
             return;
         }
 
-        for (size_t i = 0; i < size; i++)
+        for (size_t i = 0; i < len; i++)
         {
-            Buf.PushBack(s[i]);
+            char c = s[i];
+            if (c == '\0')
+                break;
+
+            if (!Buf.PushBack(c))
+            {
+                err = Error::NoMemory;
+                Buf.Clear();
+                return;
+            }
         }
+
+        if (!Buf.PushBack('\0'))
+        {
+            err = Error::NoMemory;
+            Buf.Clear();
+            return;
+        }
+
         err = Error::Success;
+    }
+
+    AStringBase(const char* s, Error& err)
+        : AStringBase(s, Memory::StrLen(s), err)
+    {
     }
 
     AStringBase(const AStringBase& s, Error& err)
@@ -52,12 +71,13 @@ public:
 
     size_t GetLen() const
     {
-        if (!Buf.GetSize())
+        size_t size = Buf.GetSize();
+        if (size == 0)
         {
             return 0;
         }
 
-        return Buf.GetSize() - 1;
+        return size - 1;
     }
 
     AStringBase(AStringBase&& other)

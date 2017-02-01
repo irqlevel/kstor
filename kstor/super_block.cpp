@@ -3,7 +3,7 @@
 #include <core/trace.h>
 #include <core/bio.h>
 
-SuperBlock::SuperBlock(const char* deviceName, bool format, Error& err)
+SuperBlock::SuperBlock(const AString& deviceName, bool format, Error& err)
     : DeviceName(deviceName, err)
     , BDev(DeviceName, err)
 {
@@ -27,7 +27,7 @@ SuperBlock::SuperBlock(const char* deviceName, bool format, Error& err)
     err = Load();
 
 out:
-    trace(1, "Device 0x%p name %s ctor err %d", this, deviceName, err.GetCode());
+    trace(1, "Device 0x%p name %s ctor err %d", this, deviceName.GetBuf(), err.GetCode());
 }
 
 SuperBlock::~SuperBlock()

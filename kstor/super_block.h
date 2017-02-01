@@ -9,7 +9,7 @@
 class SuperBlock
 {
 public:
-    SuperBlock(const char* deviceName, bool format, Error& err);
+    SuperBlock(const AString& deviceName, bool format, Error& err);
     virtual ~SuperBlock();
 
     Error Format();

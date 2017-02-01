@@ -9,6 +9,7 @@
 #pragma pack(push, 1)
 
 const int DeviceNameMaxChars = 256;
+const int HostNameMaxChars = 256;
 
 struct KStorCtlCmd
 {
@@ -41,6 +42,14 @@ struct KStorCtlCmd
             char DeviceName[DeviceNameMaxChars];
         } UnmountByName;
 
+        struct {
+            char Host[HostNameMaxChars];
+            unsigned short Port;
+        } StartServer;
+
+        struct {
+            unsigned long Padding;
+        } StopServer;
     } Union;
 };
 
@@ -52,3 +61,6 @@ struct KStorCtlCmd
 #define IOCTL_KSTOR_MOUNT             _IOWR(KSTOR_IOC_MAGIC, 3, KStorCtlCmd*)
 #define IOCTL_KSTOR_UNMOUNT           _IOWR(KSTOR_IOC_MAGIC, 4, KStorCtlCmd*)
 #define IOCTL_KSTOR_UNMOUNT_BY_NAME   _IOWR(KSTOR_IOC_MAGIC, 5, KStorCtlCmd*)
+
+#define IOCTL_KSTOR_START_SERVER   _IOWR(KSTOR_IOC_MAGIC, 6, KStorCtlCmd*)
+#define IOCTL_KSTOR_STOP_SERVER   _IOWR(KSTOR_IOC_MAGIC, 7, KStorCtlCmd*)

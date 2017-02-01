@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
         err = ctl.Mount(deviceName.c_str(), true, deviceId);
         if (err)
         {
-            printf("Ctl device add err %d\n", err);
+            printf("Ctl mount err %d\n", err);
             return err;
         }
 
@@ -50,7 +50,48 @@ int main(int argc, char* argv[])
         err = ctl.Unmount(deviceName.c_str());
         if (err)
         {
-            printf("Ctl device remove err %d\n", err);
+            printf("Ctl unmount err %d\n", err);
+            return err;
+        }
+
+        return 0;
+    }
+    else if (cmd == "start-server")
+    {
+        if (argc != 4)
+        {
+            printf("Invalid number of args\n");
+            return 1;
+        }
+
+        std::string host(argv[2]);
+        int port = atoi(argv[3]);
+        if (port <= 0 || port > 65535) {
+            printf("Invalid port number\n");
+            return 1;
+        }
+
+        err = ctl.StartServer(host.c_str(), port);
+        if (err)
+        {
+            printf("Ctl start server err %d\n", err);
+            return err;
+        }
+
+        return 0;
+    }
+    else if (cmd == "stop-server")
+    {
+        if (argc != 2)
+        {
+            printf("Invalid number of args\n");
+            return 1;
+        }
+
+        err = ctl.StopServer();
+        if (err)
+        {
+            printf("Ctl stop server err %d\n", err);
             return err;
         }
 

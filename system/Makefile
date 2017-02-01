@@ -19,6 +19,8 @@ ifndef KERNEL_PATH
 KERNEL_PATH=/lib/modules/$(shell uname -r)/build
 endif
 
+KBUILD_EXTRA_SYMBOLS = $(KERNEL_PATH)/Module.symvers
+
 all:
 	$(MAKE) -C $(KERNEL_PATH) M=$(PROJ_ROOT)/system modules
 	cp $(KMOD_KO) ../bin/$(KMOD_KO)

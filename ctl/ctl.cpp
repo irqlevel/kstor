@@ -68,8 +68,9 @@ int KStorCtl::Mount(const char* deviceName, bool format, unsigned long& deviceId
 
     memset(&cmd, 0, sizeof(cmd));
 
-    snprintf(cmd.Union.Mount.DeviceName, ArraySize(cmd.Union.Mount.DeviceName), "%s", deviceName);
-    cmd.Union.Mount.Format = format;
+    auto& params = cmd.Union.Mount;
+    snprintf(params.DeviceName, ArraySize(params.DeviceName), "%s", deviceName);
+    params.Format = format;
 
     int err = ioctl(DevFd, IOCTL_KSTOR_MOUNT, &cmd);
     if (!err)
@@ -85,7 +86,8 @@ int KStorCtl::Unmount(unsigned long& deviceId)
     KStorCtlCmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
-    cmd.Union.Unmount.DeviceId = deviceId;
+    auto& params = cmd.Union.Unmount;
+    params.DeviceId = deviceId;
 
     return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT, &cmd);
 }
@@ -95,10 +97,31 @@ int KStorCtl::Unmount(const char* deviceName)
     KStorCtlCmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
-    snprintf(cmd.Union.UnmountByName.DeviceName, ArraySize(cmd.Union.UnmountByName.DeviceName),
+    auto& params = cmd.Union.UnmountByName;
+    snprintf(params.DeviceName, ArraySize(params.DeviceName),
         "%s", deviceName);
 
     return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT_BY_NAME, &cmd);
+}
+
+int KStorCtl::StartServer(const char *host, unsigned short port)
+{
+    KStorCtlCmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+    auto& params = cmd.Union.StartServer;
+    snprintf(params.Host, ArraySize(params.Host),
+        "%s", host);
+    params.Port = port;
+    return ioctl(DevFd, IOCTL_KSTOR_START_SERVER, &cmd);
+}
+
+int KStorCtl::StopServer()
+{
+    KStorCtlCmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+    return ioctl(DevFd, IOCTL_KSTOR_STOP_SERVER, &cmd);
 }
 
 KStorCtl::~KStorCtl()

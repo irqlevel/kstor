@@ -6,6 +6,7 @@
 #include <core/list.h>
 
 #include "super_block.h"
+#include "server.h"
 
 class ControlDevice : public MiscDevice
 {
@@ -14,7 +15,7 @@ public:
 
     Error Ioctl(unsigned int code, unsigned long arg) override;
 
-    Error Mount(const char* deviceName, bool format, unsigned long& deviceId);
+    Error Mount(const AString& deviceName, bool format, unsigned long& deviceId);
 
     SuperBlockRef LookupMount(unsigned long deviceId);
     SuperBlockRef LookupMount(const AString& deviceName);
@@ -24,10 +25,12 @@ public:
 
     virtual ~ControlDevice();
 
+    Error StartServer(const AString& host, unsigned short port);
+    Error StopServer();
+
 private:
-
+    Server Srv;
     Random Rng;
-
     RWSem SuperBlockListLock;
     LinkedList<SuperBlockRef, Memory::PoolType::Kernel> SuperBlockList;
 };

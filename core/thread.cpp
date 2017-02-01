@@ -61,12 +61,12 @@ void Thread::Start(Runnable* routine, Error& err)
 void Thread::Stop()
 {
     Stopping = true;
-    trace(1, "Set thread %p stopping", this, Stopping);
+    trace(2, "Set thread %p stopping", this, Stopping);
 }
 
 bool Thread::IsStopping() const
 {
-    trace(1, "Is thread %p stopping %d", this, Stopping);
+    trace(2, "Is thread %p stopping %d", this, Stopping);
     return Stopping;
 }
 

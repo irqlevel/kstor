@@ -53,6 +53,15 @@ public:
         return true;
     }
 
+    bool Truncate(size_t size)
+    {
+        if (size > Size)
+            return false;
+
+        Size = size;
+        return true;
+    }
+
     bool PushBack(T&& e)
     {
         if (Size == Capacity)

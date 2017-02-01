@@ -12,6 +12,9 @@ public:
     int Unmount(unsigned long& deviceId);
     int Unmount(const char* deviceName);
 
+    int StartServer(const char *host, unsigned short port);
+    int StopServer();
+
     virtual ~KStorCtl();
 private:
     int DevFd;
