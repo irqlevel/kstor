@@ -4,10 +4,34 @@ template<typename T>
 class UniquePtr
 {
 public:
+    UniquePtr(UniquePtr&& other)
+    {
+        Reset(other.Release());
+    }
+
+    UniquePtr& operator=(UniquePtr&& other)
+    {
+        if (this != &other)
+        {
+            Reset(other.Release());
+        }
+        return *this;
+    }
+
+    UniquePtr()
+        : Object(nullptr)
+    {
+    }
+
     UniquePtr(T* object)
+        : UniquePtr()
     {
         Object = object;
     }
+
+    UniquePtr(const UniquePtr& other) = delete;
+
+    UniquePtr& operator=(const UniquePtr& other) = delete;
 
     void Reset(T* object)
     {
@@ -17,6 +41,18 @@ public:
             Object = nullptr;
         }
         Object = object;
+    }
+
+    void Reset()
+    {
+        Reset(nullptr);
+    }
+
+    T* Release()
+    {
+        T* object = Object;
+        Object = nullptr;
+        return object;
     }
 
     virtual ~UniquePtr()
