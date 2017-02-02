@@ -1,5 +1,8 @@
 #include "list_entry.h"
 
+namespace Core
+{
+
 void InitializeListHead(ListEntry* listHead)
 {
     listHead->Flink = listHead->Blink = listHead;
@@ -77,4 +80,6 @@ void InsertHeadList(ListEntry* listHead, ListEntry* entry)
     flink->Blink = entry;
     listHead->Flink = entry;
     return;
+}
+
 }

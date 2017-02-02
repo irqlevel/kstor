@@ -2,6 +2,9 @@
 
 #include "kapi.h"
 
+namespace Core
+{
+
 class Atomic
 {
 public:
@@ -21,3 +24,5 @@ private:
     Atomic& operator=(const Atomic& other) = delete;
     struct kapi_atomic Value;
 };
+
+}

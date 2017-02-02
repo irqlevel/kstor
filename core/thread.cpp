@@ -1,6 +1,9 @@
 #include "thread.h"
 #include "trace.h"
 
+namespace Core
+{
+
 Thread::Thread()
     : Routine(nullptr), Task(nullptr), Stopping(false), Running(false)
 {
@@ -99,4 +102,6 @@ Thread::~Thread()
 void Thread::Sleep(int milliseconds)
 {
     get_kapi()->msleep(milliseconds);
+}
+
 }

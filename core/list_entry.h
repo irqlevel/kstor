@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Core
+{
+
 struct ListEntry
 {
     struct ListEntry *Flink;
@@ -21,3 +24,5 @@ ListEntry* RemoveTailList(ListEntry* listHead);
 void InsertTailList(ListEntry* listHead, ListEntry* entry);
 
 void InsertHeadList(ListEntry* ListHead, ListEntry* Entry);
+
+}

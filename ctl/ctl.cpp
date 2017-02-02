@@ -13,7 +13,13 @@
 #include <stdlib.h>
 #include <memory.h>
 
-KStorCtl::KStorCtl(int& err)
+namespace KStor
+{
+
+namespace Control
+{
+
+Ctl::Ctl(int& err)
     : DevFd(-1)
 {
     if (err)
@@ -32,9 +38,9 @@ KStorCtl::KStorCtl(int& err)
 }
 
 
-int KStorCtl::GetTime(unsigned long long& time)
+int Ctl::GetTime(unsigned long long& time)
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     time = 0;
     memset(&cmd, 0, sizeof(cmd));
@@ -47,9 +53,9 @@ int KStorCtl::GetTime(unsigned long long& time)
     return err;
 }
 
-int KStorCtl::GetRandomUlong(unsigned long& value)
+int Ctl::GetRandomUlong(unsigned long& value)
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     value = -1;
     memset(&cmd, 0, sizeof(cmd));
@@ -62,9 +68,9 @@ int KStorCtl::GetRandomUlong(unsigned long& value)
     return err;
 }
 
-int KStorCtl::Mount(const char* deviceName, bool format, unsigned long& deviceId)
+int Ctl::Mount(const char* deviceName, bool format, unsigned long& deviceId)
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
 
@@ -81,9 +87,9 @@ int KStorCtl::Mount(const char* deviceName, bool format, unsigned long& deviceId
     return err;
 }
 
-int KStorCtl::Unmount(unsigned long& deviceId)
+int Ctl::Unmount(unsigned long& deviceId)
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
     auto& params = cmd.Union.Unmount;
@@ -92,9 +98,9 @@ int KStorCtl::Unmount(unsigned long& deviceId)
     return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT, &cmd);
 }
 
-int KStorCtl::Unmount(const char* deviceName)
+int Ctl::Unmount(const char* deviceName)
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
     auto& params = cmd.Union.UnmountByName;
@@ -104,9 +110,9 @@ int KStorCtl::Unmount(const char* deviceName)
     return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT_BY_NAME, &cmd);
 }
 
-int KStorCtl::StartServer(const char *host, unsigned short port)
+int Ctl::StartServer(const char *host, unsigned short port)
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
     auto& params = cmd.Union.StartServer;
@@ -116,19 +122,23 @@ int KStorCtl::StartServer(const char *host, unsigned short port)
     return ioctl(DevFd, IOCTL_KSTOR_START_SERVER, &cmd);
 }
 
-int KStorCtl::StopServer()
+int Ctl::StopServer()
 {
-    KStorCtlCmd cmd;
+    Cmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
     return ioctl(DevFd, IOCTL_KSTOR_STOP_SERVER, &cmd);
 }
 
-KStorCtl::~KStorCtl()
+Ctl::~Ctl()
 {
     if (DevFd >= 0)
     {
         close(DevFd);
         DevFd = -1;
     }
+}
+
+}
+
 }

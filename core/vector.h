@@ -6,6 +6,9 @@
 #include "bug.h"
 #include "new.h"
 
+namespace Core
+{
+
 template<class T, Memory::PoolType PoolType>
 class Vector
 {
@@ -27,7 +30,7 @@ public:
 
     T& operator[](size_t index)
     {
-        BUG_ON(index < 0 || index >= Size);
+        BugOn(index < 0 || index >= Size);
         return Arr[index];
     }
 
@@ -160,3 +163,5 @@ private:
     size_t Size;
     size_t Capacity;
 };
+
+}

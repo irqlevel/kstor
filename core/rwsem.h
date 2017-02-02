@@ -4,6 +4,9 @@
 #include "lockable.h"
 #include "shared_lockable.h"
 
+namespace Core
+{
+
 class RWSem : public Lockable, public SharedLockable
 {
 public:
@@ -24,3 +27,5 @@ private:
 
     struct kapi_rwsem Lock;
 };
+
+}

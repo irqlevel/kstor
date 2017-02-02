@@ -11,46 +11,48 @@
 
 #include <include/ctl.h>
 
-ControlDevice::ControlDevice(Error& err)
+namespace KStor 
+{
+
+ControlDevice::ControlDevice(Core::Error& err)
     : MiscDevice(KSTOR_CONTROL_DEVICE, err)
     , Rng(err)
 {
 }
 
-Error ControlDevice::Mount(const AString& deviceName, bool format, unsigned long& deviceId)
+Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, unsigned long& deviceId)
 {
-    Error err;
+    Core::Error err;
 
-    SuperBlockRef super(new (Memory::PoolType::Kernel) SuperBlock(deviceName, format, err));
+    SuperBlockRef super(new (Core::Memory::PoolType::Kernel) SuperBlock(deviceName, format, err));
     if (super.Get() == nullptr)
     {
         trace(1, "CtrlDev 0x%p can't allocate device", this);
-        err = Error::NoMemory;
+        err = Core::Error::NoMemory;
         return err;
     }
 
-    if (err != Error::Success)
+    if (err != Core::Error::Success)
     {
         trace(1, "CtrlDev 0x%p device init err %d", this, err.GetCode());
         return err;
     }
 
-    AutoLock lock(SuperBlockListLock);
+    Core::AutoLock lock(SuperBlockListLock);
     if (!SuperBlockList.AddHead(super))
     {
         trace(1, "CtrlDev 0x%p can't add device into list");
-        err = Error::NoMemory;
+        err = Core::Error::NoMemory;
         return err;
     }
 
     deviceId = super->GetId();
-    err = Error::Success;
-    return err;
+    return Core::Error::Success;
 }
 
 SuperBlockRef ControlDevice::LookupMount(unsigned long deviceId)
 {
-    SharedAutoLock lock(SuperBlockListLock);
+    Core::SharedAutoLock lock(SuperBlockListLock);
 
     auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
@@ -66,9 +68,9 @@ SuperBlockRef ControlDevice::LookupMount(unsigned long deviceId)
     return SuperBlockRef();
 }
 
-SuperBlockRef ControlDevice::LookupMount(const AString& deviceName)
+SuperBlockRef ControlDevice::LookupMount(const Core::AString& deviceName)
 {
-    SharedAutoLock lock(SuperBlockListLock);
+    Core::SharedAutoLock lock(SuperBlockListLock);
 
     auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
@@ -84,15 +86,15 @@ SuperBlockRef ControlDevice::LookupMount(const AString& deviceName)
     return SuperBlockRef();
 }
 
-Error ControlDevice::Unmount(unsigned long deviceId)
+Core::Error ControlDevice::Unmount(unsigned long deviceId)
 {
     SuperBlockRef super = LookupMount(deviceId);
     if (super.Get() == nullptr)
     {
-        return Error::NotFound;
+        return Core::Error::NotFound;
     }
 
-    AutoLock lock(SuperBlockListLock);
+    Core::AutoLock lock(SuperBlockListLock);
     auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
     {
@@ -106,18 +108,18 @@ Error ControlDevice::Unmount(unsigned long deviceId)
         }
     }
 
-    return Error::Success;
+    return Core::Error::Success;
 }
 
-Error ControlDevice::Unmount(const AString& deviceName)
+Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
 {
     SuperBlockRef super = LookupMount(deviceName);
     if (super.Get() == nullptr)
     {
-        return Error::NotFound;
+        return Core::Error::NotFound;
     }
 
-    AutoLock lock(SuperBlockListLock);
+    Core::AutoLock lock(SuperBlockListLock);
     auto it = SuperBlockList.GetIterator();
     while (it.IsValid())
     {
@@ -131,34 +133,34 @@ Error ControlDevice::Unmount(const AString& deviceName)
         }
     }
 
-    return Error::Success;
+    return Core::Error::Success;
 }
 
-Error ControlDevice::StartServer(const AString& host, unsigned short port)
+Core::Error ControlDevice::StartServer(const Core::AString& host, unsigned short port)
 {
     return Srv.Start(host, port);
 }
 
-Error ControlDevice::StopServer()
+Core::Error ControlDevice::StopServer()
 {
     Srv.Stop();
-    return Error::Success;
+    return Core::Error::Success;
 }
 
-Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
+Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
 {
     trace(1, "Ioctl 0x%x arg 0x%lx", code, arg);
 
-    Error err;
-    UniquePtr<KStorCtlCmd> cmd = UniquePtr<KStorCtlCmd>(new (Memory::PoolType::Kernel) KStorCtlCmd);
+    Core::Error err;
+    Core::UniquePtr<Control::Cmd> cmd(new (Core::Memory::PoolType::Kernel) Control::Cmd);
     if (cmd.Get() == nullptr)
     {
         trace(0, "Can't allocate memory");
         goto cleanup;
     }
 
-    err = CopyFromUser(cmd.Get(), reinterpret_cast<KStorCtlCmd*>(arg));
-    if (err != Error::Success)
+    err = Core::CopyFromUser(cmd.Get(), reinterpret_cast<Control::Cmd*>(arg));
+    if (err != Core::Error::Success)
     {
         trace(0, "Can't copy cmd from user");
         goto cleanup;
@@ -167,7 +169,7 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     switch (code)
     {
     case IOCTL_KSTOR_GET_TIME:
-        cmd->Union.GetTime.Time = Time::GetTime();
+        cmd->Union.GetTime.Time = Core::Time::GetTime();
         break;
     case IOCTL_KSTOR_GET_RANDOM_ULONG:
         cmd->Union.GetRandomUlong.Value = Rng.GetUlong();
@@ -175,14 +177,14 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     case IOCTL_KSTOR_MOUNT:
     {
         auto& params = cmd->Union.Mount;
-        if (params.DeviceName[Memory::ArraySize(params.DeviceName) - 1] != '\0')
+        if (params.DeviceName[Core::Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
-            err = Error::InvalidValue;
+            err = Core::Error::InvalidValue;
             break;
         }
 
-        AString deviceName(params.DeviceName, Memory::ArraySize(params.DeviceName) - 1, err);
-        if (err != Error::Success)
+        Core::AString deviceName(params.DeviceName, Core::Memory::ArraySize(params.DeviceName) - 1, err);
+        if (err != Core::Error::Success)
         {
             break;
         }
@@ -196,14 +198,14 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     case IOCTL_KSTOR_UNMOUNT_BY_NAME:
     {
         auto& params = cmd->Union.UnmountByName;
-        if (params.DeviceName[Memory::ArraySize(params.DeviceName) - 1] != '\0')
+        if (params.DeviceName[Core::Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
-            err = Error::InvalidValue;
+            err = Core::Error::InvalidValue;
             break;
         }
 
-        AString deviceName(params.DeviceName, Memory::ArraySize(params.DeviceName) - 1, err);
-        if (err != Error::Success)
+        Core::AString deviceName(params.DeviceName, Core::Memory::ArraySize(params.DeviceName) - 1, err);
+        if (err != Core::Error::Success)
         {
             break;
         }
@@ -214,14 +216,14 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     case IOCTL_KSTOR_START_SERVER:
     {
         auto& params = cmd->Union.StartServer;
-        if (params.Host[Memory::ArraySize(params.Host) - 1] != '\0')
+        if (params.Host[Core::Memory::ArraySize(params.Host) - 1] != '\0')
         {
-            err = Error::InvalidValue;
+            err = Core::Error::InvalidValue;
             break;
         }
 
-        AString host(params.Host, Memory::ArraySize(params.Host) - 1, err);
-        if (err != Error::Success)
+        Core::AString host(params.Host, Core::Memory::ArraySize(params.Host) - 1, err);
+        if (err != Core::Error::Success)
         {
             break;
         }
@@ -234,17 +236,17 @@ Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         break;
     default:
         trace(0, "Unknown ioctl 0x%x", code);
-        err = Error::UnknownCode;
+        err = Core::Error::UnknownCode;
         break;
     }
 
-    if (err != Error::Success)
+    if (err != Core::Error::Success)
     {
         goto cleanup;
     }
 
-    err = CopyToUser(reinterpret_cast<KStorCtlCmd*>(arg), cmd.Get());
-    if (err != Error::Success)
+    err = Core::CopyToUser(reinterpret_cast<Control::Cmd*>(arg), cmd.Get());
+    if (err != Core::Error::Success)
     {
         trace(0, "Can't copy cmd to user");
         goto cleanup;
@@ -259,4 +261,6 @@ cleanup:
 
 ControlDevice::~ControlDevice()
 {
+}
+
 }

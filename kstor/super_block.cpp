@@ -3,11 +3,14 @@
 #include <core/trace.h>
 #include <core/bio.h>
 
-SuperBlock::SuperBlock(const AString& deviceName, bool format, Error& err)
+namespace KStor
+{
+
+SuperBlock::SuperBlock(const Core::AString& deviceName, bool format, Core::Error& err)
     : DeviceName(deviceName, err)
     , BDev(DeviceName, err)
 {
-    if (err != Error::Success)
+    if (err != Core::Error::Success)
     {
         goto out;
     }
@@ -19,7 +22,7 @@ SuperBlock::SuperBlock(const AString& deviceName, bool format, Error& err)
         err = Format();
     }
 
-    if (err != Error::Success)
+    if (err != Core::Error::Success)
     {
         goto out;
     }
@@ -35,12 +38,12 @@ SuperBlock::~SuperBlock()
     trace(1, "Device 0x%p dtor", this);
 }
 
-Error SuperBlock::Format()
+Core::Error SuperBlock::Format()
 {
-    Error err;
+    Core::Error err;
 
-    Page page(Memory::PoolType::Kernel, err);
-    if (err != Error::Success)
+    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    if (err != Core::Error::Success)
     {
         trace(0, "Can't allocate page");
         return err;
@@ -48,8 +51,8 @@ Error SuperBlock::Format()
 
     page.Zero();
 
-    Bio bio(BDev, page, 0, err, true);
-    if (err != Error::Success)
+    Core::Bio bio(BDev, page, 0, err, true);
+    if (err != Core::Error::Success)
     {
         trace(0, "Can't init bio, err %d", err.GetCode());
         return err;
@@ -65,9 +68,9 @@ Error SuperBlock::Format()
     return err;
 }
 
-Error SuperBlock::Load()
+Core::Error SuperBlock::Load()
 {
-    Error err;
+    Core::Error err;
 
     trace(1, "Device 0x%p load err %d", this, err.GetCode());
 
@@ -84,12 +87,14 @@ unsigned long long SuperBlock::GetSize() const
     return BDev.GetSize();
 }
 
-const AString& SuperBlock::GetName() const
+const Core::AString& SuperBlock::GetName() const
 {
     return DeviceName;
 }
 
-BlockDevice& SuperBlock::GetBDev()
+Core::BlockDevice& SuperBlock::GetBDev()
 {
     return BDev;
+}
+
 }

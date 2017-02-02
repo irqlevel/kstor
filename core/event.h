@@ -2,6 +2,9 @@
 
 #include "kapi.h"
 
+namespace Core
+{
+
 class Event
 {
 public:
@@ -18,3 +21,5 @@ private:
     Event& operator=(Event&& other) = delete;
     struct kapi_completion Completion;
 };
+
+}

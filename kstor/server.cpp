@@ -1,32 +1,36 @@
 #include "server.h"
+#include "api.h"
+
+namespace KStor 
+{
 
 Server::Server()
 {
 }
 
-Server::Connection::Connection(Server& srv, UniquePtr<Socket>&& socket)
-    : Srv(srv), Sock(Memory::Move(socket))
+Server::Connection::Connection(Server& srv, Core::UniquePtr<Core::Socket>&& socket)
+    : Srv(srv), Sock(Core::Memory::Move(socket))
 {
     trace(1, "Connection 0x%p created", this);
 }
 
-Error Server::Connection::Start()
+Core::Error Server::Connection::Start()
 {
     trace(1, "Connection 0x%p starting", this);
 
-    AutoLock lock(StateLock);
+    Core::AutoLock lock(StateLock);
     if (ConnThread.Get() != nullptr || Sock.Get() == nullptr)
     {
-        return Error::InvalidState;
+        return Core::Error::InvalidState;
     }
 
-    Error err;
-    ConnThread.Reset(new Thread(this, err));
+    Core::Error err;
+    ConnThread.Reset(new Core::Thread(this, err));
     if (ConnThread.Get() == nullptr)
     {
-        return Error::NoMemory;
+        return Core::Error::NoMemory;
     }
-    if (err != Error::Success)
+    if (err != Core::Error::Success)
     {
         ConnThread.Reset();
         return err;
@@ -38,7 +42,7 @@ void Server::Connection::Stop()
 {
     trace(1, "Connection 0x%p stopping", this);
 
-    AutoLock lock(StateLock);
+    Core::AutoLock lock(StateLock);
 
     ConnThread.Reset();
     Sock.Reset();
@@ -49,67 +53,67 @@ Server::Connection::~Connection()
     Stop();
 }
 
-Error Server::Connection::Run(const Threadable& thread)
+Core::Error Server::Connection::Run(const Core::Threadable& thread)
 {
     trace(1, "Connection 0x%p thread", this);
 
     while (!thread.IsStopping())
     {
-        Thread::Sleep(10);
+        Core::Thread::Sleep(10);
     }
 
     trace(1, "Connection 0x%p thread exiting", this);
 
-    return Error::Success;
+    return Core::Error::Success;
 }
 
-Error Server::Run(const Threadable &thread)
+Core::Error Server::Run(const Core::Threadable &thread)
 {
-    Error err;
+    Core::Error err;
 
     trace(1, "Server 0x%p thread", this);
 
     for (;;)
     {
         {
-            AutoLock lock(ConnListLock);
+            Core::AutoLock lock(ConnListLock);
             if (thread.IsStopping())
                 break;
         }
 
         if (ListenSocket.Get() != nullptr)
         {
-            UniquePtr<Socket> socket(ListenSocket->Accept(err));
-            if (socket.Get() == nullptr || err != Error::Success)
+            Core::UniquePtr<Core::Socket> socket(ListenSocket->Accept(err));
+            if (socket.Get() == nullptr || err != Core::Error::Success)
             {
                 trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
                 continue;
             }
 
-            ConnectionPtr conn(new (Memory::PoolType::Kernel) Connection(*this, Memory::Move(socket)));
+            ConnectionPtr conn(new (Core::Memory::PoolType::Kernel) Connection(*this, Core::Memory::Move(socket)));
             if (conn.Get() == nullptr)
             {
-                err = Error::NoMemory;
+                err = Core::Error::NoMemory;
             }
 
-            if (err != Error::Success)
+            if (err != Core::Error::Success)
             {
                 trace(0, "Server 0x%p create connection error %d", this, err.GetCode());
                 continue;
             }
 
             {
-                AutoLock lock(ConnListLock);
+                Core::AutoLock lock(ConnListLock);
                 if (!thread.IsStopping())
                 {
                     if (!ConnList.AddTail(conn))
                     {
-                        err = Error::NoMemory;
+                        err = Core::Error::NoMemory;
                         trace(0, "Server 0x%p can't insert connection err %d", this, err.GetCode());
                         continue;
                     }
                     err = conn->Start();
-                    if (err != Error::Success)
+                    if (err != Core::Error::Success)
                     {
                         trace(0, "Server 0x%p can't start connection err %d", this, err.GetCode());
                         ConnList.PopTail();
@@ -122,35 +126,35 @@ Error Server::Run(const Threadable &thread)
 
     trace(1, "Server 0x%p thread exiting", this);
 
-    return Error::Success;
+    return Core::Error::Success;
 }
 
-Error Server::Start(const AString& host, unsigned short port)
+Core::Error Server::Start(const Core::AString& host, unsigned short port)
 {
     trace(1, "Server 0x%p starting", this);
 
-    AutoLock lock(StateLock);
+    Core::AutoLock lock(StateLock);
 
     if (ListenSocket.Get() != nullptr || AcceptThread.Get() != nullptr)
-        return Error::InvalidState;
+        return Core::Error::InvalidState;
 
-    ListenSocket.Reset(new (Memory::PoolType::Kernel) Socket());
+    ListenSocket.Reset(new (Core::Memory::PoolType::Kernel) Core::Socket());
     if (ListenSocket.Get() == nullptr)
-        return Error::NoMemory;
+        return Core::Error::NoMemory;
 
-    Error err = ListenSocket->Listen(host, port);
-    if (err != Error::Success) {
+    Core::Error err = ListenSocket->Listen(host, port);
+    if (err != Core::Error::Success) {
         ListenSocket.Reset();
         return err;
     }
 
-    AcceptThread.Reset(new (Memory::PoolType::Kernel) Thread(this, err));
+    AcceptThread.Reset(new (Core::Memory::PoolType::Kernel) Core::Thread(this, err));
     if (AcceptThread.Get() == nullptr) {
         ListenSocket.Reset();
-        return Error::NoMemory;
+        return Core::Error::NoMemory;
     }
 
-    if (err != Error::Success) {
+    if (err != Core::Error::Success) {
         AcceptThread.Reset();
         ListenSocket.Reset();
         return err;
@@ -158,16 +162,16 @@ Error Server::Start(const AString& host, unsigned short port)
 
     trace(1, "Server 0x%p started", this);
 
-    return Error::Success;
+    return Core::Error::Success;
 }
 
 void Server::Stop()
 {
     trace(1, "Server 0x%p stopping", this);
 
-    AutoLock lock(StateLock);
+    Core::AutoLock lock(StateLock);
     {
-        AutoLock lock(ConnListLock);
+        Core::AutoLock lock(ConnListLock);
         if (AcceptThread.Get() != nullptr)
         {
             AcceptThread->Stop();
@@ -183,7 +187,7 @@ void Server::Stop()
     ListenSocket.Reset();
 
     {
-        AutoLock lock(ConnListLock);
+        Core::AutoLock lock(ConnListLock);
         auto it = ConnList.GetIterator();
         for (;it.IsValid(); it.Next())
         {
@@ -198,4 +202,6 @@ void Server::Stop()
 Server::~Server()
 {
     Stop();
+}
+
 }

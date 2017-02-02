@@ -4,6 +4,9 @@
 #include "error.h"
 #include "astring.h"
 
+namespace Core
+{
+
 class Socket
 {
 public:
@@ -22,3 +25,5 @@ private:
     Socket(void *sockp);
     void *Sockp;
 };
+
+}

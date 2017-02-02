@@ -7,6 +7,9 @@
 #include "block_device.h"
 #include "event.h"
 
+namespace Core
+{
+
 class Bio
 {
 public:
@@ -37,3 +40,5 @@ private:
     Event EndIoEvent;
     Error IoError;
 };
+
+}

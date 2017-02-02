@@ -5,6 +5,9 @@
 #include "error.h"
 #include "bug.h"
 
+namespace Core
+{
+
 template <class K, class V, Memory::PoolType PoolType>
 class HashTable
 {
@@ -116,7 +119,7 @@ public:
 
     V& Get(const K& key)
     {
-        BUG_ON(!Exists(key));
+        BugOn(!Exists(key));
 
         size_t bucket = KeyHash(key) % Buckets.GetSize();
         LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
@@ -198,3 +201,5 @@ private:
     size_t (*KeyHash)(const K& key);
     V EmptyValue;
 };
+
+}

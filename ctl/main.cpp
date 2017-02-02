@@ -6,7 +6,7 @@
 int main(int argc, char* argv[])
 {
     int err = 0;
-    KStorCtl ctl(err);
+    KStor::Control::Ctl ctl(err);
     if (err)
     {
         printf("Ctl open err %d\n", err);

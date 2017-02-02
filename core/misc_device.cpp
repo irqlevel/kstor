@@ -3,6 +3,9 @@
 #include "kapi.h"
 #include "trace.h"
 
+namespace Core
+{
+
 MiscDevice::MiscDevice()
 {
 }
@@ -75,4 +78,6 @@ long MiscDevice::Ioctl(void* context, unsigned int code, unsigned long arg)
 Error MiscDevice::Ioctl(unsigned int code, unsigned long arg)
 {
     return Error::NotImplemented;
+}
+
 }

@@ -1,31 +1,33 @@
 #include "init.h"
-#include "test.h"
 
 #include "control_device.h"
 
 #include <core/trace.h>
 #include <include/ctl.h>
 
+namespace KStor 
+{
+
 static ControlDevice* ControlDevicePtr = nullptr;
+
+}
 
 int KStorInit(void)
 {
     trace(1, "initing");
 
-//  run_tests();
-
-    Error err;
-    ControlDevicePtr = new (Memory::PoolType::Kernel) ControlDevice(err);
-    if (ControlDevicePtr == nullptr)
+    Core::Error err;
+    KStor::ControlDevicePtr = new (Core::Memory::PoolType::Kernel) KStor::ControlDevice(err);
+    if (KStor::ControlDevicePtr == nullptr)
     {
-        err = Error::NoMemory;
+        err = Core::Error::NoMemory;
         return err.GetCode();
     }
 
-    if (err != Error::Success)
+    if (err != Core::Error::Success)
     {
-        delete ControlDevicePtr;
-        ControlDevicePtr = nullptr;
+        delete KStor::ControlDevicePtr;
+        KStor::ControlDevicePtr = nullptr;
         return err.GetCode();
     }
   
@@ -36,10 +38,10 @@ int KStorInit(void)
 void KStorDeinit(void)
 {
     trace(1, "deiniting");
-    if (ControlDevicePtr != nullptr)
+    if (KStor::ControlDevicePtr != nullptr)
     {
-        delete ControlDevicePtr;
-        ControlDevicePtr = nullptr;
+        delete KStor::ControlDevicePtr;
+        KStor::ControlDevicePtr = nullptr;
     }
     trace(1,"deinited");
 }

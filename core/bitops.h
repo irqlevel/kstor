@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Core
+{
+
 class BitOps
 {
 public:
@@ -8,3 +11,5 @@ public:
     static bool TestAndSetBit(long nr, unsigned long *addr);
     static bool TestAndClearBit(long nr, unsigned long *addr);
 };
+
+}

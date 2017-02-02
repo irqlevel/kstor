@@ -2,6 +2,9 @@
 #include "auto_lock.h"
 #include "trace.h"
 
+namespace Core
+{
+
 Worker::Worker()
     : Stopping(false), Running(false)
 {
@@ -98,4 +101,7 @@ Worker::~Worker()
             task->Cancel();
         }
     } while (bHasTasks);
+}
+
+
 }

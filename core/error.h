@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Core
+{
+
 class Error
 {
 public:
@@ -48,3 +51,5 @@ public:
 private:
     int Code;
 };
+
+}

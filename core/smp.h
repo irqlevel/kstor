@@ -2,6 +2,9 @@
 
 #include "atomic.h"
 
+namespace Core
+{
+
 class Smp
 {
 public:
@@ -24,3 +27,5 @@ private:
     static void CountCpus(void *data);
     static void BlockAndWait(void *data);
 };
+
+}

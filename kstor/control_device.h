@@ -8,29 +8,34 @@
 #include "super_block.h"
 #include "server.h"
 
-class ControlDevice : public MiscDevice
+namespace KStor 
+{
+
+class ControlDevice : public Core::MiscDevice
 {
 public:
-    ControlDevice(Error& err);
+    ControlDevice(Core::Error& err);
 
-    Error Ioctl(unsigned int code, unsigned long arg) override;
+    Core::Error Ioctl(unsigned int code, unsigned long arg) override;
 
-    Error Mount(const AString& deviceName, bool format, unsigned long& deviceId);
+    Core::Error Mount(const Core::AString& deviceName, bool format, unsigned long& deviceId);
 
     SuperBlockRef LookupMount(unsigned long deviceId);
-    SuperBlockRef LookupMount(const AString& deviceName);
+    SuperBlockRef LookupMount(const Core::AString& deviceName);
 
-    Error Unmount(unsigned long deviceId);
-    Error Unmount(const AString& deviceName);
+    Core::Error Unmount(unsigned long deviceId);
+    Core::Error Unmount(const Core::AString& deviceName);
 
     virtual ~ControlDevice();
 
-    Error StartServer(const AString& host, unsigned short port);
-    Error StopServer();
+    Core::Error StartServer(const Core::AString& host, unsigned short port);
+    Core::Error StopServer();
 
 private:
     Server Srv;
-    Random Rng;
-    RWSem SuperBlockListLock;
-    LinkedList<SuperBlockRef, Memory::PoolType::Kernel> SuperBlockList;
+    Core::Random Rng;
+    Core::RWSem SuperBlockListLock;
+    Core::LinkedList<SuperBlockRef, Core::Memory::PoolType::Kernel> SuperBlockList;
 };
+
+}

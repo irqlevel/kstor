@@ -3,6 +3,9 @@
 #include "vfs_file.h"
 #include "error.h"
 
+namespace Core
+{
+
 class Random
 {
 public:
@@ -14,3 +17,5 @@ public:
 private:
     VfsFile DevRandomFile;
 };
+
+}

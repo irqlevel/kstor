@@ -5,6 +5,9 @@
 #include "error.h"
 #include "memory.h"
 
+namespace Core
+{
+
 template <Memory::PoolType PoolType>
 class AStringBase
 {
@@ -159,3 +162,5 @@ private:
 
 typedef AStringBase<Memory::PoolType::Kernel> AString;
 typedef SharedPtr<AString, Memory::PoolType::Kernel> AStringRef;
+
+}

@@ -3,6 +3,9 @@
 #include "error.h"
 #include "astring.h"
 
+namespace Core
+{
+
 class BlockDevice
 {
 public:
@@ -14,3 +17,5 @@ private:
     void* BDevPtr;
     int Mode;
 };
+
+}

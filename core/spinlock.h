@@ -3,6 +3,9 @@
 #include "lockable.h"
 #include "kapi.h"
 
+namespace Core
+{
+
 class SpinLock : public Lockable
 {
 public:
@@ -20,3 +23,5 @@ private:
     struct kapi_spinlock Lock;
     unsigned long IrqFlags;
 };
+
+}

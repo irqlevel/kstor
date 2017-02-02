@@ -3,6 +3,9 @@
 #include "shared_lockable.h"
 #include "trace.h"
 
+namespace Core
+{
+
 class SharedAutoLock
 {
 public:
@@ -26,3 +29,5 @@ private:
     SharedAutoLock& operator=(SharedAutoLock&& other) = delete;
     SharedLockable& Lock;
 };
+
+}

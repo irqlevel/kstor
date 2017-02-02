@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Core
+{
+
 template<typename T>
 class UniquePtr
 {
@@ -79,3 +82,5 @@ public:
 private:
     T* Object;
 };
+
+}

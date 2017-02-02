@@ -1,5 +1,8 @@
 #include "socket.h"
 
+namespace Core
+{
+
 Socket::Socket()
     : Socket(nullptr)
 {
@@ -150,4 +153,6 @@ Error Socket::RecvAll(void *buf, unsigned long len, unsigned long& recv)
 Socket::~Socket()
 {
     Close();
+}
+
 }

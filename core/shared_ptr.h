@@ -6,6 +6,9 @@
 #include "bug.h"
 #include "memory.h"
 
+namespace Core
+{
+
 template<typename T, Memory::PoolType PoolType>
 class SharedPtr
 {
@@ -147,3 +150,5 @@ public:
 private:
     ObjectReference* ObjectRef;
 };
+
+}

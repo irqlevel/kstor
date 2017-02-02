@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Core
+{
+
 namespace Memory
 {
     enum class PoolType
@@ -11,4 +14,6 @@ namespace Memory
         User,
         Undefined
     };
+}
+
 }

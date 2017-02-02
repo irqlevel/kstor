@@ -8,7 +8,7 @@ extern "C"
 
 void __cxa_pure_virtual(void)
 {
-    BUG_ON(1);
+    Core::BugOn(true);
 }
 
 #ifdef __cplusplus

@@ -3,6 +3,9 @@
 #include "astring.h"
 #include "error.h"
 
+namespace Core
+{
+
 class VfsFile
 {
 public:
@@ -20,3 +23,5 @@ private:
     void* FilePtr;
 
 };
+
+}

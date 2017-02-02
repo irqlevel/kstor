@@ -1,9 +1,15 @@
 #pragma once
 
-class KStorCtl
+namespace KStor
+{
+
+namespace Control
+{
+
+class Ctl
 {
 public:
-    KStorCtl(int& err);
+    Ctl(int& err);
 
     int GetTime(unsigned long long& time);
     int GetRandomUlong(unsigned long& value);
@@ -15,7 +21,11 @@ public:
     int StartServer(const char *host, unsigned short port);
     int StopServer();
 
-    virtual ~KStorCtl();
+    virtual ~Ctl();
 private:
     int DevFd;
 };
+
+}
+
+}

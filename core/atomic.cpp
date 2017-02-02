@@ -1,6 +1,9 @@
 #include "atomic.h"
 #include "error.h"
 
+namespace Core
+{
+
 Atomic::Atomic()
 {
     Set(0);
@@ -44,4 +47,6 @@ Atomic& Atomic::operator=(Atomic&& other)
 {
     Set(other.Get());
     return *this;
+}
+
 }

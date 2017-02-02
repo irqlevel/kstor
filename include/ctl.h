@@ -2,16 +2,22 @@
 
 #include "ioctl.h"
 
+namespace KStor
+{
+
+namespace Control
+{
+
 #define KSTOR_CONTROL_DEVICE "kstor-control"
 
 #define KSTOR_IOC_MAGIC 0xE1
 
-#pragma pack(push, 1)
-
 const int DeviceNameMaxChars = 256;
 const int HostNameMaxChars = 256;
 
-struct KStorCtlCmd
+#pragma pack(push, 1)
+
+struct Cmd
 {
     union
     {
@@ -55,12 +61,15 @@ struct KStorCtlCmd
 
 #pragma pack(pop)
 
-#define IOCTL_KSTOR_GET_TIME                _IOWR(KSTOR_IOC_MAGIC, 1, KStorCtlCmd*)
-#define IOCTL_KSTOR_GET_RANDOM_ULONG        _IOWR(KSTOR_IOC_MAGIC, 2, KStorCtlCmd*)
+}
+}
 
-#define IOCTL_KSTOR_MOUNT             _IOWR(KSTOR_IOC_MAGIC, 3, KStorCtlCmd*)
-#define IOCTL_KSTOR_UNMOUNT           _IOWR(KSTOR_IOC_MAGIC, 4, KStorCtlCmd*)
-#define IOCTL_KSTOR_UNMOUNT_BY_NAME   _IOWR(KSTOR_IOC_MAGIC, 5, KStorCtlCmd*)
+#define IOCTL_KSTOR_GET_TIME                _IOWR(KSTOR_IOC_MAGIC, 1, KStor::Control::Cmd*)
+#define IOCTL_KSTOR_GET_RANDOM_ULONG        _IOWR(KSTOR_IOC_MAGIC, 2, KStor::Control::Cmd*)
 
-#define IOCTL_KSTOR_START_SERVER   _IOWR(KSTOR_IOC_MAGIC, 6, KStorCtlCmd*)
-#define IOCTL_KSTOR_STOP_SERVER   _IOWR(KSTOR_IOC_MAGIC, 7, KStorCtlCmd*)
+#define IOCTL_KSTOR_MOUNT             _IOWR(KSTOR_IOC_MAGIC, 3, KStor::Control::Cmd*)
+#define IOCTL_KSTOR_UNMOUNT           _IOWR(KSTOR_IOC_MAGIC, 4, KStor::Control::Cmd*)
+#define IOCTL_KSTOR_UNMOUNT_BY_NAME   _IOWR(KSTOR_IOC_MAGIC, 5, KStor::Control::Cmd*)
+
+#define IOCTL_KSTOR_START_SERVER   _IOWR(KSTOR_IOC_MAGIC, 6, KStor::Control::Cmd*)
+#define IOCTL_KSTOR_STOP_SERVER   _IOWR(KSTOR_IOC_MAGIC, 7, KStor::Control::Cmd*)

@@ -3,6 +3,9 @@
 #include "kapi.h"
 #include "pool_type.h"
 
+namespace Core
+{
+
 namespace Memory
 {
 
@@ -11,12 +14,13 @@ namespace Memory
     template< class T > struct RemoveReference<T&&> {typedef T type;};
 
     template <typename T>
-    typename RemoveReference<T>::type&& Move(T&& arg)
+    static inline typename RemoveReference<T>::type&& Move(T&& arg)
     {
         return static_cast<typename RemoveReference<T>::type&&>(arg);
     }
 
-    template <class T> void Swap(T& a, T& b)
+    template <class T>
+    static inline void Swap(T& a, T& b)
     {
         T c(Move(a)); a=Move(b); b=Move(c);
     }
@@ -52,7 +56,7 @@ namespace Memory
     }
 
     template <typename T,unsigned S>
-    inline unsigned ArraySize(const T (&v)[S])
+    static inline unsigned ArraySize(const T (&v)[S])
     {
         return S;
     }
@@ -60,5 +64,6 @@ namespace Memory
     static const unsigned int IntBitCount = 8 * sizeof(int);
     static const unsigned int LongBitCount = 8 * sizeof(unsigned long);
     static const unsigned int MaxInt = (static_cast<unsigned int>(1) << (IntBitCount - 1)) - 1;
+}
 
 }

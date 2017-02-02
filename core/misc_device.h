@@ -3,6 +3,9 @@
 #include "astring.h"
 #include "error.h"
 
+namespace Core
+{
+
 class MiscDevice
 {
 public:
@@ -22,3 +25,5 @@ private:
 
     void* MiscDevPtr;
 };
+
+}

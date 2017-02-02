@@ -1,6 +1,9 @@
 #include "smp.h"
 #include "atomic.h"
 
+namespace Core
+{
+
 int Smp::GetCpuId()
 {
     return get_kapi()->smp_processor_id();
@@ -85,4 +88,6 @@ void Smp::CallFunctionCurrCpuOnly(void (*function)(void *data), void *data)
 
     PreemptEnable();
     UnlockOnlineCpus();
+}
+
 }

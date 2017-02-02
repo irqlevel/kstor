@@ -1,5 +1,8 @@
 #include "spinlock.h"
 
+namespace Core
+{
+
 SpinLock::SpinLock()
     : IrqFlags(0)
 {
@@ -18,4 +21,6 @@ void SpinLock::Release()
 
 SpinLock::~SpinLock()
 {
+}
+
 }

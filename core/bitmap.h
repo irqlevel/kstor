@@ -3,6 +3,9 @@
 #include "error.h"
 #include "memory.h"
 
+namespace Core
+{
+
 class Bitmap
 {
 public:
@@ -21,3 +24,5 @@ private:
     char *Bits;
     long BitCount;
 };
+
+}

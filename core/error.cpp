@@ -1,5 +1,8 @@
 #include "error.h"
 
+namespace Core
+{
+
 Error::Error()
     : Code(Success)
 {
@@ -49,4 +52,6 @@ bool Error::operator!= (const Error& other) const
 bool Error::operator== (const Error& other) const
 {
     return GetCode() == other.GetCode();
+}
+
 }

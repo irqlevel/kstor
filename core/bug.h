@@ -2,5 +2,10 @@
 
 #include "kapi.h"
 
-#define BUG_ON(cond)   \
-    get_kapi()->bug_on(cond)
+namespace Core
+{
+    static inline void BugOn(bool condition)
+    {
+        get_kapi()->bug_on(condition);
+    }
+}

@@ -14,34 +14,39 @@
 #include <core/threadable.h>
 #include <core/list.h>
 
-class Server : public Runnable
+namespace KStor 
+{
+
+class Server : public Core::Runnable
 {
 public:
     Server();
     virtual ~Server();
-    Error Start(const AString &host, unsigned short port);
+    Core::Error Start(const Core::AString &host, unsigned short port);
     void Stop();
 private:
-    class Connection : public Runnable {
+    class Connection : public Core::Runnable {
     public:
-        Connection(Server& srv, UniquePtr<Socket>&& sock);
-        Error Start();
+        Connection(Server& srv, Core::UniquePtr<Core::Socket>&& sock);
+        Core::Error Start();
         void Stop();
         virtual ~Connection();
     private:
-        Error Run(const Threadable& thread) override;
+        Core::Error Run(const Core::Threadable& thread) override;
         Server& Srv;
-        UniquePtr<Socket> Sock;
-        UniquePtr<Thread> ConnThread;
-        RWSem StateLock;
+        Core::UniquePtr<Core::Socket> Sock;
+        Core::UniquePtr<Core::Thread> ConnThread;
+        Core::RWSem StateLock;
     };
 
-    typedef SharedPtr<Connection, Memory::PoolType::Kernel> ConnectionPtr;
+    typedef Core::SharedPtr<Connection, Core::Memory::PoolType::Kernel> ConnectionPtr;
 
-    Error Run(const Threadable& thread) override;
-    RWSem ConnListLock;
-    RWSem StateLock;
-    UniquePtr<Socket> ListenSocket;
-    UniquePtr<Thread> AcceptThread;
-    LinkedList<ConnectionPtr, Memory::PoolType::Kernel> ConnList;
+    Core::Error Run(const Core::Threadable& thread) override;
+    Core::RWSem ConnListLock;
+    Core::RWSem StateLock;
+    Core::UniquePtr<Core::Socket> ListenSocket;
+    Core::UniquePtr<Core::Thread> AcceptThread;
+    Core::LinkedList<ConnectionPtr, Core::Memory::PoolType::Kernel> ConnList;
 };
+
+}

@@ -5,6 +5,9 @@
 #include "bug.h"
 #include "new.h"
 
+namespace Core
+{
+
 template <typename T, Memory::PoolType PoolType> class LinkedList
 {
 public:
@@ -55,7 +58,7 @@ public:
 
         T& Get()
         {
-            BUG_ON(CurrListEntry == EndList);
+            BugOn(CurrListEntry == EndList);
             LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
                                                      LinkedListNode,
                                                      ListLink);
@@ -84,7 +87,7 @@ public:
 
         void Erase()
         {
-            BUG_ON(!IsValid());
+            BugOn(!IsValid());
 
             ListEntry* next = CurrListEntry->Flink;
 
@@ -150,7 +153,7 @@ public:
     {
         LinkedListNode* node;
 
-        BUG_ON(IsListEmpty(&ListHead));
+        BugOn(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(ListHead.Flink, LinkedListNode, ListLink);
         return node->Value;
     }
@@ -159,7 +162,7 @@ public:
     {
         LinkedListNode* node;
 
-        BUG_ON(IsListEmpty(&ListHead));
+        BugOn(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(ListHead.Blink, LinkedListNode, ListLink);
         return node->Value;
     }
@@ -168,7 +171,7 @@ public:
     {
         LinkedListNode* node;
 
-        BUG_ON(IsListEmpty(&ListHead));
+        BugOn(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
                                  LinkedListNode, ListLink);
         delete node;
@@ -178,7 +181,7 @@ public:
     {
         LinkedListNode* node;
 
-        BUG_ON(IsListEmpty(&ListHead));
+        BugOn(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveTailList(&ListHead),
                                  LinkedListNode, ListLink);
         delete node;
@@ -262,3 +265,5 @@ private:
     };
     ListEntry ListHead;
 };
+
+}

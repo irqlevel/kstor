@@ -1,6 +1,9 @@
 #include "vfs_file.h"
 #include "kapi.h"
 
+namespace Core
+{
+
 VfsFile::VfsFile()
     : FilePtr(nullptr)
 {
@@ -76,4 +79,6 @@ void VfsFile::Close()
         get_kapi()->vfs_file_close(FilePtr);
         FilePtr = nullptr;
     }
+}
+
 }

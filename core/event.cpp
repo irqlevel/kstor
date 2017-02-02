@@ -1,6 +1,9 @@
 #include "event.h"
 #include "trace.h"
 
+namespace Core
+{
+
 Event::Event()
 {
     get_kapi()->completion_init(&Completion);
@@ -26,4 +29,6 @@ void Event::Wait()
 
 Event::~Event()
 {
+}
+
 }

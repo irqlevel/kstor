@@ -9,6 +9,9 @@
 #include "error.h"
 #include "memory.h"
 
+namespace Core
+{
+
 class Worker : public Runnable
 {
 public:
@@ -34,3 +37,5 @@ private:
 };
 
 typedef SharedPtr<Worker, Memory::PoolType::Kernel> WorkerRef;
+
+}

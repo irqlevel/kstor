@@ -3,6 +3,9 @@
 #include "bitops.h"
 #include "new.h"
 
+namespace Core
+{
+
 Bitmap::Bitmap(long bitCount, Memory::PoolType poolType, Error& err)
     : Bits(nullptr)
     , BitCount(0)
@@ -70,4 +73,6 @@ Bitmap::~Bitmap()
     {
         delete [] Bits;
     }
+}
+
 }

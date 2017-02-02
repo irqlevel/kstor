@@ -3,6 +3,9 @@
 #include "event.h"
 #include "error.h"
 
+namespace Core
+{
+
 class Thread : public Threadable
 {
 public:
@@ -31,3 +34,5 @@ private:
     bool Running;
     Event CompEvent;
 };
+
+}

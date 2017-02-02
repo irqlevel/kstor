@@ -4,6 +4,9 @@
 #include "error.h"
 #include "random.h"
 
+namespace Core
+{
+
 class Page
 {
 public:
@@ -31,3 +34,5 @@ private:
     Memory::PoolType PoolType;
     void* PagePtr;
 };
+
+}

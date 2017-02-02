@@ -1,5 +1,8 @@
 #include "rwsem.h"
 
+namespace Core
+{
+
 RWSem::RWSem()
 {
     get_kapi()->rwsem_init(&Lock);
@@ -27,4 +30,6 @@ void RWSem::ReleaseShared()
 
 RWSem::~RWSem()
 {
+}
+
 }

@@ -1,6 +1,9 @@
 #include "block_device.h"
 #include "trace.h"
 
+namespace Core
+{
+
 BlockDevice::BlockDevice(const AString& deviceName, Error& err)
     : BDevPtr(nullptr)
     , Mode(KAPI_BDEV_MODE_READ|KAPI_BDEV_MODE_WRITE|KAPI_BDEV_MODE_EXCLUSIVE)
@@ -41,4 +44,6 @@ BlockDevice::~BlockDevice()
         get_kapi()->bdev_put(BDevPtr, Mode);
         BDevPtr = nullptr;
     }
+}
+
 }

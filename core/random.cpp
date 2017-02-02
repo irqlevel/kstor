@@ -3,6 +3,9 @@
 #include "memory.h"
 #include "trace.h"
 
+namespace Core
+{
+
 Random::Random(Error& err, bool pseudoRandom)
 {
     if (err != Error::Success)
@@ -53,4 +56,6 @@ unsigned long Random::GetUlong()
 Random::~Random()
 {
     trace(1, "Random 0x%p dtor", this);
+}
+
 }

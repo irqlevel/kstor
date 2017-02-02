@@ -6,6 +6,9 @@
 #include "event.h"
 #include "memory.h"
 
+namespace Core
+{
+
 class Runnable
 {
 public:
@@ -59,3 +62,5 @@ private:
 };
 
 typedef SharedPtr<Runnable, Memory::PoolType::Kernel> RunnableRef;
+
+}

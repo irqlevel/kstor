@@ -3,6 +3,9 @@
 #include "lockable.h"
 #include "trace.h"
 
+namespace Core
+{
+
 class AutoLock
 {
 public:
@@ -27,3 +30,5 @@ private:
     AutoLock& operator=(AutoLock&& other) = delete;
     Lockable& Lock;
 };
+
+}

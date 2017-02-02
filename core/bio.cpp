@@ -1,6 +1,9 @@
 #include "bio.h"
 #include "trace.h"
 
+namespace Core
+{
+
 Bio::Bio(int pageCount, Error& err)
     : BioPtr(nullptr)
     , PageCount(pageCount)
@@ -150,4 +153,6 @@ Bio::~Bio()
         get_kapi()->free_bio(BioPtr);
         BioPtr = nullptr;
     }
+}
+
 }

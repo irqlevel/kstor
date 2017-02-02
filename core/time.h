@@ -2,6 +2,9 @@
 
 #include "kapi.h"
 
+namespace Core
+{
+
 class Time
 {
 public:
@@ -11,3 +14,5 @@ public:
         return get_kapi()->get_time();
     }
 };
+
+}

@@ -1,5 +1,8 @@
 #pragma once
 
+namespace Core
+{
+
 class Trace
 {
 public:
@@ -10,6 +13,8 @@ private:
     static int Level;
 };
 
+}
+
 #define trace(level, fmt, ...)                              \
-              Trace::Output(level, "%d: %s(),%s,%d: " fmt,   \
+              Core::Trace::Output(level, "%d: %s(),%s,%d: " fmt,   \
                             level, __FUNCTION__, __FILE__, __LINE__, ##__VA_ARGS__)

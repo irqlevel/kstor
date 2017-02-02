@@ -1,6 +1,9 @@
 #include "page.h"
 #include "kapi.h"
 
+namespace Core
+{
+
 Page::Page(Memory::PoolType poolType, Error& err)
     : PoolType(poolType)
     , PagePtr(nullptr)
@@ -82,3 +85,4 @@ Page::~Page()
     }
 }
 
+}

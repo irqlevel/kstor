@@ -6,25 +6,30 @@
 #include <core/shared_ptr.h>
 #include <core/astring.h>
 
+namespace KStor 
+{
+
 class SuperBlock
 {
 public:
-    SuperBlock(const AString& deviceName, bool format, Error& err);
+    SuperBlock(const Core::AString& deviceName, bool format, Core::Error& err);
     virtual ~SuperBlock();
 
-    Error Format();
-    Error Load();
+    Core::Error Format();
+    Core::Error Load();
 
     unsigned long GetId() const;
     unsigned long long GetSize() const;
 
-    const AString& GetName() const;
+    const Core::AString& GetName() const;
 
-    BlockDevice& GetBDev();
+    Core::BlockDevice& GetBDev();
 
 private:
-    AString DeviceName;
-    BlockDevice BDev;
+    Core::AString DeviceName;
+    Core::BlockDevice BDev;
 };
 
-typedef SharedPtr<SuperBlock, Memory::PoolType::Kernel> SuperBlockRef;
+typedef Core::SharedPtr<SuperBlock, Core::Memory::PoolType::Kernel> SuperBlockRef;
+
+}
