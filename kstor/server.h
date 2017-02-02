@@ -32,7 +32,7 @@ private:
         Error Run(const Threadable& thread) override;
         Server& Srv;
         UniquePtr<Socket> Sock;
-        UniquePtr<Thread> TransThread;
+        UniquePtr<Thread> ConnThread;
         RWSem StateLock;
     };
 

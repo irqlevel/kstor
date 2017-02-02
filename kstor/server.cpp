@@ -15,19 +15,23 @@ Error Server::Connection::Start()
     trace(1, "Connection 0x%p starting", this);
 
     AutoLock lock(StateLock);
-    if (TransThread.Get() != nullptr || Sock.Get() == nullptr)
+    if (ConnThread.Get() != nullptr || Sock.Get() == nullptr)
     {
         return Error::InvalidState;
     }
 
     Error err;
-    TransThread.Reset(new Thread(this, err));
-    if (TransThread.Get() == nullptr)
+    ConnThread.Reset(new Thread(this, err));
+    if (ConnThread.Get() == nullptr)
     {
         return Error::NoMemory;
     }
-
-    return Error::Success;
+    if (err != Error::Success)
+    {
+        ConnThread.Reset();
+        return err;
+    }
+    return err;
 }
 
 void Server::Connection::Stop()
@@ -36,7 +40,7 @@ void Server::Connection::Stop()
 
     AutoLock lock(StateLock);
 
-    TransThread.Reset();
+    ConnThread.Reset();
     Sock.Reset();
 }
 
@@ -52,7 +56,6 @@ Error Server::Connection::Run(const Threadable& thread)
     while (!thread.IsStopping())
     {
         Thread::Sleep(10);
-        trace(1, "Connection 0x%p thread", this);
     }
 
     trace(1, "Connection 0x%p thread exiting", this);
