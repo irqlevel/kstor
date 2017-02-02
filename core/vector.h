@@ -126,13 +126,13 @@ public:
 
     Vector(const Vector& other, Error err)
     {
-        if (err != Error::Success)
+        if (!err.Ok())
             return;
 
         T* Arr = new (other.PoolType) T[other.Capacity];
         if (!Arr)
         {
-            err = Error::NoMemory;
+            err.SetNoMemory();
             return;
         }
 

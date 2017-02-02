@@ -43,7 +43,7 @@ Error VfsFile::Open(const AString& path, bool read, bool create)
 VfsFile::VfsFile(const AString& path, Error& err, bool read, bool create)
     : VfsFile()
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }

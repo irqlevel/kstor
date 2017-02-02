@@ -20,11 +20,11 @@ int KStorInit(void)
     KStor::ControlDevicePtr = new (Core::Memory::PoolType::Kernel) KStor::ControlDevice(err);
     if (KStor::ControlDevicePtr == nullptr)
     {
-        err = Core::Error::NoMemory;
+        err.SetNoMemory();
         return err.GetCode();
     }
 
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         delete KStor::ControlDevicePtr;
         KStor::ControlDevicePtr = nullptr;

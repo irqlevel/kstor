@@ -12,13 +12,13 @@ Bitmap::Bitmap(long bitCount, Memory::PoolType poolType, Error& err)
 {
     if (bitCount <= 0)
     {
-        err = Error::InvalidValue;
+        err.SetInvalidValue();
         return;
     }
 
     if (bitCount % 8)
     {
-        err = Error::InvalidValue;
+        err.SetInvalidValue();
         return;
     }
 

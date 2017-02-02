@@ -32,18 +32,18 @@ Error Socket::Listen(const AString& host, unsigned short port)
 Socket *Socket::Accept(Error &err)
 {
     if (Sockp == nullptr) {
-        err = Error::InvalidState;
+        err.SetInvalidState();
         return nullptr;
     }
 
     void *newSockp = nullptr;
     err = get_kapi()->sock_accept(&newSockp, Sockp);
-    if (err != Error::Success)
+    if (!err.Ok())
         return nullptr;
 
     Socket *newSock = new (Memory::PoolType::Kernel) Socket(newSockp);
     if (!newSock)
-        err = Error::NoMemory;
+        err.SetNoMemory();
 
     return newSock;
 }
@@ -76,34 +76,7 @@ Error Socket::Send(void *buf, unsigned long len, unsigned long& sent)
         return Error(r);
 
     sent = static_cast<unsigned long>(r);
-    if (sent < len)
-        return Error::EOF;
-    
     return Error::Success;
-}
-
-Error Socket::SendAll(void *buf, unsigned long len, unsigned long& sent)
-{
-    Error err;
-
-    sent = 0;
-    while (sent < len) {
-        unsigned long lsent;
-
-        err = Send(Memory::MemAdd(buf, sent), len - sent, lsent);
-        if (err != Error::Success && err != Error::EOF) {
-            break;
-        }
-
-        if (sent == 0) {
-            err = Error::EOF;
-            break;
-        }
-
-        err = Error::Success;
-        sent += lsent;
-    }
-    return err;
 }
 
 Error Socket::Recv(void *buf, unsigned long len, unsigned long& recv)
@@ -120,10 +93,29 @@ Error Socket::Recv(void *buf, unsigned long len, unsigned long& recv)
         return Error(r);
 
     recv = static_cast<unsigned long>(r);
-    if (recv < len)
-        return Error::EOF;
 
     return Error::Success;
+}
+
+Error Socket::SendAll(void *buf, unsigned long len, unsigned long& sent)
+{
+    Error err;
+
+    sent = 0;
+    while (sent < len) {
+        unsigned long lsent;
+
+        err = Send(Memory::MemAdd(buf, sent), len - sent, lsent);
+        if (!err.Ok())
+            break;
+
+        if (lsent == 0) {
+            err.SetEOF();
+            break;
+        }
+        sent += lsent;
+    }
+    return err;
 }
 
 Error Socket::RecvAll(void *buf, unsigned long len, unsigned long& recv)
@@ -134,17 +126,14 @@ Error Socket::RecvAll(void *buf, unsigned long len, unsigned long& recv)
     while (recv < len) {
         unsigned long lrecv;
 
-        err = Send(Memory::MemAdd(buf, recv), len - recv, lrecv);
-        if (err != Error::Success && err != Error::EOF) {
+        err = Recv(Memory::MemAdd(buf, recv), len - recv, lrecv);
+        if (!err.Ok())
             break;
-        }
 
         if (lrecv == 0) {
-            err = Error::EOF;
+            err.SetEOF();
             break;
         }
-
-        err = Error::Success;
         recv += lrecv;
     }
     return err;

@@ -9,14 +9,14 @@ Bio::Bio(int pageCount, Error& err)
     , PageCount(pageCount)
     , IoError(Error::NotExecuted)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
 
     if (pageCount == 0)
     {
-        err = Error::InvalidValue;
+        err.SetInvalidValue();
         return;
     }
 
@@ -24,7 +24,7 @@ Bio::Bio(int pageCount, Error& err)
     if (!BioPtr)
     {
         trace(0, "Can't allocate bio");
-        err = Error::NoMemory;
+        err.SetNoMemory();
         return;
     }
 
@@ -45,13 +45,13 @@ Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
     Error& err, bool write, bool flush, bool fua, int offset, int len)
     : Bio(1, err)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
 
     err = SetPage(0, page, offset, (len == 0) ? page.GetPageSize() : len);
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }

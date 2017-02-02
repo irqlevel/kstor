@@ -28,9 +28,10 @@ Core::Error Server::Connection::Start()
     ConnThread.Reset(new Core::Thread(this, err));
     if (ConnThread.Get() == nullptr)
     {
-        return Core::Error::NoMemory;
+        err.SetNoMemory();
+        return err;
     }
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         ConnThread.Reset();
         return err;
@@ -84,7 +85,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
         if (ListenSocket.Get() != nullptr)
         {
             Core::UniquePtr<Core::Socket> socket(ListenSocket->Accept(err));
-            if (socket.Get() == nullptr || err != Core::Error::Success)
+            if (socket.Get() == nullptr || !err.Ok())
             {
                 trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
                 continue;
@@ -93,10 +94,10 @@ Core::Error Server::Run(const Core::Threadable &thread)
             ConnectionPtr conn(new (Core::Memory::PoolType::Kernel) Connection(*this, Core::Memory::Move(socket)));
             if (conn.Get() == nullptr)
             {
-                err = Core::Error::NoMemory;
+                err.SetNoMemory();
             }
 
-            if (err != Core::Error::Success)
+            if (!err.Ok())
             {
                 trace(0, "Server 0x%p create connection error %d", this, err.GetCode());
                 continue;
@@ -108,12 +109,12 @@ Core::Error Server::Run(const Core::Threadable &thread)
                 {
                     if (!ConnList.AddTail(conn))
                     {
-                        err = Core::Error::NoMemory;
+                        err.SetNoMemory();
                         trace(0, "Server 0x%p can't insert connection err %d", this, err.GetCode());
                         continue;
                     }
                     err = conn->Start();
-                    if (err != Core::Error::Success)
+                    if (!err.Ok())
                     {
                         trace(0, "Server 0x%p can't start connection err %d", this, err.GetCode());
                         ConnList.PopTail();
@@ -143,7 +144,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
         return Core::Error::NoMemory;
 
     Core::Error err = ListenSocket->Listen(host, port);
-    if (err != Core::Error::Success) {
+    if (!err.Ok()) {
         ListenSocket.Reset();
         return err;
     }
@@ -154,7 +155,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
         return Core::Error::NoMemory;
     }
 
-    if (err != Core::Error::Success) {
+    if (!err.Ok()) {
         AcceptThread.Reset();
         ListenSocket.Reset();
         return err;

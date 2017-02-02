@@ -12,7 +12,7 @@ MiscDevice::MiscDevice()
 
 MiscDevice::MiscDevice(const AString& devName, Error& err)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
@@ -22,7 +22,7 @@ MiscDevice::MiscDevice(const AString& devName, Error& err)
 
 MiscDevice::MiscDevice(const char* devName, Error& err)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
@@ -35,7 +35,7 @@ Error MiscDevice::Create(const char* devName)
     Error err;
 
     AString devName_(devName, err);
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return err;
     }
@@ -46,7 +46,7 @@ Error MiscDevice::Create(const AString& devName)
 {
     Error err;
     err = get_kapi()->misc_dev_register(devName.GetBuf(), this, &MiscDevice::Ioctl, &MiscDevPtr);
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         trace(0, "Device %s register failed, err %d", devName.GetBuf(), err.GetCode());
         return err;

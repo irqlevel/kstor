@@ -18,14 +18,14 @@ public:
 
     AStringBase(const char* s, size_t len, Error& err)
     {
-        if (err != Error::Success)
+        if (!err.Ok())
         {
             return;
         }
 
         if (!Buf.Reserve(len + 1))
         {
-            err = Error::NoMemory;
+            err.SetNoMemory();
             return;
         }
 
@@ -37,7 +37,7 @@ public:
 
             if (!Buf.PushBack(c))
             {
-                err = Error::NoMemory;
+                err.SetNoMemory();
                 Buf.Clear();
                 return;
             }
@@ -45,7 +45,7 @@ public:
 
         if (!Buf.PushBack('\0'))
         {
-            err = Error::NoMemory;
+            err.SetNoMemory();
             Buf.Clear();
             return;
         }

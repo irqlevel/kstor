@@ -28,11 +28,11 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, u
     if (super.Get() == nullptr)
     {
         trace(1, "CtrlDev 0x%p can't allocate device", this);
-        err = Core::Error::NoMemory;
+        err.SetNoMemory();
         return err;
     }
 
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         trace(1, "CtrlDev 0x%p device init err %d", this, err.GetCode());
         return err;
@@ -42,7 +42,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, u
     if (!SuperBlockList.AddHead(super))
     {
         trace(1, "CtrlDev 0x%p can't add device into list");
-        err = Core::Error::NoMemory;
+        err.SetNoMemory();
         return err;
     }
 
@@ -160,7 +160,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     }
 
     err = Core::CopyFromUser(cmd.Get(), reinterpret_cast<Control::Cmd*>(arg));
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         trace(0, "Can't copy cmd from user");
         goto cleanup;
@@ -179,12 +179,12 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         auto& params = cmd->Union.Mount;
         if (params.DeviceName[Core::Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
-            err = Core::Error::InvalidValue;
+            err.SetInvalidValue();
             break;
         }
 
         Core::AString deviceName(params.DeviceName, Core::Memory::ArraySize(params.DeviceName) - 1, err);
-        if (err != Core::Error::Success)
+        if (!err.Ok())
         {
             break;
         }
@@ -200,12 +200,12 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         auto& params = cmd->Union.UnmountByName;
         if (params.DeviceName[Core::Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
-            err = Core::Error::InvalidValue;
+            err.SetInvalidValue();
             break;
         }
 
         Core::AString deviceName(params.DeviceName, Core::Memory::ArraySize(params.DeviceName) - 1, err);
-        if (err != Core::Error::Success)
+        if (!err.Ok())
         {
             break;
         }
@@ -218,12 +218,12 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         auto& params = cmd->Union.StartServer;
         if (params.Host[Core::Memory::ArraySize(params.Host) - 1] != '\0')
         {
-            err = Core::Error::InvalidValue;
+            err.SetInvalidValue();
             break;
         }
 
         Core::AString host(params.Host, Core::Memory::ArraySize(params.Host) - 1, err);
-        if (err != Core::Error::Success)
+        if (!err.Ok())
         {
             break;
         }
@@ -240,13 +240,13 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         break;
     }
 
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         goto cleanup;
     }
 
     err = Core::CopyToUser(reinterpret_cast<Control::Cmd*>(arg), cmd.Get());
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         trace(0, "Can't copy cmd to user");
         goto cleanup;

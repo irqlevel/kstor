@@ -48,6 +48,36 @@ public:
 
     bool operator== (const Error& other) const;
 
+    bool Ok()
+    {
+        return (Code == Success) ? true : false;
+    }
+
+    void SetNoMemory()
+    {
+        Code = NoMemory;
+    }
+
+    void SetEOF()
+    {
+        Code = EOF;
+    }
+
+    void SetInvalidState()
+    {
+        Code = InvalidState;
+    }
+
+    void SetInvalidValue()
+    {
+        Code = InvalidValue;
+    }
+
+    void SetNotImplemented()
+    {
+        Code = NotImplemented;
+    }
+
 private:
     int Code;
 };

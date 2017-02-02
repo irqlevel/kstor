@@ -8,7 +8,7 @@ Page::Page(Memory::PoolType poolType, Error& err)
     : PoolType(poolType)
     , PagePtr(nullptr)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
@@ -16,7 +16,7 @@ Page::Page(Memory::PoolType poolType, Error& err)
     PagePtr = get_kapi()->alloc_page(get_kapi_pool_type(PoolType));
     if (PagePtr == nullptr)
     {
-        err = Error::NoMemory;
+        err.SetNoMemory();
         return;
     }
 }

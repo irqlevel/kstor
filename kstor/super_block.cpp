@@ -10,7 +10,7 @@ SuperBlock::SuperBlock(const Core::AString& deviceName, bool format, Core::Error
     : DeviceName(deviceName, err)
     , BDev(DeviceName, err)
 {
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         goto out;
     }
@@ -22,7 +22,7 @@ SuperBlock::SuperBlock(const Core::AString& deviceName, bool format, Core::Error
         err = Format();
     }
 
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         goto out;
     }
@@ -43,7 +43,7 @@ Core::Error SuperBlock::Format()
     Core::Error err;
 
     Core::Page page(Core::Memory::PoolType::Kernel, err);
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         trace(0, "Can't allocate page");
         return err;
@@ -52,7 +52,7 @@ Core::Error SuperBlock::Format()
     page.Zero();
 
     Core::Bio bio(BDev, page, 0, err, true);
-    if (err != Core::Error::Success)
+    if (!err.Ok())
     {
         trace(0, "Can't init bio, err %d", err.GetCode());
         return err;

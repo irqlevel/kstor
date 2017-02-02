@@ -65,7 +65,7 @@ Worker::Worker(Error& err)
     : Stopping(false), Running(false),
       WorkerThread(this, err)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
         return;
 
     Running = true;

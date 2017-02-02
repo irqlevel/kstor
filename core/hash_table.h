@@ -17,12 +17,12 @@ public:
               size_t (*keyHash)(const K& key))
         : Buckets(), KeyCmp(keyCmp), KeyHash(keyHash)
     {
-        if (err != Error::Success)
+        if (!err.Ok())
             return;
 
         if (!Buckets.Reserve(nrBuckets))
         {
-            err = Error::NoMemory;
+            err.SetNoMemory();
             return;
         }
 
@@ -31,7 +31,7 @@ public:
             LinkedList<HashEntry, PoolType> list;
             if (!Buckets.PushBack(Memory::Move(list)))
             {
-                err = Error::NoMemory;
+                err.SetNoMemory();
                 return;
             }
         }
@@ -58,7 +58,7 @@ public:
 
     bool Insert(const K& key, const V& value, Error& err)
     {
-        if (err != Error::Success)
+        if (!err.Ok())
             return false;
 
         size_t bucket = KeyHash(key) % Buckets.GetSize();
@@ -73,7 +73,7 @@ public:
             }
         }
         HashEntry entry(key, value, err);
-        if (err != Error::Success)
+        if (!err.Ok())
             return false;
 
         list.AddTail(Memory::Move(entry));

@@ -8,7 +8,7 @@ BlockDevice::BlockDevice(const AString& deviceName, Error& err)
     : BDevPtr(nullptr)
     , Mode(KAPI_BDEV_MODE_READ|KAPI_BDEV_MODE_WRITE|KAPI_BDEV_MODE_EXCLUSIVE)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }

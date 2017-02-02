@@ -12,10 +12,6 @@ Thread::Thread()
 Thread::Thread(Runnable* routine, Error& err)
    : Routine(nullptr), Task(nullptr), Stopping(false), Running(false)
 {
-    if (err != Error::Success)
-    {
-        return;
-    }
     Start(routine, err);
 }
 
@@ -34,16 +30,16 @@ Error Thread::ExecuteRoutine()
 
 void Thread::Start(Runnable* routine, Error& err)
 {
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
     if (!routine)
     {
-        err = Error::InvalidValue;
+        err.SetInvalidValue();
         return;
     }
-    if (err != Error::Success)
+    if (!err.Ok())
     {
         return;
     }
@@ -52,7 +48,7 @@ void Thread::Start(Runnable* routine, Error& err)
 				   "kstor-thread");
     if (!Task)
     {
-        err = Error::NoMemory;
+        err.SetNoMemory();
         return;
     }
     Running = true;
