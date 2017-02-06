@@ -36,7 +36,7 @@ Core::Error Packet::Parse(const Api::PacketHeader &header)
         return Core::Error::InvalidValue;
 
     Body.Clear();
-    if (!Body.Reserve(dataSize + sizeof(Api::PacketHeader)))
+    if (!Body.ReserveAndUse(dataSize + sizeof(Api::PacketHeader)))
         return Core::Error::NoMemory;
 
     DataSize = dataSize;
@@ -76,13 +76,13 @@ void* Packet::GetBody()
     return const_cast<unsigned char *>(Body.GetBuf());
 }
 
-Core::Error Packet::Reset(unsigned int type, unsigned int result, unsigned int dataSize)
+Core::Error Packet::Prepare(unsigned int type, unsigned int result, unsigned int dataSize)
 {
     if (dataSize > Api::PacketMaxDataSize)
         return Core::Error::BufToBig;
 
     Body.Clear();
-    if (!Body.Reserve(dataSize + sizeof(Api::PacketHeader)))
+    if (!Body.ReserveAndUse(dataSize + sizeof(Api::PacketHeader)))
         return Core::Error::NoMemory;
 
     GetHeader()->Type = Core::BitOps::CpuToLe32(type);
@@ -207,6 +207,8 @@ Core::Error Server::Connection::SendPacket(PacketPtr& packet)
         return err;
     }
 
+    trace(1, "Connection 0x%p sent packet size %lu", this, sent);
+
     return err;
 }
 
@@ -218,20 +220,21 @@ Core::Error Server::Connection::Run(const Core::Threadable& thread)
 
     while (!thread.IsStopping())
     {
+        trace(1, "Connection 0x%p receiving request", this);
         auto request = RecvPacket(err);
         if (!err.Ok())
         {
             trace(1, "Connection 0x%p recv packet err %d", this, err.GetCode());
             break;
         }
-
+        trace(1, "Connection 0x%p handling request", this);
         auto response = Srv.HandleRequest(request, err);
         if (!err.Ok())
         {
             trace(1, "Connection 0x%p handle packet err %d", this, err.GetCode());
             break;
         }
-
+        trace(1, "Connection 0x%p sending response", this);
         err = SendPacket(response);
         if (!err.Ok())
         {
@@ -422,11 +425,13 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
 {
     Core::Error err;
 
-    trace(1, "Server 0x%p handle ping", this);
+    trace(1, "Server 0x%p handle ping, data size %lu", this, request->GetDataSize());
 
-    err = response->Reset(request->GetType(), 0, request->GetDataSize());
+    err = response->Prepare(request->GetType(), 0, request->GetDataSize());
     if (!err.Ok())
         return err;
+
+    Core::Memory::MemCpy(response->GetData(), request->GetData(), response->GetDataSize());
 
     return err;
 }
@@ -447,7 +452,7 @@ PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
         err = HandlePing(request, response);
         break;
     default:
-        err = response->Reset(request->GetType(), Core::Error::UnknownCode, 0);
+        err = response->Prepare(request->GetType(), Core::Error::UnknownCode, 0);
         break;
     }
 

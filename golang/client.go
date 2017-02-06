@@ -118,6 +118,7 @@ func (client *Client) SendPacket(packet *Packet) error {
 }
 
 func (client *Client) RecvPacket() (*Packet, error) {
+        log.Printf("Receiving packet header\n")
 	packet := new(Packet)
 	err := binary.Read(client.Con, binary.LittleEndian, &packet.Header)
 	if err != nil {
@@ -131,7 +132,7 @@ func (client *Client) RecvPacket() (*Packet, error) {
 	if packet.Header.DataSize > PacketMaxDataSize {
 		return nil, errors.New("Packet data size too big")
 	}
-
+        log.Printf("Receiving packet body\n")
 	body := make([]byte, packet.Header.DataSize)
 	if packet.Header.DataSize != 0 {
 		n, err := io.ReadFull(client.Con, body)
@@ -184,11 +185,12 @@ func (client *Client) RecvResponse(respType uint32, resp ParseBytes) error {
 }
 
 func (client *Client) SendRecv(reqType uint32, req ToBytes, resp ParseBytes) error {
+    log.Printf("Sending request\n")
     err := client.SendRequest(reqType, req)
     if err != nil {
         return err
     }
-
+    log.Printf("Receiving response\n")
     err = client.RecvResponse(reqType, resp)
     if err != nil {
         return err
@@ -245,5 +247,11 @@ func main() {
     }
     defer client.Close()
 
-    client.Ping("Hello world!")
+    result, err := client.Ping("Hello world!")
+    if err != nil {
+        log.Printf("Ping failed: %v\n", err)
+        os.Exit(1)
+        return
+    }
+    log.Printf("Ping result %s\n", result)
 }

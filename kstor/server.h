@@ -26,7 +26,7 @@ public:
     Packet();
     Packet(const Api::PacketHeader &header, Core::Error &err);
     Core::Error Parse(const Api::PacketHeader &header);
-    Core::Error Reset(unsigned int type, unsigned int result, unsigned int dataSize);
+    Core::Error Prepare(unsigned int type, unsigned int result, unsigned int dataSize);
     virtual ~Packet();
     unsigned int GetType() const;
     unsigned int GetResult() const;

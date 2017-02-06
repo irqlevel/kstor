@@ -56,6 +56,14 @@ public:
         return true;
     }
 
+    bool ReserveAndUse(size_t capacity)
+    {
+        if (!Reserve(capacity))
+            return false;
+        Size = Capacity;
+        return true;
+    }
+
     bool Truncate(size_t size)
     {
         if (size > Size)
