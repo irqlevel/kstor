@@ -145,9 +145,16 @@ void Server::Connection::Stop()
     }
 }
 
+bool Server::Connection::Closed()
+{
+    Core::AutoLock lock(StateLock);
+    return (Sock.Get() == nullptr) ? true : false;
+}
+
 Server::Connection::~Connection()
 {
     Stop();
+    trace(1, "Connection 0x%p dtor", this);
 }
 
 PacketPtr Server::Connection::RecvPacket(Core::Error& err)
@@ -233,7 +240,7 @@ Core::Error Server::Connection::Run(const Core::Threadable& thread)
         }
     }
 
-    trace(1, "Connection 0x%p thread exiting", this);
+    trace(1, "Connection 0x%p thread closing socket", this);
 
     {
         Core::AutoLock lock(StateLock);
@@ -244,7 +251,7 @@ Core::Error Server::Connection::Run(const Core::Threadable& thread)
         }
     }
 
-    Srv.RemoveConnection(this);
+    trace(1, "Connection 0x%p thread exiting", this);
 
     return Core::Error::Success;
 }
@@ -261,46 +268,57 @@ Core::Error Server::Run(const Core::Threadable &thread)
             Core::AutoLock lock(ConnListLock);
             if (thread.IsStopping())
                 break;
+
+            auto it = ConnList.GetIterator();
+            for(;it.IsValid();it.Next())
+            {
+                auto conn = it.Get();
+                if (conn->Closed())
+                {
+                    trace(1, "Server 0x%p removing died connection 0x%p", this, conn.Get());
+                    it.Erase();
+                }
+            }
         }
 
-        if (ListenSocket.Get() != nullptr)
+        if (ListenSocket.Get() == nullptr)
+            break;
+
+        Core::UniquePtr<Core::Socket> socket(ListenSocket->Accept(err));
+        if (socket.Get() == nullptr || !err.Ok())
         {
-            Core::UniquePtr<Core::Socket> socket(ListenSocket->Accept(err));
-            if (socket.Get() == nullptr || !err.Ok())
-            {
-                trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
-                continue;
-            }
+            trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
+            continue;
+        }
 
-            ConnectionPtr conn(new (Core::Memory::PoolType::Kernel) Connection(*this, Core::Memory::Move(socket)));
-            if (conn.Get() == nullptr)
-            {
-                err.SetNoMemory();
-            }
+        ConnectionPtr conn(new (Core::Memory::PoolType::Kernel) Connection(*this, Core::Memory::Move(socket)));
+        if (conn.Get() == nullptr)
+        {
+            err.SetNoMemory();
+        }
 
-            if (!err.Ok())
-            {
-                trace(0, "Server 0x%p create connection error %d", this, err.GetCode());
-                continue;
-            }
+        if (!err.Ok())
+        {
+            trace(0, "Server 0x%p create connection error %d", this, err.GetCode());
+            continue;
+        }
 
+        {
+            Core::AutoLock lock(ConnListLock);
+            if (!thread.IsStopping())
             {
-                Core::AutoLock lock(ConnListLock);
-                if (!thread.IsStopping())
+                if (!ConnList.AddTail(conn))
                 {
-                    if (!ConnList.AddTail(conn))
-                    {
-                        err.SetNoMemory();
-                        trace(0, "Server 0x%p can't insert connection err %d", this, err.GetCode());
-                        continue;
-                    }
-                    err = conn->Start();
-                    if (!err.Ok())
-                    {
-                        trace(0, "Server 0x%p can't start connection err %d", this, err.GetCode());
-                        ConnList.PopTail();
-                        continue;
-                    }
+                    err.SetNoMemory();
+                    trace(0, "Server 0x%p can't insert connection err %d", this, err.GetCode());
+                    continue;
+                }
+                err = conn->Start();
+                if (!err.Ok())
+                {
+                    trace(0, "Server 0x%p can't start connection err %d", this, err.GetCode());
+                    ConnList.PopTail();
+                    continue;
                 }
             }
         }
@@ -417,21 +435,6 @@ PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
     }
 
     return response;
-}
-
-void Server::RemoveConnection(Server::Connection *conn)
-{
-    trace(1, "Server 0x%p remove connection 0x%p", this, conn);
-
-    Core::AutoLock lock(ConnListLock);
-    auto it = ConnList.GetIterator();
-    for (;it.IsValid(); it.Next())
-    {
-        if (it.Get().Get() == conn)
-        {
-            it.Erase();
-        }
-    }
 }
 
 }

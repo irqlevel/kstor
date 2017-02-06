@@ -62,6 +62,8 @@ private:
         PacketPtr RecvPacket(Core::Error& err);
         Core::Error SendPacket(PacketPtr& packet);
 
+        bool Closed();
+
     private:
         Core::Error Run(const Core::Threadable& thread) override;
         Server& Srv;
@@ -80,8 +82,6 @@ private:
     Core::LinkedList<ConnectionPtr, Core::Memory::PoolType::Kernel> ConnList;
 
     PacketPtr HandleRequest(PacketPtr& request, Core::Error& err);
-
-    void RemoveConnection(Connection* conn);
 
 };
 
