@@ -138,6 +138,8 @@ struct kernel_api
     int (*sock_accept)(void **newsockp, void *sockp);
     void (*sock_abort_accept)(void *sockp);
 
+    unsigned int (*le32_to_cpu)(unsigned int value);
+    unsigned int (*cpu_to_le32)(unsigned int value);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

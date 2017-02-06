@@ -10,6 +10,8 @@ public:
     static void ClearBit(long nr, unsigned long *addr);
     static bool TestAndSetBit(long nr, unsigned long *addr);
     static bool TestAndClearBit(long nr, unsigned long *addr);
+    static unsigned int Le32ToCpu(unsigned int value);
+    static unsigned int CpuToLe32(unsigned int value);
 };
 
 }

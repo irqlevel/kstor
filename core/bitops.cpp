@@ -24,4 +24,13 @@ bool BitOps::TestAndClearBit(long nr, unsigned long *addr)
     return (get_kapi()->test_and_clear_bit(nr, addr) != 0) ? true : false;
 }
 
+unsigned int BitOps::Le32ToCpu(unsigned int value)
+{
+    return get_kapi()->le32_to_cpu(value);
+}
+
+unsigned int BitOps::CpuToLe32(unsigned int value)
+{
+    return get_kapi()->cpu_to_le32(value);
+}
 }

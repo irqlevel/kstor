@@ -1,8 +1,100 @@
 #include "server.h"
-#include "api.h"
+#include <core/bitops.h>
 
 namespace KStor 
 {
+
+Packet::Packet()
+    : Type(0), Result(0), DataSize(0)
+{
+}
+
+Packet::Packet(const Api::PacketHeader &header, Core::Error &err)
+    : Packet()
+{
+    if (!err.Ok())
+        return;
+
+    err = Parse(header);
+}
+
+Api::PacketHeader *Packet::GetHeader()
+{
+    return reinterpret_cast<Api::PacketHeader*>(const_cast<unsigned char *>(Body.GetBuf()));
+}
+
+Core::Error Packet::Parse(const Api::PacketHeader &header)
+{
+    unsigned int magic = Core::BitOps::Le32ToCpu(header.Magic);
+    unsigned int dataSize = Core::BitOps::Le32ToCpu(header.DataSize);
+    unsigned int type = Core::BitOps::Le32ToCpu(header.Type);
+    unsigned int result = Core::BitOps::Le32ToCpu(header.Result);
+
+    if (magic != Api::PacketMagic)
+        return Core::Error::InvalidValue;
+    if (dataSize > Api::PacketMaxDataSize)
+        return Core::Error::InvalidValue;
+
+    Body.Clear();
+    if (!Body.Reserve(dataSize + sizeof(Api::PacketHeader)))
+        return Core::Error::NoMemory;
+
+    DataSize = dataSize;
+    Type = type;
+    Result = result;
+
+    return Core::Error::Success;
+}
+
+size_t Packet::GetDataSize() const
+{
+    return DataSize;
+}
+
+size_t Packet::GetSize() const
+{
+    return Body.GetSize();
+}
+
+unsigned int Packet::GetType() const
+{
+    return Type;
+}
+
+unsigned int Packet::GetResult() const
+{
+    return Result;
+}
+
+void* Packet::GetData()
+{
+    return Core::Memory::MemAdd(GetBody(), sizeof(Api::PacketHeader));
+}
+
+void* Packet::GetBody()
+{
+    return const_cast<unsigned char *>(Body.GetBuf());
+}
+
+Core::Error Packet::Reset(unsigned int type, unsigned int result, unsigned int dataSize)
+{
+    if (dataSize > Api::PacketMaxDataSize)
+        return Core::Error::BufToBig;
+
+    Body.Clear();
+    if (!Body.Reserve(dataSize + sizeof(Api::PacketHeader)))
+        return Core::Error::NoMemory;
+
+    GetHeader()->Type = Core::BitOps::CpuToLe32(type);
+    GetHeader()->Result = Core::BitOps::CpuToLe32(result);
+    GetHeader()->DataSize = Core::BitOps::CpuToLe32(dataSize);
+    GetHeader()->Magic = Core::BitOps::CpuToLe32(Api::PacketMagic);
+    return Core::Error::Success;
+}
+
+Packet::~Packet()
+{
+}
 
 Server::Server()
 {
@@ -46,7 +138,11 @@ void Server::Connection::Stop()
     Core::AutoLock lock(StateLock);
 
     ConnThread.Reset();
-    Sock.Reset();
+    if (Sock.Get() != nullptr)
+    {
+        Sock->Close();
+        Sock.Reset();
+    }
 }
 
 Server::Connection::~Connection()
@@ -54,16 +150,101 @@ Server::Connection::~Connection()
     Stop();
 }
 
+PacketPtr Server::Connection::RecvPacket(Core::Error& err)
+{
+    PacketPtr packet;
+    Api::PacketHeader header;
+    unsigned long received;
+
+    err = Sock->RecvAll(&header, sizeof(header), received);
+    if (!err.Ok())
+    {
+        trace(1, "Connection 0x%p read header err %d", this, err.GetCode());
+        return packet;
+    }
+
+    packet.Reset(new Packet(header, err));
+    if (packet.Get() == nullptr)
+    {
+        err.SetNoMemory();
+        trace(1, "Connection 0x%p can't allocate packet err %d", this, err.GetCode());
+        packet.Reset();
+        return packet;
+    }
+
+    if (!err.Ok())
+    {
+        trace(1, "Connection 0x%p can't parse packet err %d", this, err.GetCode());
+        packet.Reset();
+        return packet;
+    }
+
+    err = Sock->RecvAll(packet->GetData(), packet->GetDataSize(), received);
+    if (!err.Ok())
+    {
+        trace(1, "Connection 0x%p can't read packet body err %d", this, err.GetCode());
+        packet.Reset();
+        return packet;
+    }
+
+    return packet;
+}
+
+Core::Error Server::Connection::SendPacket(PacketPtr& packet)
+{
+    unsigned long sent;
+    Core::Error err = Sock->SendAll(packet->GetBody(), packet->GetSize(), sent);
+    if (!err.Ok())
+    {
+        trace(1, "Connection 0x%p can't send packet err %d", this, err.GetCode());
+        return err;
+    }
+
+    return err;
+}
+
 Core::Error Server::Connection::Run(const Core::Threadable& thread)
 {
+    Core::Error err;
+
     trace(1, "Connection 0x%p thread", this);
 
     while (!thread.IsStopping())
     {
-        Core::Thread::Sleep(10);
+        auto request = RecvPacket(err);
+        if (!err.Ok())
+        {
+            trace(1, "Connection 0x%p recv packet err %d", this, err.GetCode());
+            break;
+        }
+
+        auto response = Srv.HandleRequest(request, err);
+        if (!err.Ok())
+        {
+            trace(1, "Connection 0x%p handle packet err %d", this, err.GetCode());
+            break;
+        }
+
+        err = SendPacket(response);
+        if (!err.Ok())
+        {
+            trace(1, "Connection 0x%p send packet err %d", this, err.GetCode());
+            break;
+        }
     }
 
     trace(1, "Connection 0x%p thread exiting", this);
+
+    {
+        Core::AutoLock lock(StateLock);
+        if (Sock.Get() != nullptr)
+        {
+            Sock->Close();
+            Sock.Reset();
+        }
+    }
+
+    Srv.RemoveConnection(this);
 
     return Core::Error::Success;
 }
@@ -187,14 +368,28 @@ void Server::Stop()
     AcceptThread.Reset();
     ListenSocket.Reset();
 
+    for (;;)
     {
-        Core::AutoLock lock(ConnListLock);
-        auto it = ConnList.GetIterator();
-        for (;it.IsValid(); it.Next())
+        if (ConnList.IsEmpty())
+            break;
+
+        ConnectionPtr conn;
         {
-            ConnectionPtr& conn = it.Get();
-            conn->Stop();
+            Core::AutoLock lock(ConnListLock);
+            if (ConnList.IsEmpty())
+                break;
+
+            auto it = ConnList.GetIterator();
+            for (;it.IsValid(); it.Next())
+            {
+                conn = it.Get();
+                it.Erase();
+                break;
+            }
         }
+
+        if (conn.Get() != nullptr)
+            conn->Stop();
     }
 
     trace(1, "Server 0x%p stopped", this);
@@ -203,6 +398,40 @@ void Server::Stop()
 Server::~Server()
 {
     Stop();
+}
+
+PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
+{
+    PacketPtr response(new Packet());
+    if (response.Get() == nullptr)
+    {
+        err = Core::Error::NoMemory;
+        return response;
+    }
+
+    err = Core::Error::Success;
+    switch (request->GetType())
+    {
+    default:
+        break;
+    }
+
+    return response;
+}
+
+void Server::RemoveConnection(Server::Connection *conn)
+{
+    trace(1, "Server 0x%p remove connection 0x%p", this, conn);
+
+    Core::AutoLock lock(ConnListLock);
+    auto it = ConnList.GetIterator();
+    for (;it.IsValid(); it.Next())
+    {
+        if (it.Get().Get() == conn)
+        {
+            it.Erase();
+        }
+    }
 }
 
 }

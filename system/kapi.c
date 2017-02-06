@@ -36,6 +36,8 @@ _Static_assert(sizeof(struct kapi_completion) >= sizeof(struct completion),
 _Static_assert(sizeof(struct kapi_rwsem) >= sizeof(struct rw_semaphore),
               "Bad size");
 
+_Static_assert(sizeof(unsigned int) == 4, "Bad size");
+
 static gfp_t kapi_get_gfp_flags(unsigned long pool_type)
 {
     gfp_t flags;
@@ -1064,6 +1066,16 @@ static void kapi_sock_abort_accept(void *sockp)
     return ksock_abort_accept((struct socket *)sockp);
 }
 
+static unsigned int kapi_le32_to_cpu(unsigned int value)
+{
+    return le32_to_cpu(value);
+}
+
+static unsigned int kapi_cpu_to_le32(unsigned int value)
+{
+    return cpu_to_le32(value);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1178,6 +1190,9 @@ static struct kernel_api g_kapi =
     .sock_recv = kapi_sock_recv,
     .sock_accept = kapi_sock_accept,
     .sock_abort_accept = kapi_sock_abort_accept,
+
+    .le32_to_cpu = kapi_le32_to_cpu,
+    .cpu_to_le32 = kapi_cpu_to_le32,
 
 };
 

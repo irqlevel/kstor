@@ -147,6 +147,11 @@ public:
         }
     }
 
+    void Reset()
+    {
+        Reset(nullptr);
+    }
+
 private:
     ObjectReference* ObjectRef;
 };
