@@ -418,6 +418,19 @@ Server::~Server()
     Stop();
 }
 
+Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
+{
+    Core::Error err;
+
+    trace(1, "Server 0x%p handle ping", this);
+
+    err = response->Reset(request->GetType(), 0, request->GetDataSize());
+    if (!err.Ok())
+        return err;
+
+    return err;
+}
+
 PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
 {
     PacketPtr response(new Packet());
@@ -430,7 +443,11 @@ PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
     err = Core::Error::Success;
     switch (request->GetType())
     {
+    case Api::PacketTypePing:
+        err = HandlePing(request, response);
+        break;
     default:
+        err = response->Reset(request->GetType(), Core::Error::UnknownCode, 0);
         break;
     }
 

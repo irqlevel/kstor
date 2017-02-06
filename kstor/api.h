@@ -20,6 +20,9 @@ struct PacketHeader
 };
 
 #pragma pack(pop)
+
+const unsigned int PacketTypePing = 1;
+
 }
 
 }

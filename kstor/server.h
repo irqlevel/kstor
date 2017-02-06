@@ -34,6 +34,9 @@ public:
     size_t GetSize() const;
     void* GetBody();
     void* GetData();
+
+    void SetResult(unsigned int result);
+
 private:
     Api::PacketHeader *GetHeader();
     unsigned int Type;
@@ -80,6 +83,8 @@ private:
     Core::UniquePtr<Core::Socket> ListenSocket;
     Core::UniquePtr<Core::Thread> AcceptThread;
     Core::LinkedList<ConnectionPtr, Core::Memory::PoolType::Kernel> ConnList;
+
+    Core::Error HandlePing(PacketPtr& request, PacketPtr& response);
 
     PacketPtr HandleRequest(PacketPtr& request, Core::Error& err);
 
