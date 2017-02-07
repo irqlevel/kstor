@@ -9,39 +9,44 @@
 namespace Core
 {
 
+template<typename T>
+class ObjectReference
+{
+public:
+    Atomic Counter;
+    T* Object;
+
+    ObjectReference(T* object)
+        : Object(nullptr)
+    {
+        Counter.Set(1);
+        Object = object;
+    }
+
+    virtual ~ObjectReference()
+    {
+    }
+
+private:
+    ObjectReference() = delete;
+    ObjectReference(const ObjectReference& other) = delete;
+    ObjectReference(ObjectReference&& other) = delete;
+    ObjectReference& operator=(const ObjectReference& other) = delete;
+    ObjectReference& operator=(ObjectReference&& other) = delete;
+};
+
 template<typename T, Memory::PoolType PoolType>
 class SharedPtr
 {
 public:
-
-    class ObjectReference
-    {
-    public:
-        Atomic Counter;
-        T* Object;
-
-        ObjectReference(T* object)
-            : Object(nullptr)
-        {
-            Counter.Set(1);
-            Object = object;
-        }
-
-        virtual ~ObjectReference()
-        {
-        }
-
-    private:
-        ObjectReference() = delete;
-        ObjectReference(const ObjectReference& other) = delete;
-        ObjectReference(ObjectReference&& other) = delete;
-        ObjectReference& operator=(const ObjectReference& other) = delete;
-        ObjectReference& operator=(ObjectReference&& other) = delete;
-    };
-
     SharedPtr()
     {
         ObjectRef = nullptr;
+    }
+
+    SharedPtr(ObjectReference<T> *objectRef)
+    {
+        ObjectRef = objectRef;
     }
 
     SharedPtr(T *object)
@@ -135,7 +140,7 @@ public:
 
         if (object != nullptr)
         {
-            ObjectRef = new (PoolType) ObjectReference(object);
+            ObjectRef = new (PoolType) ObjectReference<T>(object);
             if (ObjectRef == nullptr)
             {
                 trace(0, "SharedPtr 0x%p can't allocate object reference", this);
@@ -153,7 +158,25 @@ public:
     }
 
 private:
-    ObjectReference* ObjectRef;
+    ObjectReference<T>* ObjectRef;
 };
+
+template<typename T, Memory::PoolType PoolType, class... Args>
+SharedPtr<T, PoolType> MakeShared(Args&&... args)
+{
+    ObjectReference<T>* objRef = new (PoolType) ObjectReference<T>(nullptr);
+    if (objRef == nullptr)
+        return SharedPtr<T, PoolType>();
+
+    T* object = new (PoolType) T(Memory::Forward<Args>(args)...);
+    if (object == nullptr)
+    {
+        delete objRef;
+        return SharedPtr<T, PoolType>();
+    }
+
+    objRef->Object = object;
+    return SharedPtr<T, PoolType>(objRef);
+}
 
 }

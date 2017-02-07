@@ -18,8 +18,8 @@ public:
     Worker();
     Worker(Error& err);
     virtual ~Worker();
-    bool Execute(RunnableRef task);
-    bool ExecuteAndWait(RunnableRef task, Error& err);
+    bool Execute(RunnablePtr task);
+    bool ExecuteAndWait(RunnablePtr task, Error& err);
     Error Run(const Threadable& thread);
 private:
     Worker(const Worker& other) = delete;
@@ -31,11 +31,11 @@ private:
     bool Running;
 
     SpinLock Lock;
-    LinkedList<RunnableRef, Memory::PoolType::Kernel> TaskList;
+    LinkedList<RunnablePtr, Memory::PoolType::Kernel> TaskList;
     Event TaskEvent;
     Thread WorkerThread;
 };
 
-typedef SharedPtr<Worker, Memory::PoolType::Kernel> WorkerRef;
+typedef SharedPtr<Worker, Memory::PoolType::Kernel> WorkerPtr;
 
 }

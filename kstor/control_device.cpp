@@ -24,7 +24,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, u
 {
     Core::Error err;
 
-    SuperBlockRef super(new (Core::Memory::PoolType::Kernel) SuperBlock(deviceName, format, err));
+    SuperBlockPtr super = Core::MakeShared<SuperBlock, Core::Memory::PoolType::Kernel>(deviceName, format, err);
     if (super.Get() == nullptr)
     {
         trace(1, "CtrlDev 0x%p can't allocate device", this);
@@ -50,7 +50,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, u
     return Core::Error::Success;
 }
 
-SuperBlockRef ControlDevice::LookupMount(unsigned long deviceId)
+SuperBlockPtr ControlDevice::LookupMount(unsigned long deviceId)
 {
     Core::SharedAutoLock lock(SuperBlockListLock);
 
@@ -65,10 +65,10 @@ SuperBlockRef ControlDevice::LookupMount(unsigned long deviceId)
         it.Next();
     }
 
-    return SuperBlockRef();
+    return SuperBlockPtr();
 }
 
-SuperBlockRef ControlDevice::LookupMount(const Core::AString& deviceName)
+SuperBlockPtr ControlDevice::LookupMount(const Core::AString& deviceName)
 {
     Core::SharedAutoLock lock(SuperBlockListLock);
 
@@ -83,12 +83,12 @@ SuperBlockRef ControlDevice::LookupMount(const Core::AString& deviceName)
         it.Next();
     }
 
-    return SuperBlockRef();
+    return SuperBlockPtr();
 }
 
 Core::Error ControlDevice::Unmount(unsigned long deviceId)
 {
-    SuperBlockRef super = LookupMount(deviceId);
+    SuperBlockPtr super = LookupMount(deviceId);
     if (super.Get() == nullptr)
     {
         return Core::Error::NotFound;
@@ -113,7 +113,7 @@ Core::Error ControlDevice::Unmount(unsigned long deviceId)
 
 Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
 {
-    SuperBlockRef super = LookupMount(deviceName);
+    SuperBlockPtr super = LookupMount(deviceName);
     if (super.Get() == nullptr)
     {
         return Core::Error::NotFound;

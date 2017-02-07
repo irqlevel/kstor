@@ -14,13 +14,24 @@ namespace Memory
     template< class T > struct RemoveReference<T&&> {typedef T type;};
 
     template <typename T>
-    static inline typename RemoveReference<T>::type&& Move(T&& arg)
+    typename RemoveReference<T>::type&& Move(T&& arg)
     {
         return static_cast<typename RemoveReference<T>::type&&>(arg);
     }
 
     template <class T>
-    static inline void Swap(T& a, T& b)
+    T&& Forward(typename RemoveReference<T>::type& arg)
+    {
+        return static_cast<T&&>(arg);
+    }
+
+    template <class T>
+    T&& Forward(typename RemoveReference<T>::type&& arg)
+    {
+        return static_cast<T&&>(arg);
+    }
+
+    template <class T> void Swap(T& a, T& b)
     {
         T c(Move(a)); a=Move(b); b=Move(c);
     }
@@ -55,8 +66,7 @@ namespace Memory
         return i;
     }
 
-    template <typename T,unsigned S>
-    static inline unsigned ArraySize(const T (&v)[S])
+    template <typename T,unsigned S> unsigned ArraySize(const T (&v)[S])
     {
         return S;
     }

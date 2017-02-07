@@ -20,8 +20,8 @@ public:
 
     Core::Error Mount(const Core::AString& deviceName, bool format, unsigned long& deviceId);
 
-    SuperBlockRef LookupMount(unsigned long deviceId);
-    SuperBlockRef LookupMount(const Core::AString& deviceName);
+    SuperBlockPtr LookupMount(unsigned long deviceId);
+    SuperBlockPtr LookupMount(const Core::AString& deviceName);
 
     Core::Error Unmount(unsigned long deviceId);
     Core::Error Unmount(const Core::AString& deviceName);
@@ -35,7 +35,7 @@ private:
     Server Srv;
     Core::Random Rng;
     Core::RWSem SuperBlockListLock;
-    Core::LinkedList<SuperBlockRef, Core::Memory::PoolType::Kernel> SuperBlockList;
+    Core::LinkedList<SuperBlockPtr, Core::Memory::PoolType::Kernel> SuperBlockList;
 };
 
 }

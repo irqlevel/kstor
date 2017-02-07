@@ -61,6 +61,6 @@ private:
     Event CompleteEvent;
 };
 
-typedef SharedPtr<Runnable, Memory::PoolType::Kernel> RunnableRef;
+typedef SharedPtr<Runnable, Memory::PoolType::Kernel> RunnablePtr;
 
 }

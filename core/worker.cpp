@@ -10,7 +10,7 @@ Worker::Worker()
 {
 }
 
-bool Worker::Execute(RunnableRef task)
+bool Worker::Execute(RunnablePtr task)
 {
     if (Stopping || !Running)
         return false;
@@ -24,7 +24,7 @@ bool Worker::Execute(RunnableRef task)
     return result;
 }
 
-bool Worker::ExecuteAndWait(RunnableRef task, Error& err)
+bool Worker::ExecuteAndWait(RunnablePtr task, Error& err)
 {
     if (!Execute(task))
         return false;
@@ -40,7 +40,7 @@ Error Worker::Run(const Threadable& thread)
     {
         trace(255, "Run");
         TaskEvent.Wait();
-        RunnableRef task;
+        RunnablePtr task;
         {
             AutoLock lock(Lock);
             trace(255, "Locked");
@@ -85,7 +85,7 @@ Worker::~Worker()
 
     bool bHasTasks;
     do {
-        RunnableRef task;
+        RunnablePtr task;
         {
             AutoLock lock(Lock);
             bHasTasks = !TaskList.IsEmpty();

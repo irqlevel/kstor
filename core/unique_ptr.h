@@ -83,4 +83,10 @@ private:
     T* Object;
 };
 
+template<typename T, Memory::PoolType PoolType, class... Args>
+UniquePtr<T> MakeUnique(Args&&... args)
+{
+    return UniquePtr<T>(new (PoolType) T(Memory::Forward<Args>(args)...));
+}
+
 }

@@ -121,7 +121,7 @@ Core::Error Server::Connection::Start()
     }
 
     Core::Error err;
-    ConnThread.Reset(new Core::Thread(this, err));
+    ConnThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
     if (ConnThread.Get() == nullptr)
     {
         err.SetNoMemory();
@@ -174,7 +174,7 @@ PacketPtr Server::Connection::RecvPacket(Core::Error& err)
         return packet;
     }
 
-    packet.Reset(new Packet(header, err));
+    packet = Core::MakeShared<Packet, Core::Memory::PoolType::Kernel>(header, err);
     if (packet.Get() == nullptr)
     {
         err.SetNoMemory();
@@ -298,7 +298,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
             continue;
         }
 
-        ConnectionPtr conn(new (Core::Memory::PoolType::Kernel) Connection(*this, Core::Memory::Move(socket)));
+        ConnectionPtr conn = Core::MakeShared<Connection, Core::Memory::PoolType::Kernel>(*this, Core::Memory::Move(socket));
         if (conn.Get() == nullptr)
         {
             err.SetNoMemory();
@@ -345,7 +345,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
     if (ListenSocket.Get() != nullptr || AcceptThread.Get() != nullptr)
         return Core::Error::InvalidState;
 
-    ListenSocket.Reset(new (Core::Memory::PoolType::Kernel) Core::Socket());
+    ListenSocket = Core::MakeUnique<Core::Socket, Core::Memory::PoolType::Kernel>();
     if (ListenSocket.Get() == nullptr)
         return Core::Error::NoMemory;
 
@@ -355,7 +355,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
         return err;
     }
 
-    AcceptThread.Reset(new (Core::Memory::PoolType::Kernel) Core::Thread(this, err));
+    AcceptThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
     if (AcceptThread.Get() == nullptr) {
         ListenSocket.Reset();
         return Core::Error::NoMemory;

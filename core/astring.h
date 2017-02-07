@@ -161,6 +161,6 @@ private:
 };
 
 typedef AStringBase<Memory::PoolType::Kernel> AString;
-typedef SharedPtr<AString, Memory::PoolType::Kernel> AStringRef;
+typedef SharedPtr<AString, Memory::PoolType::Kernel> AStringPtr;
 
 }

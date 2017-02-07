@@ -30,6 +30,6 @@ private:
     Core::BlockDevice BDev;
 };
 
-typedef Core::SharedPtr<SuperBlock, Core::Memory::PoolType::Kernel> SuperBlockRef;
+typedef Core::SharedPtr<SuperBlock, Core::Memory::PoolType::Kernel> SuperBlockPtr;
 
 }
