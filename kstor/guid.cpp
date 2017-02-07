@@ -23,12 +23,8 @@ Guid::Guid(Core::Error& err)
 {
     if (!err.Ok())
         return;
-    
-    Core::Random rng(err, false);
-    if (!err.Ok())
-        return;
 
-    err = Generate(rng);
+    err = Generate();
 }
 
 Guid::Guid(const Api::Guid& content)
@@ -41,9 +37,25 @@ Core::Error Guid::Generate(Core::Random& rng)
     return rng.GetBytes(Content.Data, sizeof(Content.Data));
 }
 
+Core::Error Guid::Generate()
+{
+    Core::Error err;
+
+    Core::Random rng(err, false);
+    if (!err.Ok())
+        return err;
+
+    return rng.GetBytes(Content.Data, sizeof(Content.Data));
+}
+
 const Api::Guid& Guid::GetContent() const
 {
     return Content;
+}
+
+void Guid::SetContent(const Api::Guid& content)
+{
+    Content = content;
 }
 
 bool Guid::operator==(const Guid& other) const

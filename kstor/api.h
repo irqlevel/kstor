@@ -9,6 +9,7 @@ namespace Api
 const unsigned int PacketMagic = 0xCCBECCBE;
 const unsigned int PacketMaxDataSize = 65536;
 const unsigned int GuidSize = 16;
+const unsigned int VolumeMagic = 0xCBDACBDA;
 
 #pragma pack(push, 1)
 
@@ -23,6 +24,13 @@ struct PacketHeader
 struct Guid
 {
     unsigned char Data[GuidSize];
+};
+
+struct VolumeHeader
+{
+    unsigned int Magic;
+    unsigned char Padding[12];
+    Guid VolumeId;
 };
 
 #pragma pack(pop)

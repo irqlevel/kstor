@@ -44,6 +44,8 @@ public:
 
     static const int IO = -508;
 
+    static const int BadMagic = -509;
+
     bool operator!= (const Error& other) const;
 
     bool operator== (const Error& other) const;

@@ -21,6 +21,9 @@ public:
     const Api::Guid& GetContent() const;
 
     Core::Error Generate(Core::Random& rng);
+    Core::Error Generate();
+
+    void SetContent(const Api::Guid& content);
 
     virtual ~Guid();
 

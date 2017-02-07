@@ -2,6 +2,7 @@
 
 #include <core/trace.h>
 #include <core/bio.h>
+#include <core/bitops.h>
 
 namespace KStor
 {
@@ -16,7 +17,7 @@ Volume::Volume(const Core::AString& deviceName, bool format, Core::Error& err)
         goto out;
     }
 
-    trace(1, "Device 0x%p size 0x%llx", this, Device.GetSize());
+    trace(1, "Volume 0x%p size 0x%llx", this, Device.GetSize());
 
     HeaderPage.Zero();
 
@@ -33,29 +34,34 @@ Volume::Volume(const Core::AString& deviceName, bool format, Core::Error& err)
     err = Load();
 
 out:
-    trace(1, "Device 0x%p name %s ctor err %d", this, deviceName.GetBuf(), err.GetCode());
+    trace(1, "Volume 0x%p name %s ctor err %d", this, deviceName.GetBuf(), err.GetCode());
 }
 
 Volume::~Volume()
 {
-    trace(1, "Device 0x%p dtor", this);
+    trace(1, "Volume 0x%p dtor", this);
 }
 
 Core::Error Volume::Format()
 {
-    Core::Error err;
+    VolumeId.Generate();
 
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(HeaderPage.Map());
+    header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
+    header->VolumeId = VolumeId.GetContent();
+
+    Core::Error err;
     Core::Bio bio(Device, HeaderPage, 0, err, true);
     if (!err.Ok())
     {
-        trace(0, "Can't init bio, err %d", err.GetCode());
+        trace(0, "Volume 0x%p can't init bio, err %d", this, err.GetCode());
         return err;
     }
     bio.Submit();
     bio.Wait();
     err = bio.GetError();
 
-    trace(1, "Device 0x%p format err %d", this, err.GetCode());
+    trace(1, "Volume 0x%p format err %d", this, err.GetCode());
 
     return err;
 }
@@ -63,18 +69,26 @@ Core::Error Volume::Format()
 Core::Error Volume::Load()
 {
     Core::Error err;
-
     Core::Bio bio(Device, HeaderPage, 0, err, false);
     if (!err.Ok())
     {
-        trace(0, "Can't init bio, err %d", err.GetCode());
+        trace(0, "Volume 0x%p can't init bio, err %d", this, err.GetCode());
         return err;
     }
     bio.Submit();
     bio.Wait();
     err = bio.GetError();
 
-    trace(1, "Device 0x%p load err %d", this, err.GetCode());
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(HeaderPage.Map());
+    if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
+    {
+        trace(0, "Volume 0x%p bad header magic", this);
+        return Core::Error::BadMagic;
+    }
+
+    VolumeId.SetContent(header->VolumeId);
+
+    trace(1, "Volume 0x%p load err %d", this, err.GetCode());
 
     return err;
 }
