@@ -716,12 +716,12 @@ static int kapi_vfs_file_open(const char *path, int flags, void** file)
     }
 }
 
-static int kapi_vfs_file_write(void* file, void* buf, int len, unsigned long long offset)
+static int kapi_vfs_file_write(void* file, void* buf, unsigned long len, unsigned long long offset)
 {
     struct file* file_ = (struct file*)file;
     int ret;
     mm_segment_t old_fs;
-    u32 pos = 0;
+    unsigned long pos = 0;
     loff_t off = offset;
 
     old_fs = get_fs();
@@ -742,12 +742,12 @@ out:
     return ret;
 }
 
-static int kapi_vfs_file_read(void* file, void* buf, int len, unsigned long long offset)
+static int kapi_vfs_file_read(void* file, void* buf, unsigned long len, unsigned long long offset)
 {
     struct file* file_ = (struct file*)file;
     int ret;
     mm_segment_t old_fs;
-    u32 pos = 0;
+    unsigned long pos = 0;
     loff_t off = offset;
 
     old_fs = get_fs();

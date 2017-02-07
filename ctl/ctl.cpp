@@ -68,7 +68,7 @@ int Ctl::GetRandomUlong(unsigned long& value)
     return err;
 }
 
-int Ctl::Mount(const char* deviceName, bool format, unsigned long& deviceId)
+int Ctl::Mount(const char* deviceName, bool format, KStor::Api::Guid& volumeId)
 {
     Cmd cmd;
 
@@ -81,19 +81,19 @@ int Ctl::Mount(const char* deviceName, bool format, unsigned long& deviceId)
     int err = ioctl(DevFd, IOCTL_KSTOR_MOUNT, &cmd);
     if (!err)
     {
-        deviceId = cmd.Union.Mount.DeviceId;
+        volumeId = cmd.Union.Mount.VolumeId;
     }
 
     return err;
 }
 
-int Ctl::Unmount(unsigned long& deviceId)
+int Ctl::Unmount(const KStor::Api::Guid& volumeId)
 {
     Cmd cmd;
 
     memset(&cmd, 0, sizeof(cmd));
     auto& params = cmd.Union.Unmount;
-    params.DeviceId = deviceId;
+    params.VolumeId = volumeId;
 
     return ioctl(DevFd, IOCTL_KSTOR_UNMOUNT, &cmd);
 }

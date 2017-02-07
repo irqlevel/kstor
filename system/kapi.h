@@ -108,8 +108,8 @@ struct kernel_api
     void (*submit_bio)(void* bio);
 
     int (*vfs_file_open)(const char *path, int flags, void** file);
-    int (*vfs_file_write)(void* file, void* buf, int len, unsigned long long offset);
-    int (*vfs_file_read)(void* file, void* buf, int len, unsigned long long offset);
+    int (*vfs_file_write)(void* file, void* buf, unsigned long len, unsigned long long offset);
+    int (*vfs_file_read)(void* file, void* buf, unsigned long len, unsigned long long offset);
     int (*vfs_file_sync)(void* file);
     void (*vfs_file_close)(void* file);
 

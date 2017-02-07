@@ -30,7 +30,7 @@ Random::Random(Error& err, bool pseudoRandom)
     trace(1, "Random 0x%p dev %s ctor", this, devName.GetBuf());
 }
 
-Error Random::GetBytes(void* buf, int len)
+Error Random::GetBytes(void* buf, unsigned long len)
 {
     Error err = DevRandomFile.Read(0, buf, len);
     if (!err.Ok())

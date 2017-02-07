@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
         }
 
         std::string deviceName(argv[2]);
-        unsigned long deviceId;
-        err = ctl.Mount(deviceName.c_str(), true, deviceId);
+        KStor::Api::Guid volumeId;
+        err = ctl.Mount(deviceName.c_str(), true, volumeId);
         if (err)
         {
             printf("Ctl mount err %d\n", err);

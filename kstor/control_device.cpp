@@ -1,5 +1,5 @@
 #include "control_device.h"
-#include "super_block.h"
+#include "volume.h"
 
 #include <core/trace.h>
 #include <core/copy_user.h>
@@ -20,12 +20,12 @@ ControlDevice::ControlDevice(Core::Error& err)
 {
 }
 
-Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, unsigned long& deviceId)
+Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, Guid& volumeId)
 {
     Core::Error err;
 
-    SuperBlockPtr super = Core::MakeShared<SuperBlock, Core::Memory::PoolType::Kernel>(deviceName, format, err);
-    if (super.Get() == nullptr)
+    VolumePtr volume = Core::MakeShared<Volume, Core::Memory::PoolType::Kernel>(deviceName, format, err);
+    if (volume.Get() == nullptr)
     {
         trace(1, "CtrlDev 0x%p can't allocate device", this);
         err.SetNoMemory();
@@ -38,68 +38,68 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, u
         return err;
     }
 
-    Core::AutoLock lock(SuperBlockListLock);
-    if (!SuperBlockList.AddHead(super))
+    Core::AutoLock lock(VolumeListLock);
+    if (!VolumeList.AddHead(volume))
     {
         trace(1, "CtrlDev 0x%p can't add device into list");
         err.SetNoMemory();
         return err;
     }
 
-    deviceId = super->GetId();
+    volumeId = volume->GetVolumeId();
     return Core::Error::Success;
 }
 
-SuperBlockPtr ControlDevice::LookupMount(unsigned long deviceId)
+VolumePtr ControlDevice::LookupMount(const Guid& volumeId)
 {
-    Core::SharedAutoLock lock(SuperBlockListLock);
+    Core::SharedAutoLock lock(VolumeListLock);
 
-    auto it = SuperBlockList.GetIterator();
+    auto it = VolumeList.GetIterator();
     while (it.IsValid())
     {
-        auto super = it.Get();
-        if (super->GetId() == deviceId)
+        auto volume = it.Get();
+        if (volume->GetVolumeId() == volumeId)
         {
-            return super;
+            return volume;
         }
         it.Next();
     }
 
-    return SuperBlockPtr();
+    return VolumePtr();
 }
 
-SuperBlockPtr ControlDevice::LookupMount(const Core::AString& deviceName)
+VolumePtr ControlDevice::LookupMount(const Core::AString& deviceName)
 {
-    Core::SharedAutoLock lock(SuperBlockListLock);
+    Core::SharedAutoLock lock(VolumeListLock);
 
-    auto it = SuperBlockList.GetIterator();
+    auto it = VolumeList.GetIterator();
     while (it.IsValid())
     {
-        auto super = it.Get();
-        if (super->GetName().Compare(deviceName) == 0)
+        auto volume = it.Get();
+        if (volume->GetDeviceName().Compare(deviceName) == 0)
         {
-            return super;
+            return volume;
         }
         it.Next();
     }
 
-    return SuperBlockPtr();
+    return VolumePtr();
 }
 
-Core::Error ControlDevice::Unmount(unsigned long deviceId)
+Core::Error ControlDevice::Unmount(const Guid& volumeId)
 {
-    SuperBlockPtr super = LookupMount(deviceId);
-    if (super.Get() == nullptr)
+    VolumePtr volume = LookupMount(volumeId);
+    if (volume.Get() == nullptr)
     {
         return Core::Error::NotFound;
     }
 
-    Core::AutoLock lock(SuperBlockListLock);
-    auto it = SuperBlockList.GetIterator();
+    Core::AutoLock lock(VolumeListLock);
+    auto it = VolumeList.GetIterator();
     while (it.IsValid())
     {
-        auto super = it.Get();
-        if (super->GetId() == deviceId)
+        auto volume = it.Get();
+        if (volume->GetVolumeId() == volumeId)
         {
             it.Erase();
         } else
@@ -113,18 +113,18 @@ Core::Error ControlDevice::Unmount(unsigned long deviceId)
 
 Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
 {
-    SuperBlockPtr super = LookupMount(deviceName);
-    if (super.Get() == nullptr)
+    VolumePtr volume = LookupMount(deviceName);
+    if (volume.Get() == nullptr)
     {
         return Core::Error::NotFound;
     }
 
-    Core::AutoLock lock(SuperBlockListLock);
-    auto it = SuperBlockList.GetIterator();
+    Core::AutoLock lock(VolumeListLock);
+    auto it = VolumeList.GetIterator();
     while (it.IsValid())
     {
-        auto super = it.Get();
-        if (super->GetName().Compare(deviceName) == 0)
+        auto volume = it.Get();
+        if (volume->GetDeviceName().Compare(deviceName) == 0)
         {
             it.Erase();
         } else
@@ -189,11 +189,15 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
             break;
         }
 
-        err = Mount(deviceName, params.Format, params.DeviceId);
+        Guid volumeId;
+        err = Mount(deviceName, params.Format, volumeId);
+        if (err.Ok()) {
+            params.VolumeId = volumeId.GetContent();
+        }
         break;
     }
     case IOCTL_KSTOR_UNMOUNT:
-        err = Unmount(cmd->Union.Unmount.DeviceId);
+        err = Unmount(cmd->Union.Unmount.VolumeId);
         break;
     case IOCTL_KSTOR_UNMOUNT_BY_NAME:
     {
@@ -257,7 +261,6 @@ cleanup:
     trace(1, "Ioctl 0x%x arg 0x%lx result %d", code, arg, err.GetCode());
     return err;
 }
-
 
 ControlDevice::~ControlDevice()
 {

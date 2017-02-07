@@ -10,7 +10,7 @@ class Random
 {
 public:
     Random(Error& err, bool pseudoRandom = false);
-    Error GetBytes(void* buf, int len);
+    Error GetBytes(void* buf, unsigned long len);
     unsigned long GetUlong();
     virtual ~Random();
 

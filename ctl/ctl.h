@@ -1,5 +1,7 @@
 #pragma once
 
+#include <kstor/api.h>
+
 namespace KStor
 {
 
@@ -14,8 +16,8 @@ public:
     int GetTime(unsigned long long& time);
     int GetRandomUlong(unsigned long& value);
 
-    int Mount(const char* deviceName, bool format, unsigned long& deviceId);
-    int Unmount(unsigned long& deviceId);
+    int Mount(const char* deviceName, bool format, KStor::Api::Guid& volumeId);
+    int Unmount(const KStor::Api::Guid& volumeId);
     int Unmount(const char* deviceName);
 
     int StartServer(const char *host, unsigned short port);

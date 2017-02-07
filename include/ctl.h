@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ioctl.h"
+#include <kstor/api.h>
 
 namespace KStor
 {
@@ -34,13 +35,13 @@ struct Cmd
         struct
         {
             char DeviceName[DeviceNameMaxChars];
-            unsigned long DeviceId;
+            Api::Guid VolumeId;
             bool Format;
         } Mount;
 
         struct 
         {
-            unsigned long DeviceId;
+            Api::Guid VolumeId;
         } Unmount;
 
         struct

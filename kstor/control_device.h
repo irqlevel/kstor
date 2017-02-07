@@ -5,8 +5,9 @@
 #include <core/rwsem.h>
 #include <core/list.h>
 
-#include "super_block.h"
+#include "volume.h"
 #include "server.h"
+#include "guid.h"
 
 namespace KStor 
 {
@@ -18,12 +19,12 @@ public:
 
     Core::Error Ioctl(unsigned int code, unsigned long arg) override;
 
-    Core::Error Mount(const Core::AString& deviceName, bool format, unsigned long& deviceId);
+    Core::Error Mount(const Core::AString& deviceName, bool format, Guid& volumeId);
 
-    SuperBlockPtr LookupMount(unsigned long deviceId);
-    SuperBlockPtr LookupMount(const Core::AString& deviceName);
+    VolumePtr LookupMount(const Guid& volumeId);
+    VolumePtr LookupMount(const Core::AString& deviceName);
 
-    Core::Error Unmount(unsigned long deviceId);
+    Core::Error Unmount(const Guid& volumeId);
     Core::Error Unmount(const Core::AString& deviceName);
 
     virtual ~ControlDevice();
@@ -34,8 +35,8 @@ public:
 private:
     Server Srv;
     Core::Random Rng;
-    Core::RWSem SuperBlockListLock;
-    Core::LinkedList<SuperBlockPtr, Core::Memory::PoolType::Kernel> SuperBlockList;
+    Core::RWSem VolumeListLock;
+    Core::LinkedList<VolumePtr, Core::Memory::PoolType::Kernel> VolumeList;
 };
 
 }
