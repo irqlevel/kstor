@@ -26,9 +26,9 @@ Api::PacketHeader *Packet::GetHeader()
 Core::Error Packet::Parse(const Api::PacketHeader &header)
 {
     unsigned int magic = Core::BitOps::Le32ToCpu(header.Magic);
-    unsigned int dataSize = Core::BitOps::Le32ToCpu(header.DataSize);
     unsigned int type = Core::BitOps::Le32ToCpu(header.Type);
     unsigned int result = Core::BitOps::Le32ToCpu(header.Result);
+    unsigned int dataSize = Core::BitOps::Le32ToCpu(header.DataSize);
 
     if (magic != Api::PacketMagic)
         return Core::Error::InvalidValue;
@@ -39,9 +39,9 @@ Core::Error Packet::Parse(const Api::PacketHeader &header)
     if (!Body.ReserveAndUse(dataSize + sizeof(Api::PacketHeader)))
         return Core::Error::NoMemory;
 
-    DataSize = dataSize;
     Type = type;
     Result = result;
+    DataSize = dataSize;
 
     return Core::Error::Success;
 }
@@ -85,9 +85,13 @@ Core::Error Packet::Prepare(unsigned int type, unsigned int result, unsigned int
     if (!Body.ReserveAndUse(dataSize + sizeof(Api::PacketHeader)))
         return Core::Error::NoMemory;
 
-    GetHeader()->Type = Core::BitOps::CpuToLe32(type);
-    GetHeader()->Result = Core::BitOps::CpuToLe32(result);
-    GetHeader()->DataSize = Core::BitOps::CpuToLe32(dataSize);
+    Type = type;
+    Result = result;
+    DataSize = dataSize;
+
+    GetHeader()->Type = Core::BitOps::CpuToLe32(Type);
+    GetHeader()->Result = Core::BitOps::CpuToLe32(Result);
+    GetHeader()->DataSize = Core::BitOps::CpuToLe32(DataSize);
     GetHeader()->Magic = Core::BitOps::CpuToLe32(Api::PacketMagic);
     return Core::Error::Success;
 }
@@ -425,7 +429,8 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
 {
     Core::Error err;
 
-    trace(1, "Server 0x%p handle ping, data size %lu", this, request->GetDataSize());
+    trace(1, "Server 0x%p handle ping, data size %lu",
+        this, request->GetDataSize());
 
     err = response->Prepare(request->GetType(), 0, request->GetDataSize());
     if (!err.Ok())
