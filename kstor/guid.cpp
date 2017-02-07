@@ -1,5 +1,5 @@
 #include "guid.h"
-
+#include <core/hex.h>
 
 namespace KStor
 {
@@ -66,6 +66,46 @@ bool Guid::operator==(const Guid& other) const
 
 Guid::~Guid()
 {
+}
+
+Core::AString Guid::ToString() const
+{
+    return Core::Hex::Encode(Content.Data, sizeof(Content.Data));
+}
+
+Guid::Guid(const Guid& other)
+{
+    Content = other.GetContent();
+}
+
+Guid::Guid(Guid&& other)
+{
+    Content = other.GetContent();
+    other.Clear();
+}
+
+Guid& Guid::operator=(const Guid& other)
+{
+    if (this != &other)
+    {
+        Content = other.GetContent();
+    }
+    return *this;
+}
+
+Guid& Guid::operator=(Guid&& other)
+{
+    if (this != &other)
+    {
+        Content = other.GetContent();
+        other.Clear();
+    }
+    return *this;
+}
+
+void Guid::Clear()
+{
+    Core::Memory::MemSet(Content.Data, 0, sizeof(Content.Data));
 }
 
 }

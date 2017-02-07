@@ -46,7 +46,8 @@ Core::Error Volume::Format()
 {
     VolumeId.Generate();
 
-    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(HeaderPage.Map());
+    Core::PageMap headerMap(HeaderPage);
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(headerMap.GetAddress());
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
 
@@ -78,8 +79,14 @@ Core::Error Volume::Load()
     bio.Submit();
     bio.Wait();
     err = bio.GetError();
+    if (!err.Ok())
+    {
+        trace(0, "Volume 0x%p bio read header, err %d", this, err.GetCode());
+        return err;
+    }
 
-    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(HeaderPage.Map());
+    Core::PageMap headerMap(HeaderPage);
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(headerMap.GetAddress());
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
     {
         trace(0, "Volume 0x%p bad header magic", this);
@@ -88,7 +95,7 @@ Core::Error Volume::Load()
 
     VolumeId.SetContent(header->VolumeId);
 
-    trace(1, "Volume 0x%p load err %d", this, err.GetCode());
+    trace(1, "Volume 0x%p load volumeId %s", this, VolumeId.ToString().GetBuf());
 
     return err;
 }

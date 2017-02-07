@@ -72,6 +72,13 @@ public:
         return Buf.GetBuf();
     }
 
+    bool ReserveAndUse(size_t len)
+    {
+        if (!Buf.ReserveAndUse(len + 1))
+            return false;
+        return true;
+    }
+
     size_t GetLen() const
     {
         size_t size = Buf.GetSize();

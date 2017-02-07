@@ -35,4 +35,21 @@ private:
     void* PagePtr;
 };
 
+class PageMap
+{
+public:
+    PageMap(Page& page);
+    virtual ~PageMap();
+    void* GetAddress();
+    void Unmap();
+private:
+    PageMap(PageMap&& other) = delete;
+    PageMap(const PageMap& other) = delete;
+    PageMap& operator=(const PageMap& other) = delete;
+    PageMap& operator=(PageMap&& other) = delete;
+
+    Page& PageRef;
+    void* Address;
+};
+
 }
