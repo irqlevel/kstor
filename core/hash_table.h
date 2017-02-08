@@ -4,48 +4,30 @@
 #include "vector.h"
 #include "error.h"
 #include "bug.h"
+#include "auto_lock.h"
+#include "shared_auto_lock.h"
 
 namespace Core
 {
 
-template <class K, class V, Memory::PoolType PoolType>
+template <class K, class V, class Lock, Memory::PoolType PoolType, size_t BucketCount>
 class HashTable
 {
 public:
-    HashTable(size_t nrBuckets, Error& err,
-              int (*keyCmp)(const K& key1, const K& key2),
-              size_t (*keyHash)(const K& key))
-        : Buckets(), KeyCmp(keyCmp), KeyHash(keyHash)
+    HashTable()
     {
-        if (!err.Ok())
-            return;
-
-        if (!Buckets.Reserve(nrBuckets))
-        {
-            err.SetNoMemory();
-            return;
-        }
-
-        for (size_t i = 0; i < nrBuckets; i++)
-        {
-            LinkedList<HashEntry, PoolType> list;
-            if (!Buckets.PushBack(Memory::Move(list)))
-            {
-                err.SetNoMemory();
-                return;
-            }
-        }
     }
 
     bool Insert(const K& key, const V& value)
     {
-        size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        size_t bucket = key.Hash() % BucketCount;
+        AutoLock lock(BucketLock[bucket]);
+        LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
         auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
-            if (KeyCmp(entry.GetKey(), key) == 0)
+            if (entry.GetKey() == key)
             {
                 return false;
             }
@@ -61,13 +43,14 @@ public:
         if (!err.Ok())
             return false;
 
-        size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        size_t bucket = key.Hash() % BucketCount;
+        AutoLock lock(BucketLock[bucket]);
+        LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
         auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
-            if (KeyCmp(entry.GetKey(), key) == 0)
+            if (entry.GetKey() == key)
             {
                 return false;
             }
@@ -76,39 +59,38 @@ public:
         if (!err.Ok())
             return false;
 
-        list.AddTail(Memory::Move(entry));
-        return true;
+        return list.AddTail(Memory::Move(entry));
     }
 
     bool Insert(K&& key, V&&value)
     {
-        size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        size_t bucket = key.Hash() % BucketCount;
+        AutoLock lock(BucketLock[bucket]);
+        LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
         auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
-            if (KeyCmp(entry.GetKey(), key) == 0)
+            if (entry.GetKey() == key)
             {
                 return false;
             }
         }
         HashEntry entry(Memory::Move(key), Memory::Move(value));
-        list.AddTail(Memory::Move(entry));
-
-        return true;
+        return list.AddTail(Memory::Move(entry));
     }
 
 
     bool Remove(const K& key)
     {
-        size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        size_t bucket = key.Hash() % BucketCount;
+        AutoLock lock(BucketLock[bucket]);
+        LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
         auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
-            if (KeyCmp(entry.GetKey(), key) == 0)
+            if (entry.GetKey() == key)
             {
                 it.Erase();
                 return true;
@@ -119,15 +101,14 @@ public:
 
     V& Get(const K& key)
     {
-        BugOn(!Exists(key));
-
-        size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        size_t bucket = key.Hash() % BucketCount;
+        SharedAutoLock lock(BucketLock[bucket]);
+        LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
         auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
-            if (KeyCmp(entry.GetKey(), key) == 0)
+            if (entry.GetKey() == key)
             {
                 return entry.GetValue();
             }
@@ -135,15 +116,16 @@ public:
         return EmptyValue;
     }
 
-    bool Exists(const K& key)
+    bool CheckExist(const K& key)
     {
-        size_t bucket = KeyHash(key) % Buckets.GetSize();
-        LinkedList<HashEntry, PoolType>& list = Buckets[bucket];
+        size_t bucket = key.Hash() % BucketCount;
+        SharedAutoLock lock(BucketLock[bucket]);
+        LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
         auto it = list.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             HashEntry& entry = it.Get();
-            if (KeyCmp(entry.GetKey(), key) == 0)
+            if (entry.GetKey() == key)
             {
                 return true;
             }
@@ -196,9 +178,8 @@ private:
         HashEntry(const HashEntry& other) = delete;
         HashEntry& operator=(const HashEntry& other) = delete;
     };
-    Vector<LinkedList<HashEntry, PoolType>, PoolType> Buckets;
-    int (*KeyCmp)(const K& key1, const K& key2);
-    size_t (*KeyHash)(const K& key);
+    LinkedList<HashEntry, PoolType> Bucket[BucketCount];
+    Lock BucketLock[BucketCount];
     V EmptyValue;
 };
 

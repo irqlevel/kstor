@@ -1,4 +1,5 @@
 #include "server.h"
+#include "control_device.h"
 #include <core/bitops.h>
 
 namespace KStor 
@@ -64,6 +65,12 @@ unsigned int Packet::GetType() const
 unsigned int Packet::GetResult() const
 {
     return Result;
+}
+
+void Packet::SetResult(unsigned int result)
+{
+    Result = result;
+    GetHeader()->Result = Core::BitOps::CpuToLe32(Result);
 }
 
 void* Packet::GetData()
@@ -432,13 +439,85 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
     trace(1, "Server 0x%p handle ping, data size %lu",
         this, request->GetDataSize());
 
-    err = response->Prepare(request->GetType(), 0, request->GetDataSize());
+    err = response->Prepare(request->GetType(), Api::ResultSuccess, request->GetDataSize());
     if (!err.Ok())
         return err;
 
     Core::Memory::MemCpy(response->GetData(), request->GetData(), response->GetDataSize());
 
     return err;
+}
+
+Core::Error Server::HandleChunkWrite(PacketPtr& request, PacketPtr& response)
+{
+    Core::Error err;
+
+    Api::ChunkWriteRequest* req = static_cast<Api::ChunkWriteRequest*>(request->GetData());
+    if (request->GetDataSize() != sizeof(*req))
+    {
+        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+    }
+
+    err = response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    if (!err.Ok())
+        return err;
+
+    err = ControlDevice::Get()->ChunkWrite(req->ChunkId, req->Data);
+    if (!err.Ok())
+    {
+        err.Clear();
+        response->SetResult(Api::ResultNotFound);
+    }
+
+    return err;
+}
+
+Core::Error Server::HandleChunkRead(PacketPtr& request, PacketPtr& response)
+{
+    Api::ChunkReadRequest* req = static_cast<Api::ChunkReadRequest*>(request->GetData());
+    if (request->GetDataSize() != sizeof(*req))
+    {
+        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+    }
+
+    Api::ChunkReadResponse* resp = nullptr;
+    Core::Error err = response->Prepare(request->GetType(), Api::ResultSuccess, sizeof(*resp));
+    if (!err.Ok())
+        return err;
+
+    resp = static_cast<Api::ChunkReadResponse*>(response->GetData());
+    err = ControlDevice::Get()->ChunkRead(req->ChunkId, resp->Data);
+    if (!err.Ok())
+    {
+        err.Clear();
+        response->SetResult(Api::ResultNotFound);
+    }
+
+    return err;
+}
+
+Core::Error Server::HandleChunkDelete(PacketPtr& request, PacketPtr& response)
+{
+    Core::Error err;
+
+    Api::ChunkDeleteRequest* req = static_cast<Api::ChunkDeleteRequest*>(request->GetData());
+    if (request->GetDataSize() != sizeof(*req))
+    {
+        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+    }
+
+    err =  response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    if (!err.Ok())
+        return err;
+
+    err = ControlDevice::Get()->ChunkDelete(req->ChunkId);
+    if (!err.Ok())
+    {
+        err.Clear();
+        response->SetResult(Api::ResultNotFound);
+    }
+
+    return response->Prepare(request->GetType(), Api::ResultSuccess, 0);
 }
 
 PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
@@ -455,6 +534,15 @@ PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
     {
     case Api::PacketTypePing:
         err = HandlePing(request, response);
+        break;
+    case Api::PacketTypeChunkWrite:
+        err = HandleChunkWrite(request, response);
+        break;
+    case Api::PacketTypeChunkRead:
+        err = HandleChunkRead(request, response);
+        break;
+    case Api::PacketTypeChunkDelete:
+        err = HandleChunkDelete(request, response);
         break;
     default:
         err = response->Prepare(request->GetType(), Core::Error::UnknownCode, 0);

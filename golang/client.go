@@ -1,32 +1,38 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
-	"errors"
-	"fmt"
-	"io"
-	"log"
-	"net"
-	"os"
+    "bytes"
+    "encoding/binary"
+    "errors"
+    "fmt"
+    "io"
+    "log"
+    "net"
+    "os"
+    "github.com/pborman/uuid"
 )
 
 const (
-	PacketMaxDataSize = 65536
-	PacketMagic       = 0xCCBECCBE
-	PacketTypePing    = 1
+    PacketMaxDataSize = 2 * 65536
+    PacketMagic       = 0xCCBECCBE
+    PacketTypePing    = 1
+    PacketTypeChunkWrite = 2
+    PacketTypeChunkRead = 3
+    PacketTypeChunkDelete = 4
+    ChunkSize = 65536
+    GuidSize = 16
 )
 
 type Client struct {
-	Host string
-	Con  net.Conn
+    Host string
+    Con  net.Conn
 }
 
 type PacketHeader struct {
-	Magic    uint32
-	Type     uint32
-	DataSize uint32
-	Result   uint32
+    Magic    uint32
+    Type     uint32
+    DataSize uint32
+    Result   uint32
 }
 
 type Packet struct {
@@ -50,6 +56,29 @@ type RespPing struct {
 	Value [PacketMaxDataSize]byte
 }
 
+type ReqChunkWrite struct {
+    ChunkId [GuidSize]byte
+    Data [ChunkSize]byte
+}
+
+type RespChunkWrite struct {
+}
+
+type ReqChunkRead struct {
+    ChunkId [GuidSize]byte
+}
+
+type RespChunkRead struct {
+    Data [ChunkSize]byte
+}
+
+type ReqChunkDelete struct {
+    ChunkId [GuidSize]byte
+}
+
+type RespChunkDelete struct {
+}
+
 func (req *ReqPing) ToBytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.LittleEndian, req)
@@ -61,6 +90,60 @@ func (req *ReqPing) ToBytes() ([]byte, error) {
 }
 
 func (resp *RespPing) ParseBytes(body []byte) error {
+	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (req *ReqChunkWrite) ToBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (resp *RespChunkWrite) ParseBytes(body []byte) error {
+	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (req *ReqChunkRead) ToBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (resp *RespChunkRead) ParseBytes(body []byte) error {
+	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (req *ReqChunkDelete) ToBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (resp *RespChunkDelete) ParseBytes(body []byte) error {
 	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
 	if err != nil {
 		return err
@@ -211,21 +294,71 @@ func getString(bytes []byte) string {
 
 func (client *Client) Ping(value string) (string, error) {
     req := new(ReqPing)
-    resp := new(RespPing)
-
     valueBytes := []byte(value)
     if len(valueBytes) > len(req.Value) {
         return "", errors.New("Key too big")
     }
-
     copy(req.Value[:len(req.Value)], valueBytes)
 
+    resp := new(RespPing)
     err := client.SendRecv(PacketTypePing, req, resp)
     if err != nil {
         return "", err
     }
 
     return getString(resp.Value[:len(resp.Value)]), nil
+}
+
+func (client *Client) ChunkWrite(chunkId []byte, data []byte) (error) {
+    req := new(ReqChunkWrite)
+    if len(chunkId) != len(req.ChunkId) {
+        return errors.New("Invalid chunk id size")
+    }
+    if len(data) != len(req.Data) {
+        return errors.New("Invalid data size")
+    }
+    copy(req.ChunkId[:len(req.ChunkId)], chunkId[:len(req.ChunkId)])
+    copy(req.Data[:len(req.Data)], data[:len(req.Data)])
+
+    resp := new(RespChunkWrite)
+    err := client.SendRecv(PacketTypeChunkWrite, req, resp)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+func (client *Client) ChunkRead(chunkId []byte) ([]byte, error) {
+    req := new(ReqChunkRead)
+    if len(chunkId) != len(req.ChunkId) {
+        return nil, errors.New("Invalid chunk id size")
+    }
+    copy(req.ChunkId[:len(req.ChunkId)], chunkId[:len(req.ChunkId)])
+
+    resp := new(RespChunkRead)
+    err := client.SendRecv(PacketTypeChunkRead, req, resp)
+    if err != nil {
+        return nil, err
+    }
+
+    return resp.Data[:len(resp.Data)], nil
+}
+
+func (client *Client) ChunkDelete(chunkId []byte) error {
+    req := new(ReqChunkDelete)
+    if len(chunkId) != len(req.ChunkId) {
+        return errors.New("Invalid chunk id size")
+    }
+    copy(req.ChunkId[:len(req.ChunkId)], chunkId[:len(req.ChunkId)])
+
+    resp := new(RespChunkDelete)
+    err := client.SendRecv(PacketTypeChunkDelete, req, resp)
+    if err != nil {
+        return err
+    }
+
+    return nil
 }
 
 func (client *Client) Close() {
@@ -254,4 +387,26 @@ func main() {
         return
     }
     log.Printf("Ping result %s\n", result)
+
+    chunkId := uuid.NewRandom()[:]
+    err = client.ChunkWrite(chunkId, make([]byte, ChunkSize, ChunkSize))
+    if err != nil {
+        log.Printf("Chunk write failed: %v\n", err)
+        os.Exit(1)
+        return
+    }
+
+    _, err = client.ChunkRead(chunkId)
+    if err != nil {
+        log.Printf("Chunk read failed: %v\n", err)
+        os.Exit(1)
+        return
+    }
+
+    err = client.ChunkDelete(chunkId)
+    if err != nil {
+        log.Printf("Chunk delete failed: %v\n", err)
+        os.Exit(1)
+        return
+    }
 }

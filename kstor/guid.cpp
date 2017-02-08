@@ -108,4 +108,18 @@ void Guid::Clear()
     Core::Memory::MemSet(Content.Data, 0, sizeof(Content.Data));
 }
 
+size_t Guid::Hash() const 
+{
+    size_t hash = 5381;
+    size_t c;
+
+    for (size_t i = 0; i < sizeof(Content.Data); i++)
+    {
+        c = Content.Data[i];
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+
+    return hash;
+}
+
 }

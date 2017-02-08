@@ -80,6 +80,11 @@ public:
         Code = NotImplemented;
     }
 
+    void Clear()
+    {
+        Code = Success;
+    }
+
 private:
     int Code;
 };

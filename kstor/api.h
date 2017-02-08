@@ -7,11 +7,21 @@ namespace Api
 {
 
 const unsigned int PacketMagic = 0xCCBECCBE;
-const unsigned int PacketMaxDataSize = 65536;
+const unsigned int PacketMaxDataSize = 2 * 65536;
+
 const unsigned int GuidSize = 16;
 const unsigned int VolumeMagic = 0xCBDACBDA;
 
 const unsigned int PacketTypePing = 1;
+const unsigned int PacketTypeChunkWrite = 2;
+const unsigned int PacketTypeChunkRead = 3;
+const unsigned int PacketTypeChunkDelete = 4;
+
+const unsigned int ChunkSize = 65536;
+
+const unsigned int ResultSuccess = 0;
+const unsigned int ResultUnexpectedDataSize = 1;
+const unsigned int ResultNotFound = 2;
 
 #pragma pack(push, 1)
 
@@ -33,6 +43,27 @@ struct VolumeHeader
     unsigned int Magic;
     unsigned char Padding[12];
     Guid VolumeId;
+};
+
+struct ChunkWriteRequest
+{
+    Guid ChunkId;
+    unsigned char Data[ChunkSize];
+};
+
+struct ChunkReadRequest
+{
+    Guid ChunkId;
+};
+
+struct ChunkDeleteRequest
+{
+    Guid ChunkId;
+};
+
+struct ChunkReadResponse
+{
+    unsigned char Data[ChunkSize];
 };
 
 #pragma pack(pop)

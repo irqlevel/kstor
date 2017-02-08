@@ -14,9 +14,12 @@
 namespace KStor 
 {
 
+ControlDevice* ControlDevice::Device = nullptr;
+
 ControlDevice::ControlDevice(Core::Error& err)
     : MiscDevice(KSTOR_CONTROL_DEVICE, err)
     , Rng(err)
+    , ChunkTable()
 {
 }
 
@@ -264,6 +267,89 @@ cleanup:
 
 ControlDevice::~ControlDevice()
 {
+}
+
+Core::Error ControlDevice::ChunkWrite(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+{
+    trace(1, "Chunk %s write", chunkId.ToString().GetBuf());
+
+    auto chunk = ChunkTable.Get(chunkId);
+    if (chunk.Get() == nullptr)
+    {
+        chunk = Core::MakeShared<Chunk, Core::Memory::PoolType::Kernel>(chunkId, data);
+        if (chunk.Get() == nullptr)
+            return Core::Error::NoMemory;
+
+        if (!ChunkTable.Insert(chunk->ChunkId, chunk))
+            return Core::Error::NoMemory;
+
+        return Core::Error::Success;
+    }
+
+    Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
+    return Core::Error::Success;
+}
+
+Core::Error ControlDevice::ChunkRead(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+{
+    trace(1, "Chunk %s read", chunkId.ToString().GetBuf());
+
+    auto chunk = ChunkTable.Get(chunkId);
+    if (chunk.Get() == nullptr)
+    {
+        return Core::Error::NotFound;
+    }
+
+    Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
+    return Core::Error::Success;
+}
+
+Core::Error ControlDevice::ChunkDelete(const Guid& chunkId)
+{
+    trace(1, "Chunk %s delete", chunkId.ToString().GetBuf());
+
+    if (ChunkTable.Remove(chunkId))
+        return Core::Error::Success;
+
+    return Core::Error::NotFound;
+}
+
+ControlDevice* ControlDevice::Get()
+{
+    return Device;
+}
+
+Core::Error ControlDevice::Create()
+{
+    Core::Error err;
+
+    if (Device != nullptr)
+        return Core::Error::InvalidState;
+
+    Device = new (Core::Memory::PoolType::Kernel) ControlDevice(err);
+    if (Device == nullptr)
+    {
+        err.SetNoMemory();
+        return err;
+    }
+
+    if (!err.Ok())
+    {
+        delete Device;
+        Device = nullptr;
+        return err;
+    }
+
+    return err;
+}
+
+void ControlDevice::Delete()
+{
+    if (Device != nullptr)
+    {
+        delete Device;
+        Device = nullptr;
+    }
 }
 
 }

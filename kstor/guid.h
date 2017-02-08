@@ -38,6 +38,8 @@ public:
 
     Core::AString ToString() const;
 
+    size_t Hash() const;
+
 private:
     Api::Guid Content;
 };
