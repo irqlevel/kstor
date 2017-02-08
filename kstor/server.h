@@ -84,6 +84,7 @@ private:
     Core::UniquePtr<Core::Thread> AcceptThread;
     Core::LinkedList<ConnectionPtr, Core::Memory::PoolType::Kernel> ConnList;
 
+    Core::Error HandleChunkCreate(PacketPtr& request, PacketPtr& response);
     Core::Error HandleChunkWrite(PacketPtr& request, PacketPtr& response);
     Core::Error HandleChunkRead(PacketPtr& request, PacketPtr& response);
     Core::Error HandleChunkDelete(PacketPtr& request, PacketPtr& response);

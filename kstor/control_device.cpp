@@ -19,16 +19,20 @@ ControlDevice* ControlDevice::Device = nullptr;
 ControlDevice::ControlDevice(Core::Error& err)
     : MiscDevice(KSTOR_CONTROL_DEVICE, err)
     , Rng(err)
-    , ChunkTable()
 {
 }
 
 Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, Guid& volumeId)
 {
-    Core::Error err;
+    Core::AutoLock lock(VolumeLock);
+    if (VolumeRef.Get() != nullptr)
+    {
+        return Core::Error::AlreadyExists;
+    }
 
-    VolumePtr volume = Core::MakeShared<Volume, Core::Memory::PoolType::Kernel>(deviceName, format, err);
-    if (volume.Get() == nullptr)
+    Core::Error err;
+    VolumeRef = Core::MakeShared<Volume, Core::Memory::PoolType::Kernel>(deviceName, format, err);
+    if (VolumeRef.Get() == nullptr)
     {
         trace(1, "CtrlDev 0x%p can't allocate device", this);
         err.SetNoMemory();
@@ -41,102 +45,42 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, G
         return err;
     }
 
-    Core::AutoLock lock(VolumeListLock);
-    if (!VolumeList.AddHead(volume))
-    {
-        trace(1, "CtrlDev 0x%p can't add device into list");
-        err.SetNoMemory();
-        return err;
-    }
-
-    volumeId = volume->GetVolumeId();
+    volumeId = VolumeRef->GetVolumeId();
     return Core::Error::Success;
-}
-
-VolumePtr ControlDevice::LookupMount(const Guid& volumeId)
-{
-    Core::SharedAutoLock lock(VolumeListLock);
-
-    auto it = VolumeList.GetIterator();
-    while (it.IsValid())
-    {
-        auto volume = it.Get();
-        if (volume->GetVolumeId() == volumeId)
-        {
-            return volume;
-        }
-        it.Next();
-    }
-
-    return VolumePtr();
-}
-
-VolumePtr ControlDevice::LookupMount(const Core::AString& deviceName)
-{
-    Core::SharedAutoLock lock(VolumeListLock);
-
-    auto it = VolumeList.GetIterator();
-    while (it.IsValid())
-    {
-        auto volume = it.Get();
-        if (volume->GetDeviceName().Compare(deviceName) == 0)
-        {
-            return volume;
-        }
-        it.Next();
-    }
-
-    return VolumePtr();
 }
 
 Core::Error ControlDevice::Unmount(const Guid& volumeId)
 {
-    VolumePtr volume = LookupMount(volumeId);
-    if (volume.Get() == nullptr)
+    Core::AutoLock lock(VolumeLock);
+    if (VolumeRef.Get() == nullptr)
     {
         return Core::Error::NotFound;
     }
 
-    Core::AutoLock lock(VolumeListLock);
-    auto it = VolumeList.GetIterator();
-    while (it.IsValid())
+    if (VolumeRef->GetVolumeId() == volumeId)
     {
-        auto volume = it.Get();
-        if (volume->GetVolumeId() == volumeId)
-        {
-            it.Erase();
-        } else
-        {
-            it.Next();
-        }
+        VolumeRef.Reset();
+        return Core::Error::Success;
     }
 
-    return Core::Error::Success;
+    return Core::Error::NotFound;
 }
 
 Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
 {
-    VolumePtr volume = LookupMount(deviceName);
-    if (volume.Get() == nullptr)
+    Core::AutoLock lock(VolumeLock);
+    if (VolumeRef.Get() == nullptr)
     {
         return Core::Error::NotFound;
     }
 
-    Core::AutoLock lock(VolumeListLock);
-    auto it = VolumeList.GetIterator();
-    while (it.IsValid())
+    if (VolumeRef->GetDeviceName().Compare(deviceName) == 0)
     {
-        auto volume = it.Get();
-        if (volume->GetDeviceName().Compare(deviceName) == 0)
-        {
-            it.Erase();
-        } else
-        {
-            it.Next();
-        }
+        VolumeRef.Reset();
+        return Core::Error::Success;
     }
 
-    return Core::Error::Success;
+    return Core::Error::NotFound;
 }
 
 Core::Error ControlDevice::StartServer(const Core::AString& host, unsigned short port)
@@ -269,49 +213,48 @@ ControlDevice::~ControlDevice()
 {
 }
 
-Core::Error ControlDevice::ChunkWrite(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+Core::Error ControlDevice::ChunkCreate(const Guid& chunkId)
 {
-    trace(1, "Chunk %s write", chunkId.ToString().GetBuf());
-
-    auto chunk = ChunkTable.Get(chunkId);
-    if (chunk.Get() == nullptr)
-    {
-        chunk = Core::MakeShared<Chunk, Core::Memory::PoolType::Kernel>(chunkId, data);
-        if (chunk.Get() == nullptr)
-            return Core::Error::NoMemory;
-
-        if (!ChunkTable.Insert(chunk->ChunkId, chunk))
-            return Core::Error::NoMemory;
-
-        return Core::Error::Success;
-    }
-
-    Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
-    return Core::Error::Success;
-}
-
-Core::Error ControlDevice::ChunkRead(const Guid& chunkId, unsigned char data[Api::ChunkSize])
-{
-    trace(1, "Chunk %s read", chunkId.ToString().GetBuf());
-
-    auto chunk = ChunkTable.Get(chunkId);
-    if (chunk.Get() == nullptr)
+    Core::SharedAutoLock lock(VolumeLock);
+    if (VolumeRef.Get() == nullptr)
     {
         return Core::Error::NotFound;
     }
 
-    Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
-    return Core::Error::Success;
+    return VolumeRef->ChunkCreate(chunkId);
+}
+
+Core::Error ControlDevice::ChunkWrite(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+{
+    Core::SharedAutoLock lock(VolumeLock);
+    if (VolumeRef.Get() == nullptr)
+    {
+        return Core::Error::NotFound;
+    }
+
+    return VolumeRef->ChunkWrite(chunkId, data);
+}
+
+Core::Error ControlDevice::ChunkRead(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+{
+    Core::SharedAutoLock lock(VolumeLock);
+    if (VolumeRef.Get() == nullptr)
+    {
+        return Core::Error::NotFound;
+    }
+
+    return VolumeRef->ChunkRead(chunkId, data);
 }
 
 Core::Error ControlDevice::ChunkDelete(const Guid& chunkId)
 {
-    trace(1, "Chunk %s delete", chunkId.ToString().GetBuf());
+    Core::SharedAutoLock lock(VolumeLock);
+    if (VolumeRef.Get() == nullptr)
+    {
+        return Core::Error::NotFound;
+    }
 
-    if (ChunkTable.Remove(chunkId))
-        return Core::Error::Success;
-
-    return Core::Error::NotFound;
+    return VolumeRef->ChunkDelete(chunkId);
 }
 
 ControlDevice* ControlDevice::Get()

@@ -448,6 +448,30 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
     return err;
 }
 
+Core::Error Server::HandleChunkCreate(PacketPtr& request, PacketPtr& response)
+{
+    Core::Error err;
+
+    Api::ChunkCreateRequest* req = static_cast<Api::ChunkCreateRequest*>(request->GetData());
+    if (request->GetDataSize() != sizeof(*req))
+    {
+        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+    }
+
+    err =  response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    if (!err.Ok())
+        return err;
+
+    err = ControlDevice::Get()->ChunkCreate(req->ChunkId);
+    if (!err.Ok())
+    {
+        err.Clear();
+        response->SetResult(Api::ResultNotFound);
+    }
+
+    return response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+}
+
 Core::Error Server::HandleChunkWrite(PacketPtr& request, PacketPtr& response)
 {
     Core::Error err;
@@ -534,6 +558,9 @@ PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
     {
     case Api::PacketTypePing:
         err = HandlePing(request, response);
+        break;
+    case Api::PacketTypeChunkCreate:
+        err = HandleChunkCreate(request, response);
         break;
     case Api::PacketTypeChunkWrite:
         err = HandleChunkWrite(request, response);

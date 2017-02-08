@@ -13,9 +13,10 @@ const unsigned int GuidSize = 16;
 const unsigned int VolumeMagic = 0xCBDACBDA;
 
 const unsigned int PacketTypePing = 1;
-const unsigned int PacketTypeChunkWrite = 2;
-const unsigned int PacketTypeChunkRead = 3;
-const unsigned int PacketTypeChunkDelete = 4;
+const unsigned int PacketTypeChunkCreate = 2;
+const unsigned int PacketTypeChunkWrite = 3;
+const unsigned int PacketTypeChunkRead = 4;
+const unsigned int PacketTypeChunkDelete = 5;
 
 const unsigned int ChunkSize = 65536;
 
@@ -45,6 +46,11 @@ struct VolumeHeader
     Guid VolumeId;
 };
 
+struct ChunkCreateRequest
+{
+    Guid ChunkId;
+};
+
 struct ChunkWriteRequest
 {
     Guid ChunkId;
@@ -56,14 +62,14 @@ struct ChunkReadRequest
     Guid ChunkId;
 };
 
-struct ChunkDeleteRequest
-{
-    Guid ChunkId;
-};
-
 struct ChunkReadResponse
 {
     unsigned char Data[ChunkSize];
+};
+
+struct ChunkDeleteRequest
+{
+    Guid ChunkId;
 };
 
 #pragma pack(pop)

@@ -16,9 +16,10 @@ const (
     PacketMaxDataSize = 2 * 65536
     PacketMagic       = 0xCCBECCBE
     PacketTypePing    = 1
-    PacketTypeChunkWrite = 2
-    PacketTypeChunkRead = 3
-    PacketTypeChunkDelete = 4
+    PacketTypeChunkCreate = 2
+    PacketTypeChunkWrite = 3
+    PacketTypeChunkRead = 4
+    PacketTypeChunkDelete = 5
     ChunkSize = 65536
     GuidSize = 16
 )
@@ -56,6 +57,13 @@ type RespPing struct {
 	Value [PacketMaxDataSize]byte
 }
 
+type ReqChunkCreate struct {
+    ChunkId [GuidSize]byte
+}
+
+type RespChunkCreate struct {
+}
+
 type ReqChunkWrite struct {
     ChunkId [GuidSize]byte
     Data [ChunkSize]byte
@@ -90,6 +98,24 @@ func (req *ReqPing) ToBytes() ([]byte, error) {
 }
 
 func (resp *RespPing) ParseBytes(body []byte) error {
+	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (req *ReqChunkCreate) ToBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (resp *RespChunkCreate) ParseBytes(body []byte) error {
 	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
 	if err != nil {
 		return err
@@ -309,6 +335,22 @@ func (client *Client) Ping(value string) (string, error) {
     return getString(resp.Value[:len(resp.Value)]), nil
 }
 
+func (client *Client) ChunkCreate(chunkId []byte) error {
+    req := new(ReqChunkCreate)
+    if len(chunkId) != len(req.ChunkId) {
+        return errors.New("Invalid chunk id size")
+    }
+    copy(req.ChunkId[:len(req.ChunkId)], chunkId[:len(req.ChunkId)])
+
+    resp := new(RespChunkCreate)
+    err := client.SendRecv(PacketTypeChunkCreate, req, resp)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
 func (client *Client) ChunkWrite(chunkId []byte, data []byte) (error) {
     req := new(ReqChunkWrite)
     if len(chunkId) != len(req.ChunkId) {
@@ -389,6 +431,14 @@ func main() {
     log.Printf("Ping result %s\n", result)
 
     chunkId := uuid.NewRandom()[:]
+
+    err = client.ChunkCreate(chunkId)
+    if err != nil {
+        log.Printf("Chunk create failed: %v\n", err)
+        os.Exit(1)
+        return
+    }
+
     err = client.ChunkWrite(chunkId, make([]byte, ChunkSize, ChunkSize))
     if err != nil {
         log.Printf("Chunk write failed: %v\n", err)

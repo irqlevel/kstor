@@ -120,4 +120,71 @@ Core::BlockDevice& Volume::GetDevice()
     return Device;
 }
 
+Core::Error Volume::ChunkCreate(const Guid& chunkId)
+{
+    trace(1, "Chunk %s create", chunkId.ToString().GetBuf());
+
+    auto chunk = ChunkTable.Get(chunkId);
+    if (chunk.Get() != nullptr)
+    {
+        return Core::Error::AlreadyExists;
+    }
+
+    chunk = Core::MakeShared<Chunk, Core::Memory::PoolType::Kernel>(chunkId);
+    if (chunk.Get() == nullptr)
+        return Core::Error::NoMemory;
+
+    if (!ChunkTable.Insert(chunk->ChunkId, chunk))
+        return Core::Error::NoMemory;
+
+    return Core::Error::Success;
+}
+
+Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+{
+    trace(1, "Chunk %s write", chunkId.ToString().GetBuf());
+
+    auto chunk = ChunkTable.Get(chunkId);
+    if (chunk.Get() == nullptr)
+    {
+        return Core::Error::NotFound;
+    }
+
+    Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
+    return Core::Error::Success;
+}
+
+Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::ChunkSize])
+{
+    trace(1, "Chunk %s read", chunkId.ToString().GetBuf());
+
+    auto chunk = ChunkTable.Get(chunkId);
+    if (chunk.Get() == nullptr)
+    {
+        return Core::Error::NotFound;
+    }
+
+    Core::Memory::MemCpy(data, chunk->Data, sizeof(*data));
+    return Core::Error::Success;
+}
+
+Core::Error Volume::ChunkDelete(const Guid& chunkId)
+{
+    trace(1, "Chunk %s delete", chunkId.ToString().GetBuf());
+
+    if (ChunkTable.Remove(chunkId))
+        return Core::Error::Success;
+
+    return Core::Error::NotFound;
+}
+
+Core::Error Volume::ChunkLookup(const Guid& chunkId)
+{
+    trace(1, "Chunk %s lookup", chunkId.ToString().GetBuf());
+
+    if (!ChunkTable.CheckExist(chunkId))
+        return Core::Error::NotFound;
+    return Core::Error::Success;
+}
+
 }
