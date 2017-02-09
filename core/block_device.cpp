@@ -22,7 +22,7 @@ BlockDevice::BlockDevice(const AString& deviceName, Error& err)
         return;
     }
 
-    trace(1, "Bdev 0x%p bdev 0x%p ctor", this, BDevPtr);
+    trace(4, "Bdev 0x%p bdev 0x%p ctor", this, BDevPtr);
 }
 
 void* BlockDevice::GetBdev()
@@ -37,7 +37,7 @@ unsigned long long BlockDevice::GetSize() const
 
 BlockDevice::~BlockDevice()
 {
-    trace(1, "Bdev 0x%p bdev 0x%p dtor", this, BDevPtr);
+    trace(4, "Bdev 0x%p bdev 0x%p dtor", this, BDevPtr);
 
     if (BDevPtr != nullptr)
     {

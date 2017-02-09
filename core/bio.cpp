@@ -38,7 +38,7 @@ Bio::Bio(int pageCount, Error& err)
         return;
     }
 
-    trace(2, "Bio 0x%p bio 0x%p ctor", this, BioPtr);
+    trace(4, "Bio 0x%p bio 0x%p ctor", this, BioPtr);
 }
 
 Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
@@ -113,7 +113,7 @@ Error Bio::SetPage(int pageIndex, Page& page, int offset, int len)
 
 void Bio::EndIo(int err)
 {
-    trace(2, "Bio 0x%p bio 0x%p endio err %d", this, BioPtr, err);
+    trace(4, "Bio 0x%p bio 0x%p endio err %d", this, BioPtr, err);
     IoError.SetCode(err);
     EndIoEvent.Set();
 }
@@ -136,7 +136,7 @@ void Bio::SetPosition(unsigned long long sector)
 
 void Bio::Submit()
 {
-    trace(2, "Bio 0x%p bio 0x%p submit", this, BioPtr);
+    trace(4, "Bio 0x%p bio 0x%p submit", this, BioPtr);
     get_kapi()->submit_bio(BioPtr);
 }
 
@@ -147,7 +147,7 @@ Error Bio::GetError()
 
 Bio::~Bio()
 {
-    trace(2, "Bio 0x%p bio 0x%p dtor", this, BioPtr);
+    trace(4, "Bio 0x%p bio 0x%p dtor", this, BioPtr);
     if (BioPtr != nullptr)
     {
         get_kapi()->free_bio(BioPtr);

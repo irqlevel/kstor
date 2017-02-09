@@ -3,6 +3,7 @@
 #include <core/trace.h>
 #include <core/bio.h>
 #include <core/bitops.h>
+#include <core/hex.h>
 
 namespace KStor
 {
@@ -151,6 +152,10 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
     }
 
     Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
+
+    trace(3, "Chunk %s write %s size %lu", chunkId.ToString().GetBuf(),
+        Core::Hex::Encode(chunk->Data, 10).GetBuf(), sizeof(chunk->Data));
+
     return Core::Error::Success;
 }
 
@@ -164,7 +169,11 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
         return Core::Error::NotFound;
     }
 
-    Core::Memory::MemCpy(data, chunk->Data, sizeof(*data));
+    Core::Memory::MemCpy(data, chunk->Data, sizeof(chunk->Data));
+
+    trace(3, "Chunk %s read %s size %lu", chunkId.ToString().GetBuf(),
+        Core::Hex::Encode(data, 10).GetBuf(), sizeof(chunk->Data));
+
     return Core::Error::Success;
 }
 

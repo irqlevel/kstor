@@ -52,13 +52,13 @@ Error MiscDevice::Create(const AString& devName)
         return err;
     }
 
-    trace(1, "Device 0x%p dev 0x%p name %s", this, MiscDevPtr, devName.GetBuf());
+    trace(4, "Device 0x%p dev 0x%p name %s", this, MiscDevPtr, devName.GetBuf());
     return err;
 }
 
 MiscDevice::~MiscDevice()
 {
-    trace(1, "Device 0x%p dev 0x%p dtor", this, MiscDevPtr);
+    trace(4, "Device 0x%p dev 0x%p dtor", this, MiscDevPtr);
 
     if (MiscDevPtr != nullptr)
     {

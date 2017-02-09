@@ -20,9 +20,13 @@ public:
 
     static const int Success = 0;
 
+    static const int Again = -11;
+
     static const int InvalidValue = -22;
 
     static const int NoMemory = -12;
+
+    static const int ConnReset = -104;
 
     static const int Cancelled = -125;
 

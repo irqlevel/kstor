@@ -7,6 +7,8 @@
 
 int KStorInit(void)
 {
+    Core::Trace::SetLevel(1);
+
     trace(1, "initing");
 
     Core::Error err = KStor::ControlDevice::Create();

@@ -21,12 +21,12 @@ Error Socket::Connect(const AString& host, unsigned short port)
     return get_kapi()->sock_connect(&Sockp, const_cast<char *>(host.GetBuf()), port);
 }
 
-Error Socket::Listen(const AString& host, unsigned short port)
+Error Socket::Listen(const AString& host, unsigned short port, int backlog)
 {
     if (Sockp != nullptr)
         return Error::InvalidState;
 
-    return get_kapi()->sock_listen(&Sockp, const_cast<char *>(host.GetBuf()), port, 0);
+    return get_kapi()->sock_listen(&Sockp, const_cast<char *>(host.GetBuf()), port, backlog);
 }
 
 Socket *Socket::Accept(Error &err)
@@ -106,14 +106,19 @@ Error Socket::SendAll(void *buf, unsigned long len, unsigned long& sent)
         unsigned long lsent;
 
         err = Send(Memory::MemAdd(buf, sent), len - sent, lsent);
+        sent += lsent;
         if (!err.Ok())
+        {
+            if (err == Core::Error::Again)
+                continue;
+
             break;
+        }
 
         if (lsent == 0) {
             err.SetEOF();
             break;
         }
-        sent += lsent;
     }
     return err;
 }
@@ -127,14 +132,19 @@ Error Socket::RecvAll(void *buf, unsigned long len, unsigned long& recv)
         unsigned long lrecv;
 
         err = Recv(Memory::MemAdd(buf, recv), len - recv, lrecv);
+        recv += lrecv;
         if (!err.Ok())
+        {
+            if (err == Core::Error::Again)
+                continue;
+
             break;
+        }
 
         if (lrecv == 0) {
             err.SetEOF();
             break;
         }
-        recv += lrecv;
     }
     return err;
 }

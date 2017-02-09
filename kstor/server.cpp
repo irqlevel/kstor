@@ -114,12 +114,12 @@ Server::Server()
 Server::Connection::Connection(Server& srv, Core::UniquePtr<Core::Socket>&& socket)
     : Srv(srv), Sock(Core::Memory::Move(socket))
 {
-    trace(1, "Connection 0x%p created", this);
+    trace(3, "Connection 0x%p created", this);
 }
 
 Core::Error Server::Connection::Start()
 {
-    trace(1, "Connection 0x%p starting", this);
+    trace(3, "Connection 0x%p starting", this);
 
     Core::AutoLock lock(StateLock);
     if (ConnThread.Get() != nullptr || Sock.Get() == nullptr)
@@ -144,7 +144,7 @@ Core::Error Server::Connection::Start()
 
 void Server::Connection::Stop()
 {
-    trace(1, "Connection 0x%p stopping", this);
+    trace(3, "Connection 0x%p stopping", this);
 
     Core::AutoLock lock(StateLock);
 
@@ -165,7 +165,7 @@ bool Server::Connection::Closed()
 Server::Connection::~Connection()
 {
     Stop();
-    trace(1, "Connection 0x%p dtor", this);
+    trace(3, "Connection 0x%p dtor", this);
 }
 
 PacketPtr Server::Connection::RecvPacket(Core::Error& err)
@@ -177,7 +177,9 @@ PacketPtr Server::Connection::RecvPacket(Core::Error& err)
     err = Sock->RecvAll(&header, sizeof(header), received);
     if (!err.Ok())
     {
-        trace(1, "Connection 0x%p read header err %d", this, err.GetCode());
+        if (err != Core::Error::ConnReset)
+            trace(0, "Connection 0x%p read header err %d", this, err.GetCode());
+
         return packet;
     }
 
@@ -185,14 +187,14 @@ PacketPtr Server::Connection::RecvPacket(Core::Error& err)
     if (packet.Get() == nullptr)
     {
         err.SetNoMemory();
-        trace(1, "Connection 0x%p can't allocate packet err %d", this, err.GetCode());
+        trace(0, "Connection 0x%p can't allocate packet err %d", this, err.GetCode());
         packet.Reset();
         return packet;
     }
 
     if (!err.Ok())
     {
-        trace(1, "Connection 0x%p can't parse packet err %d", this, err.GetCode());
+        trace(0, "Connection 0x%p can't parse packet err %d", this, err.GetCode());
         packet.Reset();
         return packet;
     }
@@ -200,7 +202,7 @@ PacketPtr Server::Connection::RecvPacket(Core::Error& err)
     err = Sock->RecvAll(packet->GetData(), packet->GetDataSize(), received);
     if (!err.Ok())
     {
-        trace(1, "Connection 0x%p can't read packet body err %d", this, err.GetCode());
+        trace(0, "Connection 0x%p can't read packet body err %d", this, err.GetCode());
         packet.Reset();
         return packet;
     }
@@ -214,11 +216,11 @@ Core::Error Server::Connection::SendPacket(PacketPtr& packet)
     Core::Error err = Sock->SendAll(packet->GetBody(), packet->GetSize(), sent);
     if (!err.Ok())
     {
-        trace(1, "Connection 0x%p can't send packet err %d", this, err.GetCode());
+        trace(0, "Connection 0x%p can't send packet err %d", this, err.GetCode());
         return err;
     }
 
-    trace(1, "Connection 0x%p sent packet size %lu", this, sent);
+    trace(3, "Connection 0x%p sent packet size %lu", this, sent);
 
     return err;
 }
@@ -227,34 +229,36 @@ Core::Error Server::Connection::Run(const Core::Threadable& thread)
 {
     Core::Error err;
 
-    trace(1, "Connection 0x%p thread", this);
+    trace(3, "Connection 0x%p thread", this);
 
     while (!thread.IsStopping())
     {
-        trace(1, "Connection 0x%p receiving request", this);
+        trace(3, "Connection 0x%p receiving request", this);
         auto request = RecvPacket(err);
         if (!err.Ok())
         {
-            trace(1, "Connection 0x%p recv packet err %d", this, err.GetCode());
+            if (err != Core::Error::ConnReset)
+                trace(0, "Connection 0x%p recv packet err %d", this, err.GetCode());
+
             break;
         }
-        trace(1, "Connection 0x%p handling request", this);
+        trace(3, "Connection 0x%p handling request", this);
         auto response = Srv.HandleRequest(request, err);
         if (!err.Ok())
         {
-            trace(1, "Connection 0x%p handle packet err %d", this, err.GetCode());
+            trace(0, "Connection 0x%p handle packet err %d", this, err.GetCode());
             break;
         }
-        trace(1, "Connection 0x%p sending response", this);
+        trace(3, "Connection 0x%p sending response", this);
         err = SendPacket(response);
         if (!err.Ok())
         {
-            trace(1, "Connection 0x%p send packet err %d", this, err.GetCode());
+            trace(0, "Connection 0x%p send packet err %d", this, err.GetCode());
             break;
         }
     }
 
-    trace(1, "Connection 0x%p thread closing socket", this);
+    trace(3, "Connection 0x%p thread closing socket", this);
 
     {
         Core::AutoLock lock(StateLock);
@@ -265,7 +269,7 @@ Core::Error Server::Connection::Run(const Core::Threadable& thread)
         }
     }
 
-    trace(1, "Connection 0x%p thread exiting", this);
+    trace(3, "Connection 0x%p thread exiting", this);
 
     return Core::Error::Success;
 }
@@ -274,7 +278,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
 {
     Core::Error err;
 
-    trace(1, "Server 0x%p thread", this);
+    trace(3, "Server 0x%p thread", this);
 
     for (;;)
     {
@@ -289,7 +293,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
                 auto conn = it.Get();
                 if (conn->Closed())
                 {
-                    trace(1, "Server 0x%p removing died connection 0x%p", this, conn.Get());
+                    trace(3, "Server 0x%p removing died connection 0x%p", this, conn.Get());
                     it.Erase();
                 }
             }
@@ -298,12 +302,16 @@ Core::Error Server::Run(const Core::Threadable &thread)
         if (ListenSocket.Get() == nullptr)
             break;
 
+        trace(3, "Server 0x%p listen for new connection", this);
+
         Core::UniquePtr<Core::Socket> socket(ListenSocket->Accept(err));
         if (socket.Get() == nullptr || !err.Ok())
         {
             trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
             continue;
         }
+
+        trace(3, "Server 0x%p accepted new connection", this);
 
         ConnectionPtr conn = Core::MakeShared<Connection, Core::Memory::PoolType::Kernel>(*this, Core::Memory::Move(socket));
         if (conn.Get() == nullptr)
@@ -338,14 +346,14 @@ Core::Error Server::Run(const Core::Threadable &thread)
         }
     }
 
-    trace(1, "Server 0x%p thread exiting", this);
+    trace(3, "Server 0x%p thread exiting", this);
 
     return Core::Error::Success;
 }
 
 Core::Error Server::Start(const Core::AString& host, unsigned short port)
 {
-    trace(1, "Server 0x%p starting", this);
+    trace(3, "Server 0x%p starting", this);
 
     Core::AutoLock lock(StateLock);
 
@@ -356,7 +364,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
     if (ListenSocket.Get() == nullptr)
         return Core::Error::NoMemory;
 
-    Core::Error err = ListenSocket->Listen(host, port);
+    Core::Error err = ListenSocket->Listen(host, port, 65536);
     if (!err.Ok()) {
         ListenSocket.Reset();
         return err;
@@ -374,14 +382,14 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
         return err;
     }
 
-    trace(1, "Server 0x%p started", this);
+    trace(3, "Server 0x%p started", this);
 
     return Core::Error::Success;
 }
 
 void Server::Stop()
 {
-    trace(1, "Server 0x%p stopping", this);
+    trace(3, "Server 0x%p stopping", this);
 
     Core::AutoLock lock(StateLock);
     {
@@ -424,7 +432,7 @@ void Server::Stop()
             conn->Stop();
     }
 
-    trace(1, "Server 0x%p stopped", this);
+    trace(3, "Server 0x%p stopped", this);
 }
 
 Server::~Server()
@@ -436,7 +444,7 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
 {
     Core::Error err;
 
-    trace(1, "Server 0x%p handle ping, data size %lu",
+    trace(3, "Server 0x%p handle ping, data size %lu",
         this, request->GetDataSize());
 
     err = response->Prepare(request->GetType(), Api::ResultSuccess, request->GetDataSize());

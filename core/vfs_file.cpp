@@ -33,7 +33,7 @@ Error VfsFile::Open(const AString& path, bool read, bool create)
     int rc = get_kapi()->vfs_file_open(path.GetBuf(), flags, &FilePtr);
     if (rc)
     {
-        trace(1, "Can't open file %s, rc %d", path.GetBuf(), rc);
+        trace(0, "Can't open file %s, rc %d", path.GetBuf(), rc);
         return Error(rc);
     }
 

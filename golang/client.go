@@ -9,6 +9,9 @@ import (
     "log"
     "net"
     "os"
+    "sync"
+    "crypto/rand"
+    "encoding/hex"
     "github.com/pborman/uuid"
 )
 
@@ -227,8 +230,7 @@ func (client *Client) SendPacket(packet *Packet) error {
 }
 
 func (client *Client) RecvPacket() (*Packet, error) {
-        log.Printf("Receiving packet header\n")
-	packet := new(Packet)
+        packet := new(Packet)
 	err := binary.Read(client.Con, binary.LittleEndian, &packet.Header)
 	if err != nil {
 		return nil, err
@@ -241,8 +243,7 @@ func (client *Client) RecvPacket() (*Packet, error) {
 	if packet.Header.DataSize > PacketMaxDataSize {
 		return nil, errors.New("Packet data size too big")
 	}
-        log.Printf("Receiving packet body\n")
-	body := make([]byte, packet.Header.DataSize)
+        body := make([]byte, packet.Header.DataSize)
 	if packet.Header.DataSize != 0 {
 		n, err := io.ReadFull(client.Con, body)
 		if err != nil {
@@ -294,12 +295,10 @@ func (client *Client) RecvResponse(respType uint32, resp ParseBytes) error {
 }
 
 func (client *Client) SendRecv(reqType uint32, req ToBytes, resp ParseBytes) error {
-    log.Printf("Sending request\n")
     err := client.SendRequest(reqType, req)
     if err != nil {
         return err
     }
-    log.Printf("Receiving response\n")
     err = client.RecvResponse(reqType, resp)
     if err != nil {
         return err
@@ -409,54 +408,80 @@ func (client *Client) Close() {
     }
 }
 
+func testClient(rounds int, client *Client, wg *sync.WaitGroup) error {
+    defer wg.Done()
+
+    for i := 0; i < rounds; i++ {
+        chunkId := uuid.NewRandom()[:]
+        chunkIdS := hex.EncodeToString(chunkId)
+
+        err := client.ChunkCreate(chunkId)
+        if err != nil {
+            log.Printf("Chunk %s create failed: %v\n", chunkIdS, err)
+            return err
+        }
+
+        data := make([]byte, ChunkSize)
+        _, err = rand.Read(data)
+        if err != nil {
+            log.Printf("Chunk %s rand fill failed: %v\n", chunkIdS, err)
+            return err
+        }
+
+        err = client.ChunkWrite(chunkId, data)
+        if err != nil {
+            log.Printf("Chunk %s write failed: %v\n", chunkIdS, err)
+            return err
+        }
+
+        dataRead, err := client.ChunkRead(chunkId)
+        if err != nil {
+            log.Printf("Chunk %s read failed: %v\n", chunkIdS, err)
+            return err
+        }
+
+        if !bytes.Equal(data, dataRead) {
+            err = errors.New("Unexpected data read")
+            log.Printf("Chunk %s read failed: %v\n", chunkIdS, err)
+            return err
+        }
+
+        err = client.ChunkDelete(chunkId)
+        if err != nil {
+            log.Printf("Chunk %s delete failed: %v\n", chunkIdS, err)
+            return err
+        }
+    }
+    return nil
+}
+
 func main() {
     log.SetFlags(0)
     log.SetOutput(os.Stdout)
 
-    client := NewClient("127.0.0.1:8111")
-    err := client.Dial()
-    if err != nil {
-        log.Printf("Dial failed: %v\n", err)
-	os.Exit(1)
-	return
-    }
-    defer client.Close()
-
-    result, err := client.Ping("Hello world!")
-    if err != nil {
-        log.Printf("Ping failed: %v\n", err)
-        os.Exit(1)
-        return
-    }
-    log.Printf("Ping result %s\n", result)
-
-    chunkId := uuid.NewRandom()[:]
-
-    err = client.ChunkCreate(chunkId)
-    if err != nil {
-        log.Printf("Chunk create failed: %v\n", err)
-        os.Exit(1)
-        return
+//  log.Printf("Open clients\n")
+    clients := make([]*Client, 0)
+    for i := 0; i < 1000; i++ {
+        client := NewClient("127.0.0.1:8111")
+        err := client.Dial()
+        if err != nil {
+            log.Printf("Dial failed: %v\n", err)
+            os.Exit(1)
+	    return
+        }
+        clients = append(clients, client)
     }
 
-    err = client.ChunkWrite(chunkId, make([]byte, ChunkSize, ChunkSize))
-    if err != nil {
-        log.Printf("Chunk write failed: %v\n", err)
-        os.Exit(1)
-        return
+//  log.Printf("Exchange information\n")
+    wg := new(sync.WaitGroup)
+    for _, client := range clients {
+        wg.Add(1)
+        go testClient(10, client, wg)
     }
+    wg.Wait()
 
-    _, err = client.ChunkRead(chunkId)
-    if err != nil {
-        log.Printf("Chunk read failed: %v\n", err)
-        os.Exit(1)
-        return
-    }
-
-    err = client.ChunkDelete(chunkId)
-    if err != nil {
-        log.Printf("Chunk delete failed: %v\n", err)
-        os.Exit(1)
-        return
+//  log.Printf("Close clients\n")
+    for _, client := range clients {
+        client.Close()
     }
 }
