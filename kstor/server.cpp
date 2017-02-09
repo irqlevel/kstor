@@ -307,6 +307,9 @@ Core::Error Server::Run(const Core::Threadable &thread)
         Core::UniquePtr<Core::Socket> socket(ListenSocket->Accept(err));
         if (socket.Get() == nullptr || !err.Ok())
         {
+            if (err == Core::Error::Again)
+                continue;
+
             trace(0, "Server 0x%p socket accept error %d", this, err.GetCode());
             continue;
         }

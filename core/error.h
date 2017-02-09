@@ -52,7 +52,9 @@ public:
 
     static const int DataCorrupt = -510;
 
-    static const int AlreadyExists = -510;
+    static const int BadSize = -511;
+
+    static const int AlreadyExists = -512;
 
     bool operator!= (const Error& other) const;
 

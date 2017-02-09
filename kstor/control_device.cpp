@@ -96,7 +96,7 @@ Core::Error ControlDevice::StopServer()
 
 Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
 {
-    trace(1, "Ioctl 0x%x arg 0x%lx", code, arg);
+    trace(3, "Ioctl 0x%x arg 0x%lx", code, arg);
 
     Core::Error err;
     Core::UniquePtr<Control::Cmd> cmd(new (Core::Memory::PoolType::Kernel) Control::Cmd);
@@ -205,7 +205,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
 
 cleanup:
 
-    trace(1, "Ioctl 0x%x arg 0x%lx result %d", code, arg, err.GetCode());
+    trace(1, "Ioctl 0x%x result %d", code, err.GetCode());
     return err;
 }
 

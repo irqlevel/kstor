@@ -52,6 +52,7 @@ Core::Error Volume::Format()
     Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(headerMap.GetAddress());
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
+    header->Size = Core::BitOps::CpuToLe64(GetSize());
     header->Hash = Core::BitOps::CpuToLe64(Core::XXHash::GetDigest(header, OFFSET_OF(Api::VolumeHeader, Hash)));
 
     Core::Error err;
@@ -100,7 +101,13 @@ Core::Error Volume::Load()
         Core::XXHash::GetDigest(header, OFFSET_OF(Api::VolumeHeader, Hash)))
     {
         trace(0, "Volume 0x%p bad header hash", this);
-        return Core::Error::BadMagic;
+        return Core::Error::DataCorrupt;
+    }
+
+    if (Core::BitOps::Le64ToCpu(header->Size) != GetSize())
+    {
+        trace(0, "Volume 0x%p bad size", this);
+        return Core::Error::BadSize;
     }
 
     VolumeId.SetContent(header->VolumeId);

@@ -27,7 +27,7 @@ Random::Random(Error& err, bool pseudoRandom)
         return;
     }
 
-    trace(1, "Random 0x%p dev %s ctor", this, devName.GetBuf());
+    trace(3, "Random 0x%p dev %s ctor", this, devName.GetBuf());
 }
 
 Error Random::GetBytes(void* buf, unsigned long len)
@@ -55,7 +55,7 @@ unsigned long Random::GetUlong()
 
 Random::~Random()
 {
-    trace(1, "Random 0x%p dtor", this);
+    trace(3, "Random 0x%p dtor", this);
 }
 
 }
