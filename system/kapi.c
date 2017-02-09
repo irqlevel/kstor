@@ -96,12 +96,12 @@ static void kapi_memset(void* ptr, int c, size_t size)
     memset(ptr, c, size);
 }
 
-static int kapi_memcmp(void* ptr1, void* ptr2, size_t size)
+static int kapi_memcmp(const void* ptr1, const void* ptr2, size_t size)
 {
     return memcmp(ptr1, ptr2, size);
 }
 
-static void kapi_memcpy(void* dst, void* src, size_t size)
+static void kapi_memcpy(void* dst, const void* src, size_t size)
 {
     memcpy(dst, src, size);
 }
@@ -716,7 +716,7 @@ static int kapi_vfs_file_open(const char *path, int flags, void** file)
     }
 }
 
-static int kapi_vfs_file_write(void* file, void* buf, unsigned long len, unsigned long long offset)
+static int kapi_vfs_file_write(void* file, const void* buf, unsigned long len, unsigned long long offset)
 {
     struct file* file_ = (struct file*)file;
     int ret;
@@ -727,7 +727,7 @@ static int kapi_vfs_file_write(void* file, void* buf, unsigned long len, unsigne
     old_fs = get_fs();
     set_fs(get_ds());
     while (pos < len) {
-            ret = vfs_write(file_, (char *)buf + pos, len - pos, &off);
+            ret = vfs_write(file_, (const char *)buf + pos, len - pos, &off);
             if (ret < 0)
                     goto out;
             if (ret == 0) {
@@ -981,7 +981,7 @@ void kapi_misc_dev_unregister(void* dev)
     }
 }
 
-static int kapi_copy_to_user(void* dst, void* src, unsigned long size)
+static int kapi_copy_to_user(void* dst, const void* src, unsigned long size)
 {
     if (copy_to_user(dst, src, size))
     {
@@ -991,7 +991,7 @@ static int kapi_copy_to_user(void* dst, void* src, unsigned long size)
     return 0;
 }
 
-static int kapi_copy_from_user(void* dst, void* src, unsigned long size)
+static int kapi_copy_from_user(void* dst, const void* src, unsigned long size)
 {
     if (copy_from_user(dst, src, size))
     {
@@ -1031,12 +1031,12 @@ static int kapi_test_and_set_bit(long nr, unsigned long *addr)
     return test_and_set_bit(nr, addr);
 }
 
-static int kapi_sock_connect(void **sockp, char *host, unsigned short port)
+static int kapi_sock_connect(void **sockp, const char *host, unsigned short port)
 {
     return ksock_connect_host((struct socket **)sockp, host, port);
 }
 
-static int kapi_sock_listen(void **sockp, char *host, int port, int backlog)
+static int kapi_sock_listen(void **sockp, const char *host, int port, int backlog)
 {
     return ksock_listen_host((struct socket **)sockp, host, port, backlog);
 }
@@ -1046,7 +1046,7 @@ static void kapi_sock_release(void *sockp)
     ksock_release((struct socket *)sockp);
 }
 
-static int kapi_sock_send(void *sockp, void *buf, int len)
+static int kapi_sock_send(void *sockp, const void *buf, int len)
 {
     return ksock_send((struct socket *)sockp, buf, len);
 }
@@ -1074,6 +1074,16 @@ static unsigned int kapi_le32_to_cpu(unsigned int value)
 static unsigned int kapi_cpu_to_le32(unsigned int value)
 {
     return cpu_to_le32(value);
+}
+
+static unsigned long long kapi_le64_to_cpu(unsigned long long value)
+{
+    return le64_to_cpu(value);
+}
+
+static unsigned long long kapi_cpu_to_le64(unsigned long long value)
+{
+    return cpu_to_le64(value);
 }
 
 static struct kernel_api g_kapi =
@@ -1193,6 +1203,8 @@ static struct kernel_api g_kapi =
 
     .le32_to_cpu = kapi_le32_to_cpu,
     .cpu_to_le32 = kapi_cpu_to_le32,
+    .le64_to_cpu = kapi_le64_to_cpu,
+    .cpu_to_le64 = kapi_cpu_to_le64,
 
 };
 

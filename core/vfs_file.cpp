@@ -62,7 +62,7 @@ Error VfsFile::Read(unsigned long long offset, void* buf, unsigned long len)
     return get_kapi()->vfs_file_read(FilePtr, buf, len, offset);
 }
 
-Error VfsFile::Write(unsigned long long offset, void* buf, unsigned long len)
+Error VfsFile::Write(unsigned long long offset, const void* buf, unsigned long len)
 {
     return get_kapi()->vfs_file_write(FilePtr, buf, len, offset);
 }

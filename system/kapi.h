@@ -22,8 +22,8 @@ struct kernel_api
     void (*kfree)(void *ptr);
 
     void (*memset)(void* ptr, int c, size_t size);
-    int (*memcmp)(void* ptr1, void* ptr2, size_t size);
-    void (*memcpy)(void* dst, void* src, size_t size);
+    int (*memcmp)(const void* ptr1, const void* ptr2, size_t size);
+    void (*memcpy)(void* dst, const void* src, size_t size);
 
     void (*printk)(const char *fmt, ...);
     void (*bug_on)(bool condition);
@@ -108,7 +108,7 @@ struct kernel_api
     void (*submit_bio)(void* bio);
 
     int (*vfs_file_open)(const char *path, int flags, void** file);
-    int (*vfs_file_write)(void* file, void* buf, unsigned long len, unsigned long long offset);
+    int (*vfs_file_write)(void* file, const void* buf, unsigned long len, unsigned long long offset);
     int (*vfs_file_read)(void* file, void* buf, unsigned long len, unsigned long long offset);
     int (*vfs_file_sync)(void* file);
     void (*vfs_file_close)(void* file);
@@ -118,8 +118,8 @@ struct kernel_api
         void** dev);
     void (*misc_dev_unregister)(void* dev);
 
-    int (*copy_to_user)(void* dst, void* src, unsigned long size);
-    int (*copy_from_user)(void* dst, void* src, unsigned long size);
+    int (*copy_to_user)(void* dst, const void* src, unsigned long size);
+    int (*copy_from_user)(void* dst, const void* src, unsigned long size);
 
     unsigned long long (*get_time)(void);
 
@@ -130,16 +130,19 @@ struct kernel_api
     int (*test_and_clear_bit)(long nr, unsigned long *addr);
     int (*test_and_set_bit)(long nr, unsigned long *addr);
 
-    int (*sock_connect)(void **sockp, char *host, unsigned short port);
-    int (*sock_listen)(void **sockp, char *host, int port, int backlog);
+    int (*sock_connect)(void **sockp, const char *host, unsigned short port);
+    int (*sock_listen)(void **sockp, const char *host, int port, int backlog);
     void (*sock_release)(void *sockp);
-    int (*sock_send)(void *sockp, void *buf, int len);
+    int (*sock_send)(void *sockp, const void *buf, int len);
     int (*sock_recv)(void *sockp, void *buf, int len);
     int (*sock_accept)(void **newsockp, void *sockp);
     void (*sock_abort_accept)(void *sockp);
 
     unsigned int (*le32_to_cpu)(unsigned int value);
     unsigned int (*cpu_to_le32)(unsigned int value);
+
+    unsigned long long (*le64_to_cpu)(unsigned long long value);
+    unsigned long long (*cpu_to_le64)(unsigned long long value);
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

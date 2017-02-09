@@ -50,6 +50,8 @@ public:
 
     static const int BadMagic = -509;
 
+    static const int DataCorrupt = -510;
+
     static const int AlreadyExists = -510;
 
     bool operator!= (const Error& other) const;

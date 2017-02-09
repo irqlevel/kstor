@@ -41,17 +41,22 @@ namespace Memory
         return reinterpret_cast<void *>(reinterpret_cast<unsigned long>(ptr) + len);
     }
 
+    static inline const void *MemAdd(const void *ptr, unsigned long len)
+    {
+        return reinterpret_cast<const void *>(reinterpret_cast<unsigned long>(ptr) + len);
+    }
+
     static inline void MemSet(void* ptr, int c, size_t size)
     {
         get_kapi()->memset(ptr, c, size);
     }
 
-    static inline int MemCmp(void* ptr1, void* ptr2, size_t size)
+    static inline int MemCmp(const void* ptr1, const void* ptr2, size_t size)
     {
         return get_kapi()->memcmp(ptr1, ptr2, size);
     }
 
-    static inline void MemCpy(void* dst, void* src, size_t size)
+    static inline void MemCpy(void* dst, const void* src, size_t size)
     {
         get_kapi()->memcpy(dst, src, size);
     }
@@ -74,6 +79,17 @@ namespace Memory
     static const unsigned int IntBitCount = 8 * sizeof(int);
     static const unsigned int LongBitCount = 8 * sizeof(unsigned long);
     static const unsigned int MaxInt = (static_cast<unsigned int>(1) << (IntBitCount - 1)) - 1;
+
+    static inline void *Malloc(size_t size, Core::Memory::PoolType poolType)
+    {
+        return get_kapi()->kmalloc(size, get_kapi_pool_type(poolType));
+    }
+
+    static inline void Free(void *ptr)
+    {
+        get_kapi()->kfree(ptr);
+    }
+
 }
 
 }

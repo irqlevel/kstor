@@ -44,6 +44,8 @@ struct VolumeHeader
     unsigned int Magic;
     unsigned char Padding[12];
     Guid VolumeId;
+    unsigned long long Size;
+    unsigned long long Hash;
 };
 
 struct ChunkCreateRequest

@@ -62,7 +62,7 @@ void Socket::Close()
     }
 }
 
-Error Socket::Send(void *buf, unsigned long len, unsigned long& sent)
+Error Socket::Send(const void *buf, unsigned long len, unsigned long& sent)
 {
     sent = 0;
     if (Sockp == nullptr)
@@ -97,7 +97,7 @@ Error Socket::Recv(void *buf, unsigned long len, unsigned long& recv)
     return Error::Success;
 }
 
-Error Socket::SendAll(void *buf, unsigned long len, unsigned long& sent)
+Error Socket::SendAll(const void *buf, unsigned long len, unsigned long& sent)
 {
     Error err;
 

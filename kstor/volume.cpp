@@ -4,6 +4,7 @@
 #include <core/bio.h>
 #include <core/bitops.h>
 #include <core/hex.h>
+#include <core/xxhash.h>
 
 namespace KStor
 {
@@ -51,6 +52,7 @@ Core::Error Volume::Format()
     Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(headerMap.GetAddress());
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
+    header->Hash = Core::BitOps::CpuToLe64(Core::XXHash::GetDigest(header, OFFSET_OF(Api::VolumeHeader, Hash)));
 
     Core::Error err;
     Core::Bio bio(Device, HeaderPage, 0, err, true);
@@ -91,6 +93,13 @@ Core::Error Volume::Load()
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
     {
         trace(0, "Volume 0x%p bad header magic", this);
+        return Core::Error::BadMagic;
+    }
+
+    if (Core::BitOps::Le64ToCpu(header->Hash) !=
+        Core::XXHash::GetDigest(header, OFFSET_OF(Api::VolumeHeader, Hash)))
+    {
+        trace(0, "Volume 0x%p bad header hash", this);
         return Core::Error::BadMagic;
     }
 

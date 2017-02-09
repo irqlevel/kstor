@@ -162,7 +162,7 @@ void ksock_release(struct socket *sock)
 	sock_release(sock);
 }
 
-int ksock_write_timeout(struct socket *sock, void *buffer, u32 nob,
+int ksock_write_timeout(struct socket *sock, const void *buffer, u32 nob,
 	u64 ticks, u32 *pwrote)
 {
 	int error;
@@ -176,7 +176,7 @@ int ksock_write_timeout(struct socket *sock, void *buffer, u32 nob,
 
 	for (;;) {
 		struct iovec iov = {
-			.iov_base = buffer,
+			.iov_base = (void *)buffer,
 			.iov_len = nob
 		};
 		struct msghdr msg;
@@ -345,7 +345,7 @@ int ksock_read(struct socket *sock, void *buffer, u32 nob, u32 *pread)
 }
 
 
-int ksock_write(struct socket *sock, void *buffer, u32 nob, u32 *pwrote)
+int ksock_write(struct socket *sock, const void *buffer, u32 nob, u32 *pwrote)
 {
 	u32 wrote = 0, off = 0;
 	int err = 0;
@@ -361,7 +361,7 @@ int ksock_write(struct socket *sock, void *buffer, u32 nob, u32 *pwrote)
 	return err;
 }
 
-int ksock_send(struct socket *sock, void *buf, int len)
+int ksock_send(struct socket *sock, const void *buf, int len)
 {
 	u32 wrote;
 	int r;
@@ -465,7 +465,7 @@ static void ksock_addr_set_port(struct sockaddr_storage *ss, int p)
 	}
 }
 
-static int ksock_pton(char *ip, int ip_len, struct sockaddr_storage *ss)
+static int ksock_pton(const char *ip, int ip_len, struct sockaddr_storage *ss)
 {
 	struct sockaddr_in *in4 = (struct sockaddr_in *) ss;
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) ss;
@@ -485,7 +485,7 @@ static int ksock_pton(char *ip, int ip_len, struct sockaddr_storage *ss)
 	return -EINVAL;
 }
 
-static int ksock_dns_resolve(char *name, struct sockaddr_storage *ss)
+static int ksock_dns_resolve(const char *name, struct sockaddr_storage *ss)
 {
 	int ip_len, r;
 	char *ip_addr = NULL;
@@ -500,7 +500,7 @@ static int ksock_dns_resolve(char *name, struct sockaddr_storage *ss)
 	return r;
 }
 
-int ksock_connect_host(struct socket **sockp, char *host, u16 port)
+int ksock_connect_host(struct socket **sockp, const char *host, u16 port)
 {
 	struct sockaddr_storage addr;
 	struct sockaddr_in *in4 = (struct sockaddr_in *)&addr;
@@ -549,7 +549,7 @@ release_sock:
 	return r;
 }
 
-int ksock_create_host(struct socket **sockp, char *host, int port)
+int ksock_create_host(struct socket **sockp, const char *host, int port)
 {
 	struct sockaddr_storage addr;
 	struct sockaddr_in *in4 = (struct sockaddr_in *)&addr;
@@ -598,7 +598,7 @@ out_sock_release:
 	return error;
 }
 
-int ksock_listen_host(struct socket **sockp, char *host, int port, int backlog)
+int ksock_listen_host(struct socket **sockp, const char *host, int port, int backlog)
 {
 	int error;
 	struct socket *sock = NULL;

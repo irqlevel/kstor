@@ -20,7 +20,7 @@ int ksock_connect(struct socket **sockp, __u32 local_ip, int local_port,
 
 void ksock_release(struct socket *sock);
 
-int ksock_write_timeout(struct socket *sock, void *buffer, u32 nob,
+int ksock_write_timeout(struct socket *sock, const void *buffer, u32 nob,
 	u64 ticks, u32 *pwrote);
 
 int ksock_read_timeout(struct socket *sock, void *buffer, u32 nob,
@@ -28,9 +28,9 @@ int ksock_read_timeout(struct socket *sock, void *buffer, u32 nob,
 
 int ksock_read(struct socket *sock, void *buffer, u32 nob, u32 *pread);
 
-int ksock_write(struct socket *sock, void *buffer, u32 nob, u32 *pwrote);
+int ksock_write(struct socket *sock, const void *buffer, u32 nob, u32 *pwrote);
 
-int ksock_send(struct socket *sock, void *buf, int len);
+int ksock_send(struct socket *sock, const void *buf, int len);
 
 int ksock_recv(struct socket *sock, void *buf, int len);
 
@@ -45,8 +45,8 @@ int ksock_ioctl(struct socket *sock, int cmd, unsigned long arg);
 
 int ksock_set_nodelay(struct socket *sock, bool no_delay);
 
-int ksock_connect_host(struct socket **sockp, char *host, u16 port);
+int ksock_connect_host(struct socket **sockp, const char *host, u16 port);
 
-int ksock_listen_host(struct socket **sockp, char *host, int port, int backlog);
+int ksock_listen_host(struct socket **sockp, const char *host, int port, int backlog);
 
 #endif

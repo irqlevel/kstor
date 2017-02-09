@@ -15,7 +15,7 @@ public:
 
     Error Open(const AString& path, bool read = 0, bool create = 0);
     Error Read(unsigned long long offset, void* buf, unsigned long len);
-    Error Write(unsigned long long offset, void* buf, unsigned long len);
+    Error Write(unsigned long long offset, const void* buf, unsigned long len);
     Error Sync();
     void Close();
 
