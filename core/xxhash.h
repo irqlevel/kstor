@@ -12,9 +12,12 @@ public:
     XXHash();
     virtual ~XXHash();
     void Reset();
-    void Update(void* buf, size_t len);
-    unsigned long long GetDigest();
-    static unsigned long long GetDigest(void *buf, size_t len);
+    void Update(const void* buf, size_t len);
+
+    void GetSum(unsigned char result[8]);
+
+    static void Sum(const void *buf, size_t len, unsigned char result[8]);
+
 private:
     long long State[11];
 };

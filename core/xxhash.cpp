@@ -1,5 +1,6 @@
 #include "xxhash.h"
 #include "bug.h"
+#include "bitops.h"
 
 namespace Core
 {
@@ -93,12 +94,9 @@ You can contact the author at :
 //**************************************
 // Modify the local functions below should you wish to use some other memory routines
 // for malloc(), free()
-static void* XXH_malloc(size_t s) { return Memory::Malloc(s, Memory::PoolType::Kernel); }
-static void  XXH_free  (void* p)  { Memory::Free(p); }
-static void* XXH_memcpy(void* dest, const void* src, size_t size)
+static void XXH_memcpy(void* dest, const void* src, size_t size)
 {
     Memory::MemCpy(dest,src,size);
-    return dest;
 }
 
 //**************************************
@@ -534,30 +532,6 @@ typedef struct
     U32 memsize;
 } XXH_istate64_t;
 
-
-XXH32_state_t* XXH32_createState(void)
-{
-    XXH_STATIC_ASSERT(sizeof(XXH32_state_t) >= sizeof(XXH_istate32_t));
-    return (XXH32_state_t*)XXH_malloc(sizeof(XXH32_state_t));
-}
-XXH_errorcode XXH32_freeState(XXH32_state_t* statePtr)
-{
-    XXH_free(statePtr);
-    return XXH_OK;
-};
-
-XXH64_state_t* XXH64_createState(void)
-{
-    XXH_STATIC_ASSERT(sizeof(XXH64_state_t) >= sizeof(XXH_istate64_t));
-    return (XXH64_state_t*)XXH_malloc(sizeof(XXH64_state_t));
-}
-XXH_errorcode XXH64_freeState(XXH64_state_t* statePtr)
-{
-    XXH_free(statePtr);
-    return XXH_OK;
-};
-
-
 /*** Hash feed ***/
 
 XXH_errorcode XXH32_reset(XXH32_state_t* state_in, U32 seed)
@@ -954,23 +928,26 @@ void XXHash::Reset()
         BugOn(true);
 }
 
-void XXHash::Update(void *buf, size_t len)
+void XXHash::Update(const void *buf, size_t len)
 {
     if (XXH64_update(reinterpret_cast<XXH64_state_t*>(&State[0]), buf, len) != XXH_OK)
         BugOn(true);
 }
 
-unsigned long long XXHash::GetDigest()
+void XXHash::GetSum(unsigned char result[8])
 {
-    return XXH64_digest(reinterpret_cast<XXH64_state_t*>(&State[0]));
+    unsigned long long *pvalue = reinterpret_cast<unsigned long long *>(result);
+
+    unsigned long long value = XXH64_digest(reinterpret_cast<XXH64_state_t*>(&State[0]));
+    *pvalue = BitOps::CpuToLe64(value);
 }
 
-unsigned long long XXHash::GetDigest(void *buf, size_t len)
+void XXHash::Sum(const void *buf, size_t len, unsigned char result[8])
 {
     XXHash hash;
 
     hash.Update(buf, len);
-    return hash.GetDigest();
+    hash.GetSum(result);
 }
 
 }

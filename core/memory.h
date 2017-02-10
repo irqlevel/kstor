@@ -76,6 +76,17 @@ namespace Memory
         return S;
     }
 
+    template <typename T,unsigned S> bool ArrayEqual(const T (&s1)[S], const T (&s2)[S])
+    {
+        for (size_t i = 0; i < S; i++)
+        {
+            if (s1[i] != s2[i])
+                return false;
+        }
+
+        return true;
+    }
+
     static const unsigned int IntBitCount = 8 * sizeof(int);
     static const unsigned int LongBitCount = 8 * sizeof(unsigned long);
     static const unsigned int MaxInt = (static_cast<unsigned int>(1) << (IntBitCount - 1)) - 1;

@@ -13,6 +13,7 @@ import (
     "crypto/rand"
     "encoding/hex"
     "github.com/pborman/uuid"
+    "github.com/OneOfOne/xxhash"
 )
 
 const (
@@ -25,6 +26,7 @@ const (
     PacketTypeChunkDelete = 5
     ChunkSize = 65536
     GuidSize = 16
+    HashSize = 8
 )
 
 type Client struct {
@@ -32,32 +34,38 @@ type Client struct {
     Con  net.Conn
 }
 
-type PacketHeader struct {
+type PacketHeaderBase struct {
     Magic    uint32
     Type     uint32
     DataSize uint32
     Result   uint32
+    DataHash [HashSize]byte
+}
+
+type PacketHeader struct {
+    Base    PacketHeaderBase
+    Hash    [HashSize]byte
 }
 
 type Packet struct {
-	Header PacketHeader
-	Body   []byte
+    Header PacketHeader
+    Body   []byte
 }
 
 type ToBytes interface {
-	ToBytes() ([]byte, error)
+    ToBytes() ([]byte, error)
 }
 
 type ParseBytes interface {
-	ParseBytes(body []byte) error
+    ParseBytes(body []byte) error
 }
 
 type ReqPing struct {
-	Value [PacketMaxDataSize]byte
+    Value [PacketMaxDataSize]byte
 }
 
 type RespPing struct {
-	Value [PacketMaxDataSize]byte
+    Value [PacketMaxDataSize]byte
 }
 
 type ReqChunkCreate struct {
@@ -91,207 +99,275 @@ type RespChunkDelete struct {
 }
 
 func (req *ReqPing) ToBytes() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, req)
-	if err != nil {
-		return nil, err
-	}
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, req)
+    if err != nil {
+        return nil, err
+    }
 
-	return buf.Bytes(), nil
+    return buf.Bytes(), nil
 }
 
 func (resp *RespPing) ParseBytes(body []byte) error {
-	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
-	if err != nil {
-		return err
-	}
-	return nil
+    err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
 func (req *ReqChunkCreate) ToBytes() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, req)
+    if err != nil {
+        return nil, err
+    }
+    return buf.Bytes(), nil
 }
 
 func (resp *RespChunkCreate) ParseBytes(body []byte) error {
-	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
-	if err != nil {
-		return err
-	}
-	return nil
+    err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
 func (req *ReqChunkWrite) ToBytes() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, req)
+    if err != nil {
+        return nil, err
+    }
+    return buf.Bytes(), nil
 }
 
 func (resp *RespChunkWrite) ParseBytes(body []byte) error {
-	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
-	if err != nil {
-		return err
-	}
-	return nil
+    err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
 func (req *ReqChunkRead) ToBytes() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, req)
+    if err != nil {
+        return nil, err
+    }
+    return buf.Bytes(), nil
 }
 
 func (resp *RespChunkRead) ParseBytes(body []byte) error {
-	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
-	if err != nil {
-		return err
-	}
-	return nil
+    err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
 func (req *ReqChunkDelete) ToBytes() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, req)
-	if err != nil {
-		return nil, err
-	}
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, req)
+    if err != nil {
+        return nil, err
+    }
 
-	return buf.Bytes(), nil
+    return buf.Bytes(), nil
 }
 
 func (resp *RespChunkDelete) ParseBytes(body []byte) error {
-	err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
-	if err != nil {
-		return err
-	}
-	return nil
+    err := binary.Read(bytes.NewReader(body), binary.LittleEndian, resp)
+    if err != nil {
+        return err
+    }
+    return nil
 }
 
 func NewClient(host string) *Client {
-	client := new(Client)
-	client.Host = host
-	return client
+    client := new(Client)
+    client.Host = host
+    return client
 }
 
 func (client *Client) Dial() error {
-	con, err := net.Dial("tcp", client.Host)
-	if err != nil {
-		return err
-	}
-	client.Con = con
-	return nil
+    con, err := net.Dial("tcp", client.Host)
+    if err != nil {
+        return err
+    }
+    client.Con = con
+    return nil
 }
 
-func (client *Client) CreatePacket(packetType uint32, body []byte) *Packet {
-	packet := new(Packet)
-	packet.Header.Magic = PacketMagic
-	packet.Header.Type = packetType
-	packet.Header.DataSize = uint32(len(body))
-	packet.Header.Result = 0
-	packet.Body = body
-	return packet
+func (header *PacketHeaderBase) GetBytes() ([]byte, error) {
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, header)
+    if err != nil {
+        return nil, err
+    }
+
+    return buf.Bytes(), nil
+}
+
+func getUint64Bytes(val uint64) ([]byte, error) {
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, &val)
+    if err != nil {
+        return nil, err
+    }
+
+    return buf.Bytes(), nil
+}
+
+func getHash(data []byte) ([]byte, error) {
+    h := xxhash.New64()
+    h.Write(data)
+    return getUint64Bytes(h.Sum64())
+}
+
+func (client *Client) CreatePacket(packetType uint32, body []byte) (*Packet, error) {
+    packet := new(Packet)
+    packet.Header.Base.Magic = PacketMagic
+    packet.Header.Base.Type = packetType
+    packet.Header.Base.DataSize = uint32(len(body))
+    packet.Header.Base.Result = 0
+
+    hash, err := getHash(body)
+    if err != nil {
+        return nil, err
+    }
+
+    copy(packet.Header.Base.DataHash[:], hash)
+
+    buf, err := packet.Header.Base.GetBytes()
+    if err != nil {
+        return nil, err
+    }
+
+    hash, err = getHash(buf)
+    if err != nil {
+        return nil, err
+    }
+
+    copy(packet.Header.Hash[:], hash)
+
+    packet.Body = body
+    return packet, nil
 }
 
 func (client *Client) SendPacket(packet *Packet) error {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.LittleEndian, &packet.Header)
-	if err != nil {
-		return err
-	}
+    buf := new(bytes.Buffer)
+    err := binary.Write(buf, binary.LittleEndian, &packet.Header)
+    if err != nil {
+        return err
+    }
 
-	err = binary.Write(buf, binary.LittleEndian, packet.Body)
-	if err != nil {
-		return err
-	}
+    err = binary.Write(buf, binary.LittleEndian, packet.Body)
+    if err != nil {
+        return err
+    }
 
-	n, err := client.Con.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
+    n, err := client.Con.Write(buf.Bytes())
+    if err != nil {
+        return err
+    }
 
-	if n != buf.Len() {
-		return errors.New("Incomplete I/O")
-	}
+    if n != buf.Len() {
+        return errors.New("Incomplete I/O")
+    }
 
-	return nil
+    return nil
 }
 
 func (client *Client) RecvPacket() (*Packet, error) {
-        packet := new(Packet)
-	err := binary.Read(client.Con, binary.LittleEndian, &packet.Header)
-	if err != nil {
-		return nil, err
-	}
+    packet := new(Packet)
+    err := binary.Read(client.Con, binary.LittleEndian, &packet.Header)
+    if err != nil {
+        return nil, err
+    }
 
-	if packet.Header.Magic != PacketMagic {
-		return nil, errors.New("Invalid packet magic")
-	}
+    if packet.Header.Base.Magic != PacketMagic {
+        return nil, errors.New("Invalid packet magic")
+    }
 
-	if packet.Header.DataSize > PacketMaxDataSize {
-		return nil, errors.New("Packet data size too big")
-	}
-        body := make([]byte, packet.Header.DataSize)
-	if packet.Header.DataSize != 0 {
-		n, err := io.ReadFull(client.Con, body)
-		if err != nil {
-			return nil, err
-		}
+    if packet.Header.Base.DataSize > PacketMaxDataSize {
+        return nil, errors.New("Packet data size too big")
+    }
 
-		if uint32(n) != packet.Header.DataSize {
-			return nil, errors.New("Incomplete I/O")
-		}
-	}
-	packet.Body = body
+    buf, err := packet.Header.Base.GetBytes()
+    if err != nil {
+        return nil, err
+    }
 
-	return packet, nil
+    hash, err := getHash(buf)
+    if err != nil {
+        return nil, err
+    }
+
+
+    if !bytes.Equal(hash, packet.Header.Hash[:]) {
+        return nil, errors.New("Packet header data corruption")
+    }
+
+
+    body := make([]byte, packet.Header.Base.DataSize)
+    if packet.Header.Base.DataSize != 0 {
+        n, err := io.ReadFull(client.Con, body)
+        if err != nil {
+            return nil, err
+        }
+
+        if uint32(n) != packet.Header.Base.DataSize {
+            return nil, errors.New("Incomplete I/O")
+        }
+
+        hash, err := getHash(body)
+        if err != nil {
+            return nil, err
+        }
+
+        if !bytes.Equal(hash, packet.Header.Base.DataHash[:]) {
+            return nil, errors.New("Packet data corruption")
+        }
+    }
+    packet.Body = body
+    return packet, nil
 }
 
 func (client *Client) MakePacket(reqType uint32, req ToBytes) (*Packet, error) {
-	body, err := req.ToBytes()
-	if err != nil {
-		return nil, err
-	}
-	return client.CreatePacket(reqType, body), nil
+    body, err := req.ToBytes()
+    if err != nil {
+        return nil, err
+    }
+    return client.CreatePacket(reqType, body)
 }
 
 func (client *Client) SendRequest(reqType uint32, req ToBytes) error {
-	packet, err := client.MakePacket(reqType, req)
-	if err != nil {
-		return err
-	}
+    packet, err := client.MakePacket(reqType, req)
+    if err != nil {
+        return err
+    }
 
-	return client.SendPacket(packet)
+    return client.SendPacket(packet)
 }
 
 func (client *Client) RecvResponse(respType uint32, resp ParseBytes) error {
-	packet, err := client.RecvPacket()
-	if err != nil {
-		return err
-	}
+    packet, err := client.RecvPacket()
+    if err != nil {
+        return err
+    }
 
-	if packet.Header.Type != respType {
-		return fmt.Errorf("Unexpected packet type %d, should be %d",
-			packet.Header.Type, respType)
-	}
+    if packet.Header.Base.Type != respType {
+        return fmt.Errorf("Unexpected packet type %d, should be %d",
+			packet.Header.Base.Type, respType)
+    }
 
-	if packet.Header.Result != 0 {
-		return fmt.Errorf("Packet error: %d", int32(packet.Header.Result))
-	}
+    if packet.Header.Base.Result != 0 {
+        return fmt.Errorf("Packet error: %d", int32(packet.Header.Base.Result))
+    }
 
-	return resp.ParseBytes(packet.Body)
+    return resp.ParseBytes(packet.Body)
 }
 
 func (client *Client) SendRecv(reqType uint32, req ToBytes, resp ParseBytes) error {
@@ -476,7 +552,7 @@ func main() {
     wg := new(sync.WaitGroup)
     for _, client := range clients {
         wg.Add(1)
-        go testClient(10, client, wg)
+        go testClient(1, client, wg)
     }
     wg.Wait()
 

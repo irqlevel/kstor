@@ -50,11 +50,13 @@ public:
 
     static const int BadMagic = -509;
 
-    static const int DataCorrupt = -510;
+    static const int HeaderCorrupt = -510;
 
-    static const int BadSize = -511;
+    static const int DataCorrupt = -511;
 
-    static const int AlreadyExists = -512;
+    static const int BadSize = -512;
+
+    static const int AlreadyExists = -513;
 
     bool operator!= (const Error& other) const;
 

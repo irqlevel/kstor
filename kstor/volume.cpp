@@ -53,7 +53,8 @@ Core::Error Volume::Format()
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
     header->Size = Core::BitOps::CpuToLe64(GetSize());
-    header->Hash = Core::BitOps::CpuToLe64(Core::XXHash::GetDigest(header, OFFSET_OF(Api::VolumeHeader, Hash)));
+
+    Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
     Core::Error err;
     Core::Bio bio(Device, HeaderPage, 0, err, true);
@@ -97,8 +98,10 @@ Core::Error Volume::Load()
         return Core::Error::BadMagic;
     }
 
-    if (Core::BitOps::Le64ToCpu(header->Hash) !=
-        Core::XXHash::GetDigest(header, OFFSET_OF(Api::VolumeHeader, Hash)))
+    unsigned char hash[Api::HashSize];
+    Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), hash);
+
+    if (!Core::Memory::ArrayEqual(header->Hash, hash))
     {
         trace(0, "Volume 0x%p bad header hash", this);
         return Core::Error::DataCorrupt;

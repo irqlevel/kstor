@@ -24,6 +24,8 @@ const unsigned int ResultSuccess = 0;
 const unsigned int ResultUnexpectedDataSize = 1;
 const unsigned int ResultNotFound = 2;
 
+const unsigned int HashSize = 8;
+
 #pragma pack(push, 1)
 
 struct PacketHeader
@@ -32,6 +34,8 @@ struct PacketHeader
     unsigned int Type;
     unsigned int DataSize;
     unsigned int Result;
+    unsigned char DataHash[HashSize];
+    unsigned char Hash[HashSize];
 };
 
 struct Guid
@@ -45,7 +49,7 @@ struct VolumeHeader
     unsigned char Padding[12];
     Guid VolumeId;
     unsigned long long Size;
-    unsigned long long Hash;
+    unsigned char Hash[HashSize];
 };
 
 struct ChunkCreateRequest

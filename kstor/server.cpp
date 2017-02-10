@@ -1,6 +1,8 @@
 #include "server.h"
 #include "control_device.h"
 #include <core/bitops.h>
+#include <core/xxhash.h>
+#include <core/hex.h>
 
 namespace KStor 
 {
@@ -26,6 +28,16 @@ Api::PacketHeader *Packet::GetHeader()
 
 Core::Error Packet::Parse(const Api::PacketHeader &header)
 {
+    unsigned char hash[Api::HashSize];
+    Core::XXHash::Sum(&header, OFFSET_OF(Api::PacketHeader, Hash), hash);
+
+    trace(4, "Connection 0x%p packet header hash %s calc hash %s",
+        this, Core::Hex::Encode(header.Hash, Core::Memory::ArraySize(header.Hash)).GetBuf(),
+        Core::Hex::Encode(hash, Core::Memory::ArraySize(hash)).GetBuf());
+
+    if (!Core::Memory::ArrayEqual(header.Hash, hash))
+        return Core::Error::HeaderCorrupt;
+
     unsigned int magic = Core::BitOps::Le32ToCpu(header.Magic);
     unsigned int type = Core::BitOps::Le32ToCpu(header.Type);
     unsigned int result = Core::BitOps::Le32ToCpu(header.Result);
@@ -70,7 +82,6 @@ unsigned int Packet::GetResult() const
 void Packet::SetResult(unsigned int result)
 {
     Result = result;
-    GetHeader()->Result = Core::BitOps::CpuToLe32(Result);
 }
 
 void* Packet::GetData()
@@ -83,7 +94,7 @@ void* Packet::GetBody()
     return const_cast<unsigned char *>(Body.GetBuf());
 }
 
-Core::Error Packet::Prepare(unsigned int type, unsigned int result, unsigned int dataSize)
+Core::Error Packet::Create(unsigned int type, unsigned int result, unsigned int dataSize)
 {
     if (dataSize > Api::PacketMaxDataSize)
         return Core::Error::BufToBig;
@@ -96,11 +107,18 @@ Core::Error Packet::Prepare(unsigned int type, unsigned int result, unsigned int
     Result = result;
     DataSize = dataSize;
 
+    return Core::Error::Success;
+}
+
+void Packet::PrepareSend()
+{
     GetHeader()->Type = Core::BitOps::CpuToLe32(Type);
     GetHeader()->Result = Core::BitOps::CpuToLe32(Result);
     GetHeader()->DataSize = Core::BitOps::CpuToLe32(DataSize);
     GetHeader()->Magic = Core::BitOps::CpuToLe32(Api::PacketMagic);
-    return Core::Error::Success;
+
+    Core::XXHash::Sum(GetData(), GetDataSize(), GetHeader()->DataHash);
+    Core::XXHash::Sum(GetHeader(), OFFSET_OF(Api::PacketHeader, Hash), GetHeader()->Hash);
 }
 
 Packet::~Packet()
@@ -207,11 +225,23 @@ PacketPtr Server::Connection::RecvPacket(Core::Error& err)
         return packet;
     }
 
+    unsigned char hash[Api::HashSize];
+    Core::XXHash::Sum(packet->GetData(), packet->GetDataSize(), hash);
+    if (!Core::Memory::ArrayEqual(header.DataHash, hash))
+    {
+        err = Core::Error::DataCorrupt;
+        trace(0, "Connection 0x%p packet body corrupt err %d", this, err.GetCode());
+        packet.Reset();
+        return packet;
+    }
+
     return packet;
 }
 
 Core::Error Server::Connection::SendPacket(PacketPtr& packet)
 {
+    packet->PrepareSend();
+
     unsigned long sent;
     Core::Error err = Sock->SendAll(packet->GetBody(), packet->GetSize(), sent);
     if (!err.Ok())
@@ -450,7 +480,7 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
     trace(3, "Server 0x%p handle ping, data size %lu",
         this, request->GetDataSize());
 
-    err = response->Prepare(request->GetType(), Api::ResultSuccess, request->GetDataSize());
+    err = response->Create(request->GetType(), Api::ResultSuccess, request->GetDataSize());
     if (!err.Ok())
         return err;
 
@@ -466,10 +496,10 @@ Core::Error Server::HandleChunkCreate(PacketPtr& request, PacketPtr& response)
     Api::ChunkCreateRequest* req = static_cast<Api::ChunkCreateRequest*>(request->GetData());
     if (request->GetDataSize() != sizeof(*req))
     {
-        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+        return response->Create(request->GetType(), Api::ResultUnexpectedDataSize, 0);
     }
 
-    err =  response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    err =  response->Create(request->GetType(), Api::ResultSuccess, 0);
     if (!err.Ok())
         return err;
 
@@ -480,7 +510,7 @@ Core::Error Server::HandleChunkCreate(PacketPtr& request, PacketPtr& response)
         response->SetResult(Api::ResultNotFound);
     }
 
-    return response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    return response->Create(request->GetType(), Api::ResultSuccess, 0);
 }
 
 Core::Error Server::HandleChunkWrite(PacketPtr& request, PacketPtr& response)
@@ -490,10 +520,10 @@ Core::Error Server::HandleChunkWrite(PacketPtr& request, PacketPtr& response)
     Api::ChunkWriteRequest* req = static_cast<Api::ChunkWriteRequest*>(request->GetData());
     if (request->GetDataSize() != sizeof(*req))
     {
-        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+        return response->Create(request->GetType(), Api::ResultUnexpectedDataSize, 0);
     }
 
-    err = response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    err = response->Create(request->GetType(), Api::ResultSuccess, 0);
     if (!err.Ok())
         return err;
 
@@ -512,11 +542,11 @@ Core::Error Server::HandleChunkRead(PacketPtr& request, PacketPtr& response)
     Api::ChunkReadRequest* req = static_cast<Api::ChunkReadRequest*>(request->GetData());
     if (request->GetDataSize() != sizeof(*req))
     {
-        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+        return response->Create(request->GetType(), Api::ResultUnexpectedDataSize, 0);
     }
 
     Api::ChunkReadResponse* resp = nullptr;
-    Core::Error err = response->Prepare(request->GetType(), Api::ResultSuccess, sizeof(*resp));
+    Core::Error err = response->Create(request->GetType(), Api::ResultSuccess, sizeof(*resp));
     if (!err.Ok())
         return err;
 
@@ -538,10 +568,10 @@ Core::Error Server::HandleChunkDelete(PacketPtr& request, PacketPtr& response)
     Api::ChunkDeleteRequest* req = static_cast<Api::ChunkDeleteRequest*>(request->GetData());
     if (request->GetDataSize() != sizeof(*req))
     {
-        return response->Prepare(request->GetType(), Api::ResultUnexpectedDataSize, 0);
+        return response->Create(request->GetType(), Api::ResultUnexpectedDataSize, 0);
     }
 
-    err =  response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    err =  response->Create(request->GetType(), Api::ResultSuccess, 0);
     if (!err.Ok())
         return err;
 
@@ -552,7 +582,7 @@ Core::Error Server::HandleChunkDelete(PacketPtr& request, PacketPtr& response)
         response->SetResult(Api::ResultNotFound);
     }
 
-    return response->Prepare(request->GetType(), Api::ResultSuccess, 0);
+    return response->Create(request->GetType(), Api::ResultSuccess, 0);
 }
 
 PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
@@ -583,7 +613,7 @@ PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
         err = HandleChunkDelete(request, response);
         break;
     default:
-        err = response->Prepare(request->GetType(), Core::Error::UnknownCode, 0);
+        err = response->Create(request->GetType(), Core::Error::UnknownCode, 0);
         break;
     }
 
