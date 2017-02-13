@@ -12,6 +12,7 @@ const unsigned int PacketMaxDataSize = 2 * 65536;
 const unsigned int GuidSize = 16;
 const unsigned int VolumeMagic = 0xCBDACBDA;
 const unsigned int JournalMagic = 0xBCDEBCDE;
+const unsigned int JournalCommitMagic = 0xCFEDCFED;
 
 const unsigned int PacketTypePing = 1;
 const unsigned int PacketTypeChunkCreate = 2;
@@ -28,6 +29,10 @@ const unsigned int ResultNotFound = 2;
 const unsigned int HashSize = 8;
 
 const unsigned int PageSize = 4096;
+
+const unsigned int JournalTypeDesc = 1;
+const unsigned int JournalTypeData = 2;
+const unsigned int JournalTypeCommit = 3;
 
 #pragma pack(push, 1)
 
@@ -72,10 +77,21 @@ struct JournalHeader
 
 static_assert(sizeof(JournalHeader) == PageSize, "Bad size");
 
+struct JournalBlock
+{
+    Guid TransactionId;
+    unsigned int Type;
+    unsigned char Unused[PageSize - 16 - 8 - 4];
+    unsigned char Hash[HashSize];
+};
+
+static_assert(sizeof(JournalBlock) == PageSize, "Bad size");
+
 struct JournalDescBlock
 {
     Guid TransactionId;
-    unsigned char Unused[PageSize - 16 - 8];
+    unsigned int Type;
+    unsigned char Unused[PageSize - 16 - 8 - 4];
     unsigned char Hash[HashSize];
 };
 
@@ -84,7 +100,10 @@ static_assert(sizeof(JournalDescBlock) == PageSize, "Bad size");
 struct JournalDataBlock
 {
     Guid TransactionId;
-    unsigned char Data[PageSize - 16 - 8];
+    unsigned int Type;
+    unsigned char Data[PageSize - 16 - 2 * 8 - 4 - 4];
+    unsigned long long Position;
+    unsigned int Size;
     unsigned char Hash[HashSize];
 };
 
@@ -93,7 +112,9 @@ static_assert(sizeof(JournalDataBlock) == PageSize, "Bad size");
 struct JournalCommitBlock
 {
     Guid TransactionId;
-    unsigned char Unused[PageSize - 16 - 8];
+    unsigned int Type;
+    unsigned int Magic;
+    unsigned char Unused[PageSize - 16 - 8 - 4 - 4];
     unsigned char Hash[HashSize];
 };
 

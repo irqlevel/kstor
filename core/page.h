@@ -25,6 +25,9 @@ public:
 
     virtual ~Page();
 
+    void Read(void *buf, size_t len);
+    void Write(const void *buf, size_t len);
+
 private:
     Page(const Page& other) = delete;
     Page(Page&& other) = delete;

@@ -76,6 +76,20 @@ int Page::CompareContent(Page& other)
     return rc;
 }
 
+void Page::Read(void *buf, size_t len)
+{
+    void* va = MapAtomic();
+    Core::Memory::MemCpy(buf, va, Core::Memory::Min<size_t>(len, GetPageSize()));
+    UnmapAtomic(va);
+}
+
+void Page::Write(const void *buf, size_t len)
+{
+    void* va = MapAtomic();
+    Core::Memory::MemCpy(va, buf, Core::Memory::Min<size_t>(len, GetPageSize()));
+    UnmapAtomic(va);
+}
+
 Page::~Page()
 {
     if (PagePtr != nullptr)

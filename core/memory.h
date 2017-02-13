@@ -102,6 +102,24 @@ namespace Memory
         get_kapi()->kfree(ptr);
     }
 
+    template <typename T>
+    T Min(const T& a, const T& b)
+    {
+        if (a < b)
+            return a;
+
+        return b;
+    }
+
+    template <typename T>
+    T Max(const T& a, const T& b)
+    {
+        if (a > b)
+            return a;
+
+        return b;
+    }
+
 }
 
 }

@@ -179,4 +179,58 @@ Core::Error Journal::Replay()
     return err;
 }
 
+
+JournalBlockPtr Journal::ReadBlock(uint64_t index, Core::Error& err)
+{
+    if (index <= Start || index >= (Start + Size))
+    {
+        err = Core::Error::InvalidValue;
+        return JournalBlockPtr();
+    }
+
+    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    if (!err.Ok())
+        return JournalBlockPtr();
+
+    err = VolumeRef.GetDevice().Read(page, index * VolumeRef.GetBlockSize());
+    if (!err.Ok())
+        return JournalBlockPtr();
+
+    JournalBlockPtr block = Core::MakeShared<Api::JournalBlock, Core::Memory::PoolType::Kernel>();
+    if (block.Get() == nullptr)
+    {
+        err = Core::Error::NoMemory;
+        return block;
+    }
+
+    page.Read(block.Get(), sizeof(*block.Get()));
+
+    unsigned char hash[Api::HashSize];
+    Core::XXHash::Sum(block.Get(), OFFSET_OF(Api::JournalBlock, Hash), hash);
+    if (!Core::Memory::ArrayEqual(hash, block->Hash))
+    {
+        err = Core::Error::DataCorrupt;
+        trace(0, "Journal 0x%p block %llu data corrupt", this, index);
+        block.Reset();
+        return block;
+    }
+
+    return block;
+}
+
+Core::Error Journal::WriteBlock(uint64_t index, const JournalBlockPtr& block)
+{
+    if (index <= Start || index >= (Start + Size))
+        return Core::Error::InvalidValue;
+
+    Core::Error err;
+    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    if (!err.Ok())
+        return err;
+
+    Core::XXHash::Sum(block.Get(), OFFSET_OF(Api::JournalBlock, Hash), block->Hash);
+    page.Write(block.Get(), sizeof(*block.Get()));
+    return VolumeRef.GetDevice().Write(page, index * VolumeRef.GetBlockSize());
+}
+
 }

@@ -33,6 +33,8 @@ private:
 
 typedef Core::SharedPtr<Transaction, Core::Memory::PoolType::Kernel> TransactionPtr;
 
+typedef Core::SharedPtr<Api::JournalBlock, Core::Memory::PoolType::Kernel> JournalBlockPtr;
+
 class Journal
 {
 public:
@@ -55,6 +57,12 @@ public:
     Core::Error Replay();
 
 private:
+
+    JournalBlockPtr ReadBlock(uint64_t index, Core::Error& err);
+    Core::Error WriteBlock(uint64_t index, const JournalBlockPtr& block);
+
+private:
+
     Volume& VolumeRef;
     Core::HashTable<Guid, TransactionPtr, Core::RWSem, Core::Memory::PoolType::Kernel, 512> TxTable;
     uint64_t Start;
