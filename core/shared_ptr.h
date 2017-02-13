@@ -102,12 +102,12 @@ public:
         return (ObjectRef != nullptr) ? ObjectRef->Object : nullptr;
     }
 
-    T& operator*()
+    T& operator*() const
     {
         return *Get();
     }
 
-    T* operator->()
+    T* operator->() const
     {
         return Get();
     }

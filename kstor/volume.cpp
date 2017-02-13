@@ -1,7 +1,6 @@
 #include "volume.h"
 
 #include <core/trace.h>
-#include <core/bio.h>
 #include <core/bitops.h>
 #include <core/hex.h>
 #include <core/xxhash.h>
@@ -9,34 +8,20 @@
 namespace KStor
 {
 
-Volume::Volume(const Core::AString& deviceName, bool format, Core::Error& err)
+Volume::Volume(const Core::AString& deviceName, Core::Error& err)
     : DeviceName(deviceName, err)
     , Device(DeviceName, err)
-    , HeaderPage(Core::Memory::PoolType::Kernel, err)
+    , Size(0)
+    , BlockSize(0)
+    , JournalObj(*this)
 {
     if (!err.Ok())
     {
-        goto out;
+        return;
     }
 
-    trace(1, "Volume 0x%p size 0x%llx", this, Device.GetSize());
-
-    HeaderPage.Zero();
-
-    if (format)
-    {
-        err = Format();
-    }
-
-    if (!err.Ok())
-    {
-        goto out;
-    }
-
-    err = Load();
-
-out:
-    trace(1, "Volume 0x%p name %s ctor err %d", this, deviceName.GetBuf(), err.GetCode());
+    trace(1, "Volume 0x%p name %s size %llu ctor",
+        this, deviceName.GetBuf(), Device.GetSize());
 }
 
 Volume::~Volume()
@@ -44,30 +29,41 @@ Volume::~Volume()
     trace(1, "Volume 0x%p dtor", this);
 }
 
-Core::Error Volume::Format()
+Core::Error Volume::Format(unsigned long blockSize)
 {
-    VolumeId.Generate();
+    if (blockSize == 0 || blockSize % Api::PageSize)
+        return Core::Error::InvalidValue;
 
-    Core::PageMap headerMap(HeaderPage);
-    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(headerMap.GetAddress());
+    uint64_t size = Device.GetSize();
+    if (size == 0 || size % blockSize)
+        return Core::Error::InvalidValue;
+
+    BlockSize = blockSize;
+    Size = size;
+
+    Core::Error err = JournalObj.Format(1, (size / 10) / blockSize);
+    if (!err.Ok())
+        return err;
+
+    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    if (!err.Ok())
+        return err;
+    page.Zero();
+
+    VolumeId.Generate();
+    Core::PageMap pageMap(page);
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(pageMap.GetAddress());
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
-    header->Size = Core::BitOps::CpuToLe64(GetSize());
+    header->Size = Core::BitOps::CpuToLe64(size);
+    header->BlockSize = Core::BitOps::CpuToLe64(blockSize);
+    header->JournalSize = Core::BitOps::CpuToLe64(JournalObj.GetSize());
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
-    Core::Error err;
-    Core::Bio bio(Device, HeaderPage, 0, err, true);
-    if (!err.Ok())
-    {
-        trace(0, "Volume 0x%p can't init bio, err %d", this, err.GetCode());
-        return err;
-    }
-    bio.Submit();
-    bio.Wait();
-    err = bio.GetError();
+    err = Device.Write(page, 0);
 
-    trace(1, "Volume 0x%p format err %d", this, err.GetCode());
+    trace(1, "Volume 0x%p write header, err %d", this, err.GetCode());
 
     return err;
 }
@@ -75,23 +71,19 @@ Core::Error Volume::Format()
 Core::Error Volume::Load()
 {
     Core::Error err;
-    Core::Bio bio(Device, HeaderPage, 0, err, false);
+    Core::Page page(Core::Memory::PoolType::Kernel, err);
     if (!err.Ok())
-    {
-        trace(0, "Volume 0x%p can't init bio, err %d", this, err.GetCode());
         return err;
-    }
-    bio.Submit();
-    bio.Wait();
-    err = bio.GetError();
+
+    err = Device.Read(page, 0);
     if (!err.Ok())
     {
-        trace(0, "Volume 0x%p bio read header, err %d", this, err.GetCode());
+        trace(0, "Volume 0x%p read header, err %d", this, err.GetCode());
         return err;
     }
 
-    Core::PageMap headerMap(HeaderPage);
-    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(headerMap.GetAddress());
+    Core::PageMap pageMap(page);
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(pageMap.GetAddress());
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
     {
         trace(0, "Volume 0x%p bad header magic", this);
@@ -107,15 +99,50 @@ Core::Error Volume::Load()
         return Core::Error::DataCorrupt;
     }
 
-    if (Core::BitOps::Le64ToCpu(header->Size) != GetSize())
+    uint64_t size = Core::BitOps::Le64ToCpu(header->Size);
+    uint64_t blockSize = Core::BitOps::Le64ToCpu(header->BlockSize);
+
+    if (blockSize == 0 || blockSize % Api::PageSize || size % blockSize)
     {
-        trace(0, "Volume 0x%p bad size", this);
+        trace(0, "Volume 0x%p bad block size %llu", this, blockSize);
         return Core::Error::BadSize;
     }
 
+    if (size == 0 || size != Device.GetSize())
+    {
+        trace(0, "Volume 0x%p bad size %llu", this, size);
+        return Core::Error::BadSize;
+    }
+
+    uint64_t journalSize = Core::BitOps::Le64ToCpu(header->JournalSize);
+    err = JournalObj.Load(1);
+    if (!err.Ok())
+    {
+        trace(0, "Volume 0x%p can't load journal, err %d", this, err.GetCode());
+        return err;
+    }
+
+    if (JournalObj.GetSize() != journalSize)
+    {
+        trace(0, "Volume 0x%p bad journal size %llu vs. %llu",
+            this, JournalObj.GetSize(), journalSize);
+        return Core::Error::BadSize;
+    }
+
+    err = JournalObj.Replay();
+    if (!err.Ok())
+    {
+         trace(0, "Volume 0x%p journal replay err %d", this, err);
+         return err;
+    }
+
+    Size = size;
+    BlockSize = blockSize;
+
     VolumeId.SetContent(header->VolumeId);
 
-    trace(1, "Volume 0x%p load volumeId %s", this, VolumeId.ToString().GetBuf());
+    trace(1, "Volume 0x%p load volumeId %s size %llu blockSize %llu",
+        this, VolumeId.ToString().GetBuf(), Size, BlockSize);
 
     return err;
 }
@@ -125,9 +152,14 @@ const Guid& Volume::GetVolumeId() const
     return VolumeId;
 }
 
-unsigned long long Volume::GetSize() const
+uint64_t Volume::GetSize() const
 {
-    return Device.GetSize();
+    return Size;
+}
+
+uint64_t Volume::GetBlockSize() const
+{
+    return BlockSize;
 }
 
 const Core::AString& Volume::GetDeviceName() const

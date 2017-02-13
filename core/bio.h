@@ -30,6 +30,8 @@ public:
     void Wait();
     Error GetError();
 
+    Error Exec();
+
     virtual ~Bio();
 
 private:

@@ -68,7 +68,7 @@ int Ctl::GetRandomUlong(unsigned long& value)
     return err;
 }
 
-int Ctl::Mount(const char* deviceName, bool format, KStor::Api::Guid& volumeId)
+int Ctl::Mount(const char* deviceName, bool format, unsigned long blockSize, KStor::Api::Guid& volumeId)
 {
     Cmd cmd;
 
@@ -77,7 +77,7 @@ int Ctl::Mount(const char* deviceName, bool format, KStor::Api::Guid& volumeId)
     auto& params = cmd.Union.Mount;
     snprintf(params.DeviceName, ArraySize(params.DeviceName), "%s", deviceName);
     params.Format = format;
-
+    params.BlockSize = blockSize;
     int err = ioctl(DevFd, IOCTL_KSTOR_MOUNT, &cmd);
     if (!err)
     {

@@ -37,6 +37,7 @@ struct Cmd
             char DeviceName[DeviceNameMaxChars];
             Api::Guid VolumeId;
             bool Format;
+            unsigned long BlockSize;
         } Mount;
 
         struct 

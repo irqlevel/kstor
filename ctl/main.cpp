@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     std::string cmd(argv[1]);
     if (cmd == "mount")
     {
-        if (argc != 3)
+        if (argc != 4)
         {
             printf("Invalid number of args\n");
             return 1;
@@ -29,7 +29,8 @@ int main(int argc, char* argv[])
 
         std::string deviceName(argv[2]);
         KStor::Api::Guid volumeId;
-        err = ctl.Mount(deviceName.c_str(), true, volumeId);
+        unsigned long blockSize = strtoul(argv[3], nullptr, 10);
+        err = ctl.Mount(deviceName.c_str(), true, blockSize, volumeId);
         if (err)
         {
             printf("Ctl mount err %d\n", err);

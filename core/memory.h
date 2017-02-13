@@ -2,6 +2,7 @@
 
 #include "kapi.h"
 #include "pool_type.h"
+#include "type.h"
 
 namespace Core
 {

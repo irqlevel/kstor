@@ -22,5 +22,5 @@ echo '' > /sys/kernel/debug/tracing/trace
 echo 1 > /sys/kernel/debug/tracing/events/kstor/enable
 echo 1 > /sys/kernel/debug/tracing/tracing_on
 
-bin/kstor-ctl mount /dev/$LOOP_NAME
+bin/kstor-ctl mount /dev/$LOOP_NAME 4096
 bin/kstor-ctl start-server 127.0.0.1 8111

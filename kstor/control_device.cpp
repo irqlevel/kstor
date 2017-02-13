@@ -22,7 +22,7 @@ ControlDevice::ControlDevice(Core::Error& err)
 {
 }
 
-Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, Guid& volumeId)
+Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, uint64_t blockSize, Guid& volumeId)
 {
     Core::AutoLock lock(VolumeLock);
     if (VolumeRef.Get() != nullptr)
@@ -31,17 +31,34 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, G
     }
 
     Core::Error err;
-    VolumeRef = Core::MakeShared<Volume, Core::Memory::PoolType::Kernel>(deviceName, format, err);
+    VolumeRef = Core::MakeShared<Volume, Core::Memory::PoolType::Kernel>(deviceName, err);
     if (VolumeRef.Get() == nullptr)
     {
-        trace(1, "CtrlDev 0x%p can't allocate device", this);
+        trace(0, "CtrlDev 0x%p can't allocate device", this);
         err.SetNoMemory();
         return err;
     }
 
     if (!err.Ok())
     {
-        trace(1, "CtrlDev 0x%p device init err %d", this, err.GetCode());
+        trace(0, "CtrlDev 0x%p device init err %d", this, err.GetCode());
+        return err;
+    }
+
+    if (format)
+    {
+        err = VolumeRef->Format(blockSize);
+        if (!err.Ok())
+        {
+            trace(0, "CtrlDev 0x%p device format err %d", this, err.GetCode());
+            return err;
+        }
+    }
+
+    err = VolumeRef->Load();
+    if (!err.Ok())
+    {
+        trace(0, "CtrlDev 0x%p device load err %d", this, err.GetCode());
         return err;
     }
 
@@ -137,7 +154,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         }
 
         Guid volumeId;
-        err = Mount(deviceName, params.Format, volumeId);
+        err = Mount(deviceName, params.Format, params.BlockSize, volumeId);
         if (err.Ok()) {
             params.VolumeId = volumeId.GetContent();
         }

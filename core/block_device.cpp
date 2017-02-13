@@ -1,5 +1,6 @@
 #include "block_device.h"
 #include "trace.h"
+#include "bio.h"
 
 namespace Core
 {
@@ -44,6 +45,32 @@ BlockDevice::~BlockDevice()
         get_kapi()->bdev_put(BDevPtr, Mode);
         BDevPtr = nullptr;
     }
+}
+
+Error BlockDevice::ExecIo(Page& page, unsigned long long position, bool write)
+{
+    if (position & 511)
+        return Error::InvalidValue;
+
+    Error err;
+    Bio bio(*this, page, position / 512, err, write);
+    if (!err.Ok())
+    {
+        trace(0, "BDev 0x%p can't init bio, err %d", this, err.GetCode());
+        return err;
+    }
+
+    return bio.Exec();
+}
+
+Error BlockDevice::Write(Page& page, unsigned long long position)
+{
+    return ExecIo(page, position, true);
+}
+
+Error BlockDevice::Read(Page& page, unsigned long long position)
+{
+    return ExecIo(page, position, false);
 }
 
 }

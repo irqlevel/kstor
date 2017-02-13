@@ -11,6 +11,7 @@
 
 #include "guid.h"
 #include "chunk.h"
+#include "journal.h"
 
 namespace KStor 
 {
@@ -18,15 +19,17 @@ namespace KStor
 class Volume
 {
 public:
-    Volume(const Core::AString& deviceName, bool format, Core::Error& err);
+    Volume(const Core::AString& deviceName, Core::Error& err);
     virtual ~Volume();
 
-    Core::Error Format();
+    Core::Error Format(unsigned long blockSize);
     Core::Error Load();
 
     const Guid& GetVolumeId() const;
 
-    unsigned long long GetSize() const;
+    uint64_t GetSize() const;
+
+    uint64_t GetBlockSize() const;
 
     const Core::AString& GetDeviceName() const;
 
@@ -45,9 +48,11 @@ public:
 private:
     Core::AString DeviceName;
     Core::BlockDevice Device;
-    Core::Page HeaderPage;
     Guid VolumeId;
     Core::HashTable<Guid, ChunkPtr, Core::RWSem, Core::Memory::PoolType::Kernel, 512> ChunkTable;
+    uint64_t Size;
+    uint64_t BlockSize;
+    Journal JournalObj;
 };
 
 typedef Core::SharedPtr<Volume, Core::Memory::PoolType::Kernel> VolumePtr;

@@ -72,7 +72,7 @@ Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
     {
         SetRead();
     }
-
+    SetPosition(sector);
     SetBdev(blockDevice);
 }
 
@@ -143,6 +143,13 @@ void Bio::Submit()
 Error Bio::GetError()
 {
     return IoError;
+}
+
+Error Bio::Exec()
+{
+    Submit();
+    Wait();
+    return GetError();
 }
 
 Bio::~Bio()

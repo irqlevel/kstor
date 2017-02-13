@@ -22,7 +22,7 @@ public:
 
     Core::Error Ioctl(unsigned int code, unsigned long arg) override;
 
-    Core::Error Mount(const Core::AString& deviceName, bool format, Guid& volumeId);
+    Core::Error Mount(const Core::AString& deviceName, bool format, uint64_t blockSize, Guid& volumeId);
     Core::Error Unmount(const Guid& volumeId);
     Core::Error Unmount(const Core::AString& deviceName);
 

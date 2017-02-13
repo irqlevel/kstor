@@ -1,7 +1,6 @@
 #pragma once
 
 #include "memory.h"
-#include "size.h"
 #include "error.h"
 #include "bug.h"
 #include "new.h"
