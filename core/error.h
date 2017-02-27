@@ -68,7 +68,7 @@ public:
 
     bool operator== (const Error& other) const;
 
-    bool Ok()
+    bool Ok() const
     {
         return (Code == Success) ? true : false;
     }

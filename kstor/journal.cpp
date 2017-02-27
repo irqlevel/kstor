@@ -9,6 +9,7 @@
 #include <core/offsetof.h>
 #include <core/auto_lock.h>
 #include <core/shared_auto_lock.h>
+#include <core/bug.h>
 
 namespace KStor
 {
@@ -66,6 +67,7 @@ Core::Error Journal::Load(uint64_t start)
         return err;
     }
 
+    CurrBlockIndex = Start + 1;
     TxThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
     if (TxThread.Get() == nullptr)
     {
@@ -269,6 +271,81 @@ void Transaction::Cancel()
     CommitResult = Core::Error::Cancelled;
 }
 
+Core::Error Transaction::WriteTx()
+{
+    Core::Error err;
+    Core::AutoLock lock(Lock);
+
+    if (State != Api::JournalTxStateCommiting)
+    {
+        err = Core::Error::InvalidState;
+        goto fail;
+    }
+
+    uint64_t blockIndex;
+    err = JournalRef.GetNextBlockIndex(blockIndex);
+    if (!err.Ok())
+        goto fail;
+
+    err = JournalRef.WriteTxBlock(blockIndex, BeginBlock);
+    if (!err.Ok())
+        goto fail;
+
+    {
+        auto it = DataBlockList.GetIterator();
+        for (;it.IsValid(); it.Next())
+        {
+            auto block = it.Get();
+            err = JournalRef.GetNextBlockIndex(blockIndex);
+            if (!err.Ok())
+                goto fail;
+
+            err = JournalRef.WriteTxBlock(blockIndex, CommitBlock);
+            if (!err.Ok())
+                goto fail;
+        }
+    }
+
+    err = JournalRef.GetNextBlockIndex(blockIndex);
+    if (!err.Ok())
+        goto fail;
+
+    err = JournalRef.WriteTxBlock(blockIndex, CommitBlock);
+    if (!err.Ok())
+        goto fail;
+
+    return err;
+
+fail:
+    OnCommitCompleteLocked(err);
+    return err;
+}
+
+void Transaction::OnCommitCompleteLocked(const Core::Error& result)
+{
+
+    trace(1, "Tx 0x%p %s commit complete %d", this, TxId.ToString().GetBuf(), result.GetCode());
+
+    if (!result.Ok())
+    {
+        State = Api::JournalTxStateCanceled;
+        JournalRef.UnlinkTx(this, true);
+    }
+    else
+    {
+        State = Api::JournalTxStateCommited;
+    }
+    CommitResult = result;
+    CommitEvent.Set();
+}
+
+void Transaction::OnCommitComplete(const Core::Error& result)
+{
+    Core::AutoLock lock(Lock);
+
+    OnCommitCompleteLocked(result);
+}
+
 TransactionPtr Journal::BeginTx()
 {
     Core::SharedAutoLock lock(Lock);
@@ -330,18 +407,22 @@ Core::Error Journal::StartCommitTx(Transaction* tx)
     return Core::Error::Success;
 }
 
-Core::Error Journal::FlushTx(const TransactionPtr& tx)
+Core::Error Journal::WriteTx(const TransactionPtr& tx)
 {
-    trace(1, "Journal 0x%p tx 0x%p %s flush",
+    Core::AutoLock lock(Lock);
+    Core::Error err;
+
+    trace(1, "Journal 0x%p tx 0x%p %s write",
         this, tx.Get(), tx->GetTxId().ToString().GetBuf());
 
-    return Core::Error::Success;
+    return tx->WriteTx();
 }
 
 Core::Error Journal::Run(const Core::Threadable& thread)
 {
     trace(1, "Journal 0x%p tx thread start", this);
 
+    Core::LinkedList<TransactionPtr, Core::Memory::PoolType::Kernel> txList;
     while (!thread.IsStopping())
     {
         TxListEvent.Wait(10);
@@ -349,43 +430,42 @@ Core::Error Journal::Run(const Core::Threadable& thread)
         if (TxList.IsEmpty())
             continue;
 
-        TransactionPtr tx;
         {
             Core::AutoLock lock(TxListLock);
-            if (!TxList.IsEmpty())
-            {
-                tx = TxList.Head();
-                TxList.PopHead();
-            }
+            txList = Core::Memory::Move(TxList);
         }
 
-        if (tx.Get() != nullptr)
+        auto it = txList.GetIterator();
+        for (;it.IsValid(); it.Next())
         {
-            auto err = FlushTx(tx);
-            if (!err.Ok())
-                tx->Cancel();
+            auto tx = it.Get();
+            WriteTx(tx);
+        }
+
+        auto err = Flush();
+        while (!txList.IsEmpty())
+        {
+            auto tx = txList.Head();
+            txList.PopHead();
+            tx->OnCommitComplete(err);
         }
     }
 
     trace(1, "Journal 0x%p tx thread stop", this);
 
-    for (;;)
     {
-        TransactionPtr tx;
-        {
-            Core::AutoLock lock(TxListLock);
-            if (!TxList.IsEmpty())
-            {
-                tx = TxList.Head();
-                TxList.PopHead();
-            }
-        }
+        Core::AutoLock lock(TxListLock);
+        txList = Core::Memory::Move(TxList);
+    }
 
-        if (tx.Get() == nullptr)
-            break;
-
+    while (!txList.IsEmpty())
+    {
+        auto tx = txList.Head();
+        txList.PopHead();
         tx->Cancel();
     }
+
+    Flush();
 
     return Core::Error::Success;
 }
@@ -397,6 +477,13 @@ Core::Error Journal::Replay()
     State = JournalStateReplaying;
     trace(1, "Journal 0x%p replay %d", this, err.GetCode());
 
+    return err;
+}
+
+Core::Error Journal::Flush()
+{
+    Core::Error err;
+    trace(1, "Journal 0x%p flush %d", err.GetCode());
     return err;
 }
 
@@ -549,6 +636,17 @@ void Journal::Stop()
     State = JournalStateStopped;
 
     trace(1, "Journal 0x%p stopped", this);
+}
+
+Core::Error Journal::GetNextBlockIndex(uint64_t& index)
+{
+    index = CurrBlockIndex;
+    if ((CurrBlockIndex + 1) >= (Start + Size))
+        CurrBlockIndex = Start + 1;
+    else
+        CurrBlockIndex++;
+
+    return Core::Error::Success;
 }
 
 }

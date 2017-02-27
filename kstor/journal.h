@@ -24,6 +24,7 @@ typedef Core::SharedPtr<Api::JournalTxBlock, Core::Memory::PoolType::Kernel> Jou
 
 class Transaction
 {
+friend Journal;
 public:
     Transaction(Journal& journal, Core::Error &err);
 
@@ -38,7 +39,13 @@ public:
     void Cancel();
 
 private:
+
+    void OnCommitCompleteLocked(const Core::Error& result);
+    void OnCommitComplete(const Core::Error& result);
     JournalTxBlockPtr CreateTxBlock(unsigned int type);
+
+    Core::Error WriteTx();
+
     Journal& JournalRef;
     unsigned int State;
     Guid TxId;
@@ -84,7 +91,7 @@ public:
 private:
     Core::Error Replay();
     Core::Error StartCommitTx(Transaction* tx);
-    Core::Error FlushTx(const TransactionPtr& tx);
+    Core::Error WriteTx(const TransactionPtr& tx);
     void UnlinkTx(Transaction* tx, bool cancel);
 
     Core::Error ReadTxBlockComplete(Core::Page& blockPage);
@@ -93,7 +100,11 @@ private:
     JournalTxBlockPtr ReadTxBlock(uint64_t index, Core::Error& err);
     Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block);
 
+    Core::Error GetNextBlockIndex(uint64_t& index);
+
     Core::Error Run(const Core::Threadable& thread) override;
+
+    Core::Error Flush();
 
 private:
 
@@ -106,6 +117,7 @@ private:
     Core::RWSem Lock;
     uint64_t Start;
     uint64_t Size;
+    uint64_t CurrBlockIndex;
     unsigned int State;
 };
 
