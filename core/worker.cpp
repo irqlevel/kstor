@@ -20,7 +20,8 @@ bool Worker::Execute(RunnablePtr task)
         return false;
 
     bool result = TaskList.AddTail(task);
-    TaskEvent.Set();
+    if (result)
+        TaskEvent.Set();
     return result;
 }
 
@@ -39,7 +40,7 @@ Error Worker::Run(const Threadable& thread)
     while (!thread.IsStopping())
     {
         trace(255, "Run");
-        TaskEvent.Wait();
+        TaskEvent.Wait(10);
         RunnablePtr task;
         {
             AutoLock lock(Lock);

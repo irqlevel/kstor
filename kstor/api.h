@@ -30,9 +30,15 @@ const unsigned int HashSize = 8;
 
 const unsigned int PageSize = 4096;
 
-const unsigned int JournalTypeDesc = 1;
-const unsigned int JournalTypeData = 2;
-const unsigned int JournalTypeCommit = 3;
+const unsigned int JournalBlockTypeTxBegin = 1;
+const unsigned int JournalBlockTypeTxData = 2;
+const unsigned int JournalBlockTypeTxCommit = 3;
+
+const unsigned int JournalTxStateNew = 1;
+const unsigned int JournalTxStateCommiting = 2;
+const unsigned int JournalTxStateCommited = 3;
+const unsigned int JournalTxStateCanceled = 4;
+const unsigned int JournalTxStateFinished = 5;
 
 #pragma pack(push, 1)
 
@@ -77,56 +83,49 @@ struct JournalHeader
 
 static_assert(sizeof(JournalHeader) == PageSize, "Bad size");
 
-struct JournalBlock
+struct JournalTxBlock
 {
-    Guid TransactionId;
+    Guid TxId;
     unsigned int Type;
     unsigned char Unused[PageSize - 16 - 8 - 4];
     unsigned char Hash[HashSize];
 };
 
-static_assert(sizeof(JournalBlock) == PageSize, "Bad size");
+static_assert(sizeof(JournalTxBlock) == PageSize, "Bad size");
 
-struct JournalDescBlock
+struct JournalTxBeginBlock
 {
-    Guid TransactionId;
+    Guid TxId;
     unsigned int Type;
     unsigned char Unused[PageSize - 16 - 8 - 4];
     unsigned char Hash[HashSize];
 };
 
-static_assert(sizeof(JournalDescBlock) == PageSize, "Bad size");
+static_assert(sizeof(JournalTxBeginBlock) == PageSize, "Bad size");
 
-struct JournalDataBlock
+struct JournalTxDataBlock
 {
-    Guid TransactionId;
+    Guid TxId;
     unsigned int Type;
-    unsigned char Data[PageSize - 16 - 2 * 8 - 4 - 4];
+    unsigned int DataSize;
     unsigned long long Position;
-    unsigned int Size;
+    unsigned char Data[PageSize - 16 - 2 * 8 - 2 * 4];
     unsigned char Hash[HashSize];
 };
 
-static_assert(sizeof(JournalDataBlock) == PageSize, "Bad size");
+static_assert(sizeof(JournalTxDataBlock) == PageSize, "Bad size");
 
-struct JournalCommitBlock
+struct JournalTxCommitBlock
 {
-    Guid TransactionId;
+    Guid TxId;
     unsigned int Type;
-    unsigned int Magic;
-    unsigned char Unused[PageSize - 16 - 8 - 4 - 4];
+    unsigned int State;
+    unsigned long long Time;
+    unsigned char Unused[PageSize - 16 - 2 * 8 - 2 * 4];
     unsigned char Hash[HashSize];
 };
 
-static_assert(sizeof(JournalCommitBlock) == PageSize, "Bad size");
-
-struct BitmapBlock
-{
-    unsigned char Data[PageSize - 8];
-    unsigned char Hash[HashSize];
-};
-
-static_assert(sizeof(BitmapBlock) == PageSize, "Bad size");
+static_assert(sizeof(JournalTxCommitBlock) == PageSize, "Bad size");
 
 struct ChunkCreateRequest
 {

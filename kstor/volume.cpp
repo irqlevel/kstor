@@ -129,13 +129,6 @@ Core::Error Volume::Load()
         return Core::Error::BadSize;
     }
 
-    err = JournalObj.Replay();
-    if (!err.Ok())
-    {
-         trace(0, "Volume 0x%p journal replay err %d", this, err);
-         return err;
-    }
-
     Size = size;
     BlockSize = blockSize;
 

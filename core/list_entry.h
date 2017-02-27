@@ -23,6 +23,8 @@ ListEntry* RemoveTailList(ListEntry* listHead);
 
 void InsertTailList(ListEntry* listHead, ListEntry* entry);
 
+void AppendTailList(ListEntry* listHead, ListEntry* listToAppend);
+
 void InsertHeadList(ListEntry* ListHead, ListEntry* Entry);
 
 }

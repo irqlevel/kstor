@@ -69,6 +69,16 @@ void InsertTailList(ListEntry* listHead, ListEntry* entry)
     return;
 }
 
+void AppendTailList(ListEntry* listHead, ListEntry* listToAppend)
+{
+    ListEntry* listEnd = listHead->Blink;
+
+    listHead->Blink->Flink = listToAppend;
+    listHead->Blink = listToAppend->Blink;
+    listToAppend->Blink->Flink = listHead;
+    listToAppend->Blink = listEnd;
+}
+
 void InsertHeadList(ListEntry* listHead, ListEntry* entry)
 {
 

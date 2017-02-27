@@ -180,6 +180,11 @@ static void kapi_completion_wait(void *comp)
     wait_for_completion((struct completion *)comp);
 }
 
+static void kapi_completion_wait_timeout(void *comp, unsigned long timeout)
+{
+    wait_for_completion_timeout((struct completion *)comp, timeout);
+}
+
 static void kapi_completion_complete(void *comp)
 {
     complete((struct completion *)comp);
@@ -1109,6 +1114,7 @@ static struct kernel_api g_kapi =
     .completion_init = kapi_completion_init,
     .completion_delete = kapi_completion_delete,
     .completion_wait = kapi_completion_wait,
+    .completion_wait_timeout = kapi_completion_wait_timeout,
     .completion_complete = kapi_completion_complete,
     .completion_complete_all = kapi_completion_complete_all,
 

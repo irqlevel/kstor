@@ -16,8 +16,8 @@ public:
     void* MapAtomic();
     void UnmapAtomic(void* va);
 
-    void* GetPage();
-    int GetPageSize();
+    void* GetPagePtr();
+    size_t GetSize();
 
     void Zero();
     Error FillRandom(Random& rng);
@@ -25,8 +25,8 @@ public:
 
     virtual ~Page();
 
-    void Read(void *buf, size_t len);
-    void Write(const void *buf, size_t len);
+    size_t Read(void *buf, size_t len, size_t off);
+    size_t Write(const void *buf, size_t len, size_t off);
 
 private:
     Page(const Page& other) = delete;

@@ -149,6 +149,17 @@ public:
         return true;
     }
 
+    void AddTail(LinkedList&& other)
+    {
+        if (IsListEmpty(&other.ListHead))
+            return;
+
+        ListEntry* entry = other.ListHead.Flink;
+        RemoveInitEntryList(&other.ListHead);
+        AppendTailList(&ListHead, entry);
+        return;
+    }
+
     T& Head()
     {
         LinkedListNode* node;
@@ -209,14 +220,17 @@ public:
 
     LinkedList& operator=(LinkedList&& other)
     {
-        Release();
+        if (this != &other)
+        {
+            Release();
 
-        if (!IsListEmpty(&other.ListHead))
-            ListHead = other.ListHead;
-        else
-            InitializeListHead(&ListHead);
+            if (!IsListEmpty(&other.ListHead))
+                ListHead = other.ListHead;
+            else
+                InitializeListHead(&ListHead);
 
-        InitializeListHead(&other.ListHead);
+            InitializeListHead(&other.ListHead);
+        }
         return *this;
     }
 

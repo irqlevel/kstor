@@ -41,12 +41,12 @@ void Page::UnmapAtomic(void* va)
     get_kapi()->unmap_page_atomic(va);
 }
 
-void* Page::GetPage()
+void* Page::GetPagePtr()
 {
     return PagePtr;
 }
 
-int Page::GetPageSize()
+size_t Page::GetSize()
 {
     return get_kapi()->get_page_size();
 }
@@ -54,14 +54,14 @@ int Page::GetPageSize()
 void Page::Zero()
 {
     void* va = MapAtomic();
-    Memory::MemSet(va, 0, GetPageSize());
+    Memory::MemSet(va, 0, GetSize());
     UnmapAtomic(va);
 }
 
 Error Page::FillRandom(Random& rng)
 {
     void* va = MapAtomic();
-    Error err = rng.GetBytes(va, GetPageSize());
+    Error err = rng.GetBytes(va, GetSize());
     UnmapAtomic(va);
     return err;
 }
@@ -70,24 +70,34 @@ int Page::CompareContent(Page& other)
 {
     void* va = MapAtomic();
     void* vaOther = other.MapAtomic();
-    int rc = Memory::MemCmp(va, vaOther, GetPageSize());
+    int rc = Memory::MemCmp(va, vaOther, GetSize());
     other.UnmapAtomic(vaOther);
     UnmapAtomic(va);
     return rc;
 }
 
-void Page::Read(void *buf, size_t len)
+size_t Page::Read(void *buf, size_t len, size_t off)
 {
+    if (off >= GetSize())
+        return 0;
+
     void* va = MapAtomic();
-    Core::Memory::MemCpy(buf, va, Core::Memory::Min<size_t>(len, GetPageSize()));
+    size_t size = Core::Memory::Min<size_t>(len, GetSize() - off);
+    Core::Memory::MemCpy(buf, Core::Memory::MemAdd(va, off), size);
     UnmapAtomic(va);
+    return size;
 }
 
-void Page::Write(const void *buf, size_t len)
+size_t Page::Write(const void *buf, size_t len, size_t off)
 {
+    if (off >= GetSize())
+        return 0;
+
     void* va = MapAtomic();
-    Core::Memory::MemCpy(va, buf, Core::Memory::Min<size_t>(len, GetPageSize()));
+    size_t size = Core::Memory::Min<size_t>(len, GetSize() - off);
+    Core::Memory::MemCpy(Core::Memory::MemAdd(va, off), buf, size);
     UnmapAtomic(va);
+    return size;
 }
 
 Page::~Page()

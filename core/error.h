@@ -58,6 +58,12 @@ public:
 
     static const int AlreadyExists = -513;
 
+    static const int UnexpectedEOF = -514;
+
+    static const int Overflow = -515;
+
+    static const int Overlap = -515;
+
     bool operator!= (const Error& other) const;
 
     bool operator== (const Error& other) const;

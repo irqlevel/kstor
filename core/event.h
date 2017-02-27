@@ -12,6 +12,7 @@ public:
     void Set();
     void SetAll();
     void Wait();
+    void Wait(unsigned long timeout);
     virtual ~Event();
 
 private:

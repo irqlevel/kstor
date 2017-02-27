@@ -120,6 +120,27 @@ namespace Memory
         return b;
     }
 
+    template <typename T>
+    bool CheckRange(const T& start, const T& end)
+    {
+        if (end <= start)
+            return false;
+        return true;
+    }
+
+    template <typename T>
+    bool CheckIntersection(const T& start1, const T& end1, const T& start2, const T& end2)
+    {
+        if (!CheckRange(start1, end1))
+            return false;
+        if (!CheckRange(start2, end2))
+            return false;
+        if (start2 >= end1)
+            return false;
+        if (end2 <= start1)
+            return false;
+        return true;
+    }
 }
 
 }

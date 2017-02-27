@@ -50,7 +50,7 @@ Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
         return;
     }
 
-    err = SetPage(0, page, offset, (len == 0) ? page.GetPageSize() : len);
+    err = SetPage(0, page, offset, (len == 0) ? page.GetSize() : len);
     if (!err.Ok())
     {
         return;
@@ -103,7 +103,7 @@ void Bio::SetFlush()
 
 Error Bio::SetPage(int pageIndex, Page& page, int offset, int len)
 {
-    int rc = get_kapi()->set_bio_page(BioPtr, pageIndex, page.GetPage(), offset, len);
+    int rc = get_kapi()->set_bio_page(BioPtr, pageIndex, page.GetPagePtr(), offset, len);
     if (rc)
     {
         trace(0, "Can't set bio page offset %d len %d, rc %d", offset, len, rc);

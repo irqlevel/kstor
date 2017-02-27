@@ -39,6 +39,7 @@ struct kernel_api
     void (*completion_init)(void *completion);
     void (*completion_delete)(void *completion);
     void (*completion_wait)(void *completion);
+    void (*completion_wait_timeout)(void *completion, unsigned long timeout);
     void (*completion_complete)(void *completion);
     void (*completion_complete_all)(void *completion);
 
