@@ -45,13 +45,13 @@ Core::Error Volume::Format(unsigned long blockSize)
     if (!err.Ok())
         return err;
 
-    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
-    page.Zero();
+    page->Zero();
 
     VolumeId.Generate();
-    Core::PageMap pageMap(page);
+    Core::PageMap pageMap(*page.Get());
     Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(pageMap.GetAddress());
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
@@ -61,7 +61,7 @@ Core::Error Volume::Format(unsigned long blockSize)
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
-    err = Device.Write(page, 0);
+    err = Device.Write<Core::Memory::PoolType::Kernel>(page, 0);
 
     trace(1, "Volume 0x%p write header, err %d", this, err.GetCode());
 
@@ -71,18 +71,18 @@ Core::Error Volume::Format(unsigned long blockSize)
 Core::Error Volume::Load()
 {
     Core::Error err;
-    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
 
-    err = Device.Read(page, 0);
+    err = Device.Read<Core::Memory::PoolType::Kernel>(page, 0);
     if (!err.Ok())
     {
         trace(0, "Volume 0x%p read header, err %d", this, err.GetCode());
         return err;
     }
 
-    Core::PageMap pageMap(page);
+    Core::PageMap pageMap(*page.Get());
     Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(pageMap.GetAddress());
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
     {

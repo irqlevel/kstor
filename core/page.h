@@ -3,30 +3,144 @@
 #include "memory.h"
 #include "error.h"
 #include "random.h"
+#include "shared_ptr.h"
 
 namespace Core
 {
 
-class Page
+class PageInterface
 {
 public:
-    Page(Memory::PoolType poolType, Error& err);
-    void* Map();
-    void Unmap();
-    void* MapAtomic();
-    void UnmapAtomic(void* va);
+    virtual void* Map() = 0;
+    virtual void Unmap() = 0;
+    virtual void* MapAtomic() = 0;
+    virtual void UnmapAtomic(void* va) = 0;
+    virtual size_t GetSize() const = 0;
+    virtual size_t Read(void *buf, size_t len, size_t off) const = 0;
+    virtual size_t Write(const void *buf, size_t len, size_t off) = 0;
+    virtual void Zero() = 0;
+};
 
-    void* GetPagePtr();
-    size_t GetSize();
+template<Memory::PoolType PoolType>
+class Page : public PageInterface
+{
+public:
+    typedef SharedPtr<Page<PoolType>, PoolType> Ptr;
 
-    void Zero();
-    Error FillRandom(Random& rng);
-    int CompareContent(Page& other);
+public:
+    Page(Error& err)
+        : PagePtr(nullptr)
+    {
+        if (!err.Ok())
+        {
+            return;
+        }
 
-    virtual ~Page();
+        PagePtr = get_kapi()->alloc_page(get_kapi_pool_type(PoolType));
+        if (PagePtr == nullptr)
+        {
+            err.SetNoMemory();
+            return;
+        }
+    }
 
-    size_t Read(void *buf, size_t len, size_t off);
-    size_t Write(const void *buf, size_t len, size_t off);
+    virtual void* Map() override
+    {
+        return get_kapi()->map_page(PagePtr);
+    }
+
+    virtual void Unmap() override
+    {
+        get_kapi()->unmap_page(PagePtr);
+    }
+
+    virtual void* MapAtomic() override
+    {
+        return get_kapi()->map_page_atomic(PagePtr);
+    }
+
+    virtual void UnmapAtomic(void* va) override
+    {
+        get_kapi()->unmap_page_atomic(va);
+    }
+
+    void* GetPagePtr()
+    {
+        return PagePtr;
+    }
+
+    virtual size_t GetSize() const override
+    {
+        return get_kapi()->get_page_size();
+    }
+
+    virtual void Zero() override
+    {
+        void* va = MapAtomic();
+        Memory::MemSet(va, 0, GetSize());
+        UnmapAtomic(va);
+    }
+
+    Error FillRandom(Random& rng)
+    {
+        void* va = MapAtomic();
+        Error err = rng.GetBytes(va, GetSize());
+        UnmapAtomic(va);
+        return err;
+    }
+
+    int CompareContent(PageInterface& other)
+    {
+        void* va = MapAtomic();
+        void* vaOther = other.MapAtomic();
+        int rc = Memory::MemCmp(va, vaOther, GetSize());
+        other.UnmapAtomic(vaOther);
+        UnmapAtomic(va);
+        return rc;
+    }
+
+    virtual ~Page()
+    {
+        if (PagePtr != nullptr)
+        {
+            get_kapi()->free_page(PagePtr);
+            PagePtr = nullptr;
+        }
+    }
+
+    virtual size_t Read(void *buf, size_t len, size_t off) const override
+    {
+        if (off >= GetSize())
+            return 0;
+
+        void* va = ConstMapAtomic();
+        size_t size = Core::Memory::Min<size_t>(len, GetSize() - off);
+        Core::Memory::MemCpy(buf, Core::Memory::MemAdd(va, off), size);
+        ConstUnmapAtomic(va);
+        return size;
+    }
+
+    virtual size_t Write(const void *buf, size_t len, size_t off) override
+    {
+        if (off >= GetSize())
+            return 0;
+
+        void* va = MapAtomic();
+        size_t size = Core::Memory::Min<size_t>(len, GetSize() - off);
+        Core::Memory::MemCpy(Core::Memory::MemAdd(va, off), buf, size);
+        UnmapAtomic(va);
+        return size;
+    }
+
+    static SharedPtr<Page<PoolType>, PoolType> Create(Error& err)
+    {
+        SharedPtr<Page<PoolType>, PoolType> page = MakeShared<Page<PoolType>, PoolType>(err);
+        if (page.Get() == nullptr)
+        {
+            err = Error::NoMemory;
+        }
+        return page;
+    }
 
 private:
     Page(const Page& other) = delete;
@@ -34,14 +148,23 @@ private:
     Page& operator=(const Page& other) = delete;
     Page& operator=(Page&& other) = delete;
 
-    Memory::PoolType PoolType;
+    void* ConstMapAtomic() const
+    {
+        return get_kapi()->map_page_atomic(PagePtr);
+    }
+
+    void ConstUnmapAtomic(void* va) const
+    {
+        get_kapi()->unmap_page_atomic(va);
+    }
+
     void* PagePtr;
 };
 
 class PageMap
 {
 public:
-    PageMap(Page& page);
+    PageMap(PageInterface& page);
     virtual ~PageMap();
     void* GetAddress();
     void Unmap();
@@ -51,7 +174,7 @@ private:
     PageMap& operator=(const PageMap& other) = delete;
     PageMap& operator=(PageMap&& other) = delete;
 
-    Page& PageRef;
+    PageInterface& PageRef;
     void* Address;
 };
 

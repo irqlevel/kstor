@@ -28,15 +28,15 @@ Core::Error Journal::Load(uint64_t start)
     Core::AutoLock lock(Lock);
 
     Core::Error err;
-    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
 
-    err =  VolumeRef.GetDevice().Read(page, start * VolumeRef.GetBlockSize());
+    err =  VolumeRef.GetDevice().Read<Core::Memory::PoolType::Kernel>(page, start * VolumeRef.GetBlockSize());
     if (!err.Ok())
         return err;
 
-    Core::PageMap pageMap(page);
+    Core::PageMap pageMap(*page.Get());
     Api::JournalHeader *header = static_cast<Api::JournalHeader *>(pageMap.GetAddress());
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::JournalMagic)
     {
@@ -87,12 +87,12 @@ Core::Error Journal::Format(uint64_t start, uint64_t size)
         return Core::Error::InvalidValue;
 
     Core::Error err;
-    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
     
-    page.Zero();
-    Core::PageMap pageMap(page);
+    page->Zero();
+    Core::PageMap pageMap(*page.Get());
     Api::JournalHeader *header = static_cast<Api::JournalHeader *>(pageMap.GetAddress());
 
     header->Magic = Core::BitOps::CpuToLe32(Api::JournalMagic);
@@ -101,7 +101,7 @@ Core::Error Journal::Format(uint64_t start, uint64_t size)
 
     trace(1, "Journal 0x%p start %llu size %llu", this, start, size);
 
-    err =  VolumeRef.GetDevice().Write(page, start * VolumeRef.GetBlockSize());
+    err =  VolumeRef.GetDevice().Write<Core::Memory::PoolType::Kernel>(page, start * VolumeRef.GetBlockSize());
     if (!err.Ok())
     {
         trace(0, "Journal 0x%p write header err %d", this, err.GetCode());
@@ -187,7 +187,7 @@ Transaction::~Transaction()
     JournalRef.UnlinkTx(this, false);
 }
 
-Core::Error Transaction::Write(Core::Page& page, uint64_t position)
+Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t position)
 {
     Core::AutoLock lock(Lock);
 
@@ -483,11 +483,30 @@ Core::Error Journal::Replay()
 Core::Error Journal::Flush()
 {
     Core::Error err;
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    if (!err.Ok())
+        return err;
+    
+    page->Zero();
+    Core::PageMap pageMap(*page.Get());
+    Api::JournalHeader *header = static_cast<Api::JournalHeader *>(pageMap.GetAddress());
+
+    header->Magic = Core::BitOps::CpuToLe32(Api::JournalMagic);
+    header->Size = Core::BitOps::CpuToLe64(Size);
+    Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
+
+    err =  VolumeRef.GetDevice().Write<Core::Memory::PoolType::Kernel>(page, Start * GetBlockSize());
+    if (!err.Ok())
+    {
+        trace(0, "Journal 0x%p write header err %d", this, err.GetCode());
+        return err;
+    }
+
     trace(1, "Journal 0x%p flush %d", err.GetCode());
     return err;
 }
 
-Core::Error Journal::ReadTxBlockComplete(Core::Page& blockPage)
+Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& blockPage)
 {
     Core::PageMap blockMap(blockPage);
     Api::JournalTxBlock* block = reinterpret_cast<Api::JournalTxBlock*>(blockMap.GetAddress());
@@ -525,7 +544,7 @@ Core::Error Journal::ReadTxBlockComplete(Core::Page& blockPage)
     return Core::Error::Success;
 }
 
-Core::Error Journal::WriteTxBlockPrepare(Core::Page& blockPage)
+Core::Error Journal::WriteTxBlockPrepare(Core::PageInterface& blockPage)
 {
     Core::PageMap blockMap(blockPage);
     Api::JournalTxBlock* block = reinterpret_cast<Api::JournalTxBlock*>(blockMap.GetAddress());
@@ -565,15 +584,15 @@ JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
         return JournalTxBlockPtr();
     }
 
-    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return JournalTxBlockPtr();
 
-    err = VolumeRef.GetDevice().Read(page, index * GetBlockSize());
+    err = VolumeRef.GetDevice().Read<Core::Memory::PoolType::Kernel>(page, index * GetBlockSize());
     if (!err.Ok())
         return JournalTxBlockPtr();
 
-    err = ReadTxBlockComplete(page);
+    err = ReadTxBlockComplete(*page.Get());
     if (!err.Ok())
         return JournalTxBlockPtr();
 
@@ -584,7 +603,7 @@ JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
         return block;
     }
 
-    if (page.Read(block.Get(), sizeof(*block.Get()), 0) != page.GetSize())
+    if (page->Read(block.Get(), sizeof(*block.Get()), 0) != page->GetSize())
     {
         err = Core::Error::UnexpectedEOF;
         block.Reset();
@@ -600,20 +619,20 @@ Core::Error Journal::WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block
         return Core::Error::InvalidValue;
 
     Core::Error err;
-    Core::Page page(Core::Memory::PoolType::Kernel, err);
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
 
-    if (page.Write(block.Get(), sizeof(*block.Get()), 0) != page.GetSize())
+    if (page->Write(block.Get(), sizeof(*block.Get()), 0) != page->GetSize())
     {
         return Core::Error::UnexpectedEOF;
     }
 
-    err = WriteTxBlockPrepare(page);
+    err = WriteTxBlockPrepare(*page.Get());
     if (!err.Ok())
         return err;
 
-    return VolumeRef.GetDevice().Write(page, index * GetBlockSize());
+    return VolumeRef.GetDevice().Write<Core::Memory::PoolType::Kernel>(page, index * GetBlockSize());
 }
 
 size_t Journal::GetBlockSize()

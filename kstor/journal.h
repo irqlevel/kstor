@@ -30,7 +30,7 @@ public:
 
     virtual ~Transaction();
 
-    Core::Error Write(Core::Page& page, uint64_t position);
+    Core::Error Write(const Core::PageInterface& page, uint64_t position);
 
     const Guid& GetTxId() const;
 
@@ -94,8 +94,8 @@ private:
     Core::Error WriteTx(const TransactionPtr& tx);
     void UnlinkTx(Transaction* tx, bool cancel);
 
-    Core::Error ReadTxBlockComplete(Core::Page& blockPage);
-    Core::Error WriteTxBlockPrepare(Core::Page& blockPage);
+    Core::Error ReadTxBlockComplete(Core::PageInterface& blockPage);
+    Core::Error WriteTxBlockPrepare(Core::PageInterface& blockPage);
 
     JournalTxBlockPtr ReadTxBlock(uint64_t index, Core::Error& err);
     Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block);

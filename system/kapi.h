@@ -97,7 +97,7 @@ struct kernel_api
     void (*bdev_put)(void *bdev, int mode);
     unsigned long long (*bdev_get_size)(void* bdev);
 
-    void* (*alloc_bio)(int page_count);
+    void* (*alloc_bio)(int page_count, unsigned long pool_type);
     void (*free_bio)(void* bio);
     int (*set_bio_page)(void* bio, int page_index, void* page, int offset, int len);
     int (*set_bio_end_io)(void* bio, void (*bio_end_io)(void* bio, int err), void* priv);

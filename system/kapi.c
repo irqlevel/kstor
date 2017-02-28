@@ -40,7 +40,7 @@ _Static_assert(sizeof(unsigned int) == 4, "Bad size");
 
 static gfp_t kapi_get_gfp_flags(unsigned long pool_type)
 {
-    gfp_t flags;
+    gfp_t flags = 0;
 
     switch (pool_type)
     {
@@ -60,7 +60,6 @@ static gfp_t kapi_get_gfp_flags(unsigned long pool_type)
         flags = GFP_USER;
         break;
     default:
-        flags = 0;
         BUG();
         break;
     }
@@ -472,11 +471,12 @@ static unsigned long long kapi_bdev_get_size(void* bdev)
     return i_size_read(((struct block_device*)bdev)->bd_inode);
 }
 
-static void* kapi_alloc_bio(int page_count)
+static void* kapi_alloc_bio(int page_count, unsigned long pool_type)
 {
-    struct bio* bio = bio_alloc(GFP_NOIO, page_count);
+    struct bio* bio;
     int i;
 
+    bio = bio_alloc(kapi_get_gfp_flags(pool_type), page_count);
     if (!bio)
     {
         return NULL;

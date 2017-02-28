@@ -4,162 +4,65 @@
 namespace Core
 {
 
-Bio::Bio(int pageCount, Error& err)
-    : BioPtr(nullptr)
-    , PageCount(pageCount)
-    , IoError(Error::NotExecuted)
+/*
+BioList::BioList(BlockDevice& blockDevice)
+    : BlockDev(blockDevice)
 {
+}
+
+BioList::~BioList()
+{
+}
+
+Error BioList::AddIo(Page& page, unsigned long long position, bool write)
+{
+    if (position & 511)
+        return Error::InvalidValue;
+
+    Error err;
+    BioPtr bio = MakeShared<Bio, Memory::PoolType::Kernel>(BlockDev, page, position / 512, err, write);
+    if (bio.Get() == nullptr)
+    {
+        return Error::NoMemory;
+    }
+
     if (!err.Ok())
     {
+        return err;
+    }
+
+    if (!ReqList.AddTail(bio))
+    {
+        return Error::NoMemory;
+    }
+
+    return Error::Success;
+}
+
+void BioList::Submit(bool flushFua)
+{
+    if (ReqList.IsEmpty())
         return;
-    }
 
-    if (pageCount == 0)
+    if (flushFua)
     {
-        err.SetInvalidValue();
-        return;
+        auto lastBio = ReqList.Tail();
+        lastBio->SetFlush();
+        lastBio->SetFua();
     }
 
-    BioPtr = get_kapi()->alloc_bio(pageCount);
-    if (!BioPtr)
+    auto it = ReqList.GetIterator();
+    for (;it.IsValid(); it.Next())
     {
-        trace(0, "Can't allocate bio");
-        err.SetNoMemory();
-        return;
+        ReqCompleteCount.Inc();
     }
 
-    int rc = get_kapi()->set_bio_end_io(BioPtr, &Bio::EndIo, this);
-    if (rc)
+    it = ReqList.GetIterator();
+    for (;it.IsValid(); it.Next())
     {
-        trace(0, "Can't set bio private");
-        get_kapi()->free_bio(BioPtr);
-        BioPtr = nullptr;
-        err = Error(rc);
-        return;
-    }
-
-    trace(4, "Bio 0x%p bio 0x%p ctor", this, BioPtr);
-}
-
-Bio::Bio(BlockDevice& blockDevice, Page& page, unsigned long long sector,
-    Error& err, bool write, bool flush, bool fua, int offset, int len)
-    : Bio(1, err)
-{
-    if (!err.Ok())
-    {
-        return;
-    }
-
-    err = SetPage(0, page, offset, (len == 0) ? page.GetSize() : len);
-    if (!err.Ok())
-    {
-        return;
-    }
-
-    if (write)
-    {
-        SetWrite();
-        if (fua)
-        {
-            SetFua();
-        }
-        if (flush)
-        {
-            SetFlush();
-        }
-    }
-    else
-    {
-        SetRead();
-    }
-    SetPosition(sector);
-    SetBdev(blockDevice);
-}
-
-void Bio::SetBdev(BlockDevice& blockDevice)
-{
-    get_kapi()->set_bio_bdev(BioPtr, blockDevice.GetBdev());
-}
-
-void Bio::SetRead()
-{
-    get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_READ);
-}
-
-void Bio::SetWrite()
-{
-    get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_WRITE);
-}
-
-void Bio::SetFua()
-{
-    get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_FUA);
-}
-
-void Bio::SetFlush()
-{
-    get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_FLUSH);
-}
-
-Error Bio::SetPage(int pageIndex, Page& page, int offset, int len)
-{
-    int rc = get_kapi()->set_bio_page(BioPtr, pageIndex, page.GetPagePtr(), offset, len);
-    if (rc)
-    {
-        trace(0, "Can't set bio page offset %d len %d, rc %d", offset, len, rc);
-    }
-    return Error(rc);
-}
-
-void Bio::EndIo(int err)
-{
-    trace(4, "Bio 0x%p bio 0x%p endio err %d", this, BioPtr, err);
-    IoError.SetCode(err);
-    EndIoEvent.Set();
-}
-
-void Bio::Wait()
-{
-    EndIoEvent.Wait();
-}
-
-void Bio::EndIo(void* bio, int err)
-{
-    Bio* bio_ = static_cast<Bio*>(get_kapi()->get_bio_private(bio));
-    bio_->EndIo(err);
-}
-
-void Bio::SetPosition(unsigned long long sector)
-{
-    get_kapi()->set_bio_position(BioPtr, sector);
-}
-
-void Bio::Submit()
-{
-    trace(4, "Bio 0x%p bio 0x%p submit", this, BioPtr);
-    get_kapi()->submit_bio(BioPtr);
-}
-
-Error Bio::GetError()
-{
-    return IoError;
-}
-
-Error Bio::Exec()
-{
-    Submit();
-    Wait();
-    return GetError();
-}
-
-Bio::~Bio()
-{
-    trace(4, "Bio 0x%p bio 0x%p dtor", this, BioPtr);
-    if (BioPtr != nullptr)
-    {
-        get_kapi()->free_bio(BioPtr);
-        BioPtr = nullptr;
+        auto bio = it.Get();
+        bio->Submit();
     }
 }
-
+*/
 }
