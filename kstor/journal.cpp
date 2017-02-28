@@ -271,7 +271,7 @@ void Transaction::Cancel()
     CommitResult = Core::Error::Cancelled;
 }
 
-Core::Error Transaction::WriteTx()
+Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
 {
     Core::Error err;
     Core::AutoLock lock(Lock);
@@ -287,7 +287,7 @@ Core::Error Transaction::WriteTx()
     if (!err.Ok())
         goto fail;
 
-    err = JournalRef.WriteTxBlock(blockIndex, BeginBlock);
+    err = JournalRef.WriteTxBlock(blockIndex, BeginBlock, bioList);
     if (!err.Ok())
         goto fail;
 
@@ -300,7 +300,7 @@ Core::Error Transaction::WriteTx()
             if (!err.Ok())
                 goto fail;
 
-            err = JournalRef.WriteTxBlock(blockIndex, CommitBlock);
+            err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
             if (!err.Ok())
                 goto fail;
         }
@@ -310,7 +310,7 @@ Core::Error Transaction::WriteTx()
     if (!err.Ok())
         goto fail;
 
-    err = JournalRef.WriteTxBlock(blockIndex, CommitBlock);
+    err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
     if (!err.Ok())
         goto fail;
 
@@ -336,7 +336,7 @@ void Transaction::OnCommitCompleteLocked(const Core::Error& result)
         State = Api::JournalTxStateCommited;
     }
     CommitResult = result;
-    CommitEvent.Set();
+    CommitEvent.SetAll();
 }
 
 void Transaction::OnCommitComplete(const Core::Error& result)
@@ -398,7 +398,7 @@ Core::Error Journal::StartCommitTx(Transaction* tx)
         Core::AutoLock lock(TxListLock);
         if (!TxList.AddTail(txPtr))
             return Core::Error::NoMemory;
-        TxListEvent.Set();
+        TxListEvent.SetAll();
     }
 
     trace(1, "Journal 0x%p tx 0x%p %s start commit",
@@ -407,7 +407,7 @@ Core::Error Journal::StartCommitTx(Transaction* tx)
     return Core::Error::Success;
 }
 
-Core::Error Journal::WriteTx(const TransactionPtr& tx)
+Core::Error Journal::WriteTx(const TransactionPtr& tx, Core::NoIOBioList& bioList)
 {
     Core::AutoLock lock(Lock);
     Core::Error err;
@@ -415,11 +415,12 @@ Core::Error Journal::WriteTx(const TransactionPtr& tx)
     trace(1, "Journal 0x%p tx 0x%p %s write",
         this, tx.Get(), tx->GetTxId().ToString().GetBuf());
 
-    return tx->WriteTx();
+    return tx->WriteTx(bioList);
 }
 
 Core::Error Journal::Run(const Core::Threadable& thread)
 {
+    Core::Error err;
     trace(1, "Journal 0x%p tx thread start", this);
 
     Core::LinkedList<TransactionPtr, Core::Memory::PoolType::Kernel> txList;
@@ -435,14 +436,26 @@ Core::Error Journal::Run(const Core::Threadable& thread)
             txList = Core::Memory::Move(TxList);
         }
 
+        Core::NoIOBioList bioList(VolumeRef.GetDevice());
+
         auto it = txList.GetIterator();
         for (;it.IsValid(); it.Next())
         {
             auto tx = it.Get();
-            WriteTx(tx);
+            err = WriteTx(tx, bioList);
+            if (!err.Ok())
+                break;
         }
 
-        auto err = Flush();
+        if (err.Ok())
+        {
+            err = Flush(bioList);
+            if (err.Ok())
+            {
+                err = bioList.Exec(true);
+            }
+        }
+
         while (!txList.IsEmpty())
         {
             auto tx = txList.Head();
@@ -465,9 +478,10 @@ Core::Error Journal::Run(const Core::Threadable& thread)
         tx->Cancel();
     }
 
-    Flush();
+    Core::NoIOBioList bioList(VolumeRef.GetDevice());
+    err = Flush(bioList);
 
-    return Core::Error::Success;
+    return err;
 }
 
 Core::Error Journal::Replay()
@@ -480,10 +494,10 @@ Core::Error Journal::Replay()
     return err;
 }
 
-Core::Error Journal::Flush()
+Core::Error Journal::Flush(Core::NoIOBioList& bioList)
 {
     Core::Error err;
-    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    auto page = Core::Page<Core::Memory::PoolType::NoIO>::Create(err);
     if (!err.Ok())
         return err;
     
@@ -495,7 +509,7 @@ Core::Error Journal::Flush()
     header->Size = Core::BitOps::CpuToLe64(Size);
     Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
 
-    err =  VolumeRef.GetDevice().Write<Core::Memory::PoolType::Kernel>(page, Start * GetBlockSize());
+    err = bioList.AddIo(page, Start * GetBlockSize(), true);
     if (!err.Ok())
     {
         trace(0, "Journal 0x%p write header err %d", this, err.GetCode());
@@ -613,13 +627,13 @@ JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
     return block;
 }
 
-Core::Error Journal::WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block)
+Core::Error Journal::WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block, Core::NoIOBioList& bioList)
 {
     if (index <= Start || index >= (Start + Size))
         return Core::Error::InvalidValue;
 
     Core::Error err;
-    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    auto page = Core::Page<Core::Memory::PoolType::NoIO>::Create(err);
     if (!err.Ok())
         return err;
 
@@ -632,7 +646,7 @@ Core::Error Journal::WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block
     if (!err.Ok())
         return err;
 
-    return VolumeRef.GetDevice().Write<Core::Memory::PoolType::Kernel>(page, index * GetBlockSize());
+    return bioList.AddIo(page, index * GetBlockSize(), true);
 }
 
 size_t Journal::GetBlockSize()

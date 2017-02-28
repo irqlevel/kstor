@@ -14,6 +14,7 @@
 #include <core/thread.h>
 #include <core/runnable.h>
 #include <core/event.h>
+#include <core/bio.h>
 
 namespace KStor
 {
@@ -44,7 +45,7 @@ private:
     void OnCommitComplete(const Core::Error& result);
     JournalTxBlockPtr CreateTxBlock(unsigned int type);
 
-    Core::Error WriteTx();
+    Core::Error WriteTx(Core::NoIOBioList& bioList);
 
     Journal& JournalRef;
     unsigned int State;
@@ -91,20 +92,20 @@ public:
 private:
     Core::Error Replay();
     Core::Error StartCommitTx(Transaction* tx);
-    Core::Error WriteTx(const TransactionPtr& tx);
+    Core::Error WriteTx(const TransactionPtr& tx, Core::NoIOBioList& bioList);
     void UnlinkTx(Transaction* tx, bool cancel);
 
     Core::Error ReadTxBlockComplete(Core::PageInterface& blockPage);
     Core::Error WriteTxBlockPrepare(Core::PageInterface& blockPage);
 
     JournalTxBlockPtr ReadTxBlock(uint64_t index, Core::Error& err);
-    Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block);
+    Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block, Core::NoIOBioList& bioList);
 
     Core::Error GetNextBlockIndex(uint64_t& index);
 
     Core::Error Run(const Core::Threadable& thread) override;
 
-    Core::Error Flush();
+    Core::Error Flush(Core::NoIOBioList& bioList);
 
 private:
 

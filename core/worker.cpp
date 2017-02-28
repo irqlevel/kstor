@@ -21,7 +21,7 @@ bool Worker::Execute(RunnablePtr task)
 
     bool result = TaskList.AddTail(task);
     if (result)
-        TaskEvent.Set();
+        TaskEvent.SetAll();
     return result;
 }
 
@@ -81,7 +81,7 @@ Worker::~Worker()
         return;
 
     WorkerThread.Stop();
-    TaskEvent.Set();
+    TaskEvent.SetAll();
     WorkerThread.Wait();
 
     bool bHasTasks;

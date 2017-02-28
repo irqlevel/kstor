@@ -24,6 +24,8 @@ public:
         : BioPtr(nullptr)
         , PageCount(pageCount)
         , IoError(Error::NotExecuted)
+        , PostEndIoHandler(nullptr)
+        , PostEndIoCtx(nullptr)
     {
         if (!err.Ok())
         {
@@ -170,6 +172,28 @@ public:
         }
     }
 
+    static SharedPtr<Bio<PoolType>, PoolType> Create(BlockDeviceInterface& blockDevice,
+        const typename Page<PoolType>::Ptr& page, unsigned long long sector, Error& err,
+        bool write, bool flush = false, bool fua = false, int offset = 0, int len = 0)
+    {
+        SharedPtr<Bio<PoolType>, PoolType> bio =
+            MakeShared<Bio<PoolType>, PoolType>(blockDevice, page, sector, err,
+                                                write, flush, fua, offset, len);
+        if (bio.Get() == nullptr)
+        {
+            err = Error::NoMemory;
+        }
+        return bio;
+    }
+
+    typedef void (*PostEndIoHandlerType)(Bio<PoolType>* bio, void* ctx);
+
+    void SetPostEndIoHandler(PostEndIoHandlerType handler, void* ctx)
+    {
+        PostEndIoHandler = handler;
+        PostEndIoCtx = ctx;
+    }
+
 private:
     Bio(const Bio& other) = delete;
     Bio(Bio&& other) = delete;
@@ -180,7 +204,10 @@ private:
     {
         trace(4, "Bio 0x%p bio 0x%p endio err %d", this, BioPtr, err);
         IoError.SetCode(err);
-        EndIoEvent.Set();
+        EndIoEvent.SetAll();
+
+        if (PostEndIoHandler != nullptr)
+            PostEndIoHandler(this, PostEndIoCtx);
     }
 
     static void EndIo(void* bio, int err)
@@ -194,30 +221,121 @@ private:
     Event EndIoEvent;
     Error IoError;
     LinkedList<typename Page<PoolType>::Ptr, PoolType> PageList;
+    PostEndIoHandlerType PostEndIoHandler;
+    void* PostEndIoCtx;
 };
 
-/*
+template<Memory::PoolType PoolType>
 class BioList
 {
 public:
-    BioList(BlockDevice& blockDevice);
-    virtual ~BioList();
+    typedef SharedPtr<BioList<PoolType>, PoolType> Ptr;
+public:
+    BioList(BlockDeviceInterface& blockDevice)
+        : BlockDev(blockDevice)
+    {
+    }
 
-    Error AddIo(Page& page, unsigned long long position, bool write);
+    virtual ~BioList()
+    {
+    }
 
-    void Submit(bool flushFua = false);
-    void Wait();
-    Error GetResult();
+    Error AddIo(const typename Page<PoolType>::Ptr& page, unsigned long long position, bool write)
+    {
+        if (position & 511)
+            return Error::InvalidValue;
+
+        Error err;
+        auto bio = Bio<PoolType>::Create(BlockDev, page, position / 512, err, write);
+        if (!err.Ok())
+        {
+            return err;
+        }
+
+        if (!ReqList.AddTail(bio))
+        {
+            return Error::NoMemory;
+        }
+
+        return Error::Success;
+    }
+
+    void Submit(bool flushFua = false)
+    {
+        if (ReqList.IsEmpty())
+            return;
+
+        if (flushFua)
+        {
+            auto lastBio = ReqList.Tail();
+            lastBio->SetFlush();
+            lastBio->SetFua();
+        }
+
+        auto it = ReqList.GetIterator();
+        for (;it.IsValid(); it.Next())
+        {
+            ReqCompleteCount.Inc();
+        }
+
+        it = ReqList.GetIterator();
+        for (;it.IsValid(); it.Next())
+        {
+            auto bio = it.Get();
+            bio->SetPostEndIoHandler(&BioList<PoolType>::PostEndIoHandler, this);
+            bio->Submit();
+        }
+    }
+
+    void Wait()
+    {
+        if (!ReqList.IsEmpty())
+        {
+            ReqCompleteEvent.Wait();
+        }
+    }
+
+    Error GetResult()
+    {
+        return Result;
+    }
+
+    Error Exec(bool flushFua = false)
+    {
+        Submit();
+        Wait();
+        return GetResult();
+    }
+
 private:
     BioList(const BioList& other) = delete;
     BioList(BioList&& other) = delete;
     BioList& operator=(const BioList& other) = delete;
     BioList& operator=(BioList&& other) = delete;
 
-    LinkedList<BioPtr, Memory::PoolType::Kernel> ReqList;
-    BlockDevice& BlockDev;
+    void PostEndIoHandler(Bio<PoolType>* bio)
+    {
+        auto err = bio->GetError();
+        if (!err.Ok())
+            Result = err;
+
+        if (ReqCompleteCount.DecAndTest())
+            ReqCompleteEvent.SetAll();
+    }
+
+    static void PostEndIoHandler(Bio<PoolType>* bio, void* ctx)
+    {
+        BioList<PoolType>* bioList = static_cast<BioList<PoolType>*>(ctx);
+        bioList->PostEndIoHandler(bio);
+    }
+
+    LinkedList<typename Bio<PoolType>::Ptr, PoolType> ReqList;
+    BlockDeviceInterface& BlockDev;
     Atomic ReqCompleteCount;
+    Event ReqCompleteEvent;
+    Error Result;
 };
-*/
+
+typedef Core::BioList<Core::Memory::PoolType::NoIO> NoIOBioList;
 
 }

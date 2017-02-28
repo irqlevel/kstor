@@ -23,7 +23,7 @@ public:
     {
         Error err = Run(thread);
         SetStatus(err);
-        CompleteEvent.Set();
+        CompleteEvent.SetAll();
         return err;
     }
 
@@ -40,7 +40,7 @@ public:
     void Cancel()
     {
         SetStatus(Error::Cancelled);
-        CompleteEvent.Set();
+        CompleteEvent.SetAll();
     }
 
     virtual ~Runnable()
