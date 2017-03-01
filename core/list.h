@@ -210,12 +210,8 @@ public:
 
     LinkedList(LinkedList&& other)
     {
-        if (!IsListEmpty(&other.ListHead))
-            ListHead = other.ListHead;
-        else
-            InitializeListHead(&ListHead);
-
-        InitializeListHead(&other.ListHead);
+        InitializeListHead(&ListHead);
+        AddTail(Memory::Move(other));
     }
 
     LinkedList& operator=(LinkedList&& other)
@@ -224,12 +220,8 @@ public:
         {
             Release();
 
-            if (!IsListEmpty(&other.ListHead))
-                ListHead = other.ListHead;
-            else
-                InitializeListHead(&ListHead);
-
-            InitializeListHead(&other.ListHead);
+            InitializeListHead(&ListHead);
+            AddTail(Memory::Move(other));
         }
         return *this;
     }

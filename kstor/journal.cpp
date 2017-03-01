@@ -518,7 +518,7 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
         return err;
     }
 
-    trace(1, "Journal 0x%p flush %d", err.GetCode());
+    trace(1, "Journal 0x%p flush %d", this, err.GetCode());
     return err;
 }
 
