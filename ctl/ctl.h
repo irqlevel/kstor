@@ -23,6 +23,8 @@ public:
     int StartServer(const char *host, unsigned short port);
     int StopServer();
 
+    int Test(unsigned int testId);
+
     virtual ~Ctl();
 private:
     int DevFd;

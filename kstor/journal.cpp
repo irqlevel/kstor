@@ -32,7 +32,8 @@ Core::Error Journal::Load(uint64_t start)
     if (!err.Ok())
         return err;
 
-    err =  VolumeRef.GetDevice().Read<Core::Memory::PoolType::Kernel>(page, start * VolumeRef.GetBlockSize());
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).AddExec(page,
+                                                        start * GetBlockSize(), false);
     if (!err.Ok())
         return err;
 
@@ -101,7 +102,8 @@ Core::Error Journal::Format(uint64_t start, uint64_t size)
 
     trace(1, "Journal 0x%p start %llu size %llu", this, start, size);
 
-    err =  VolumeRef.GetDevice().Write<Core::Memory::PoolType::Kernel>(page, start * VolumeRef.GetBlockSize());
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).AddExec(page,
+                                                        start * GetBlockSize(), true, true);
     if (!err.Ok())
     {
         trace(0, "Journal 0x%p write header err %d", this, err.GetCode());
@@ -602,7 +604,8 @@ JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
     if (!err.Ok())
         return JournalTxBlockPtr();
 
-    err = VolumeRef.GetDevice().Read<Core::Memory::PoolType::Kernel>(page, index * GetBlockSize());
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).AddExec(page,
+                                                        index * GetBlockSize(), false);
     if (!err.Ok())
         return JournalTxBlockPtr();
 

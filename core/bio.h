@@ -307,6 +307,16 @@ public:
         return GetResult();
     }
 
+    Error AddExec(const typename Page<PoolType>::Ptr& page, unsigned long long position,
+                bool write, bool flushFua = false)
+    {
+        Error err = AddIo(page, position, write);
+        if (!err.Ok())
+            return err;
+
+        return Exec(flushFua);
+    }
+
 private:
     BioList(const BioList& other) = delete;
     BioList(BioList&& other) = delete;

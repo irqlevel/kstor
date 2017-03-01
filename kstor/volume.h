@@ -45,6 +45,8 @@ public:
 
     Core::Error ChunkLookup(const Guid& chunkId);
 
+    Core::Error TestJournal();
+
 private:
     Core::AString DeviceName;
     Core::BlockDevice Device;

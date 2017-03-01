@@ -40,6 +40,8 @@ public:
     static Core::Error Create();
     static void Delete();
 
+    Core::Error RunTest(unsigned int testId);
+
 private:
     Server Srv;
     Core::Random Rng;

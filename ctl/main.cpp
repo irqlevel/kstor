@@ -98,6 +98,31 @@ int main(int argc, char* argv[])
 
         return 0;
     }
+    else if (cmd == "test")
+    {
+        if (argc != 3)
+        {
+            printf("Invalid number of args\n");
+            return 1;
+        }
+
+        int testId = atoi(argv[2]);
+        if (testId <= 0)
+        {
+            printf("Invalid test id\n");
+            err = EINVAL;
+            return err;
+        }
+
+        err = ctl.Test(testId);
+        if (err)
+        {
+            printf("Ctl test err %d\n", err);
+            return err;
+        }
+
+        return 0;   
+    }
     else
     {
         printf("Unknown cmd %s\n", cmd.c_str());

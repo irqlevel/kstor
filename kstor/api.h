@@ -40,6 +40,8 @@ const unsigned int JournalTxStateCommited = 3;
 const unsigned int JournalTxStateCanceled = 4;
 const unsigned int JournalTxStateFinished = 5;
 
+const unsigned int TestJournal = 1;
+
 #pragma pack(push, 1)
 
 struct PacketHeader

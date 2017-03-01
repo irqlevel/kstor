@@ -111,6 +111,37 @@ Core::Error ControlDevice::StopServer()
     return Core::Error::Success;
 }
 
+Core::Error ControlDevice::RunTest(unsigned int testId)
+{
+    Core::Error err;
+
+    trace(1, "Run test %d", testId);
+
+    switch (testId)
+    {
+    case Api::TestJournal:
+    {
+        Core::AutoLock lock(VolumeLock);
+
+        if (VolumeRef.Get() == nullptr)
+        {
+            err =  Core::Error::NotFound;
+            break;
+        }
+
+        err = VolumeRef->TestJournal();
+        break;
+    }
+    default:
+        err = Core::Error::InvalidValue;
+        break;
+    }
+
+    trace(1, "Run test %d err %d", testId, err.GetCode());
+
+    return err;
+}
+
 Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
 {
     trace(3, "Ioctl 0x%x arg 0x%lx", code, arg);
@@ -202,6 +233,12 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     case IOCTL_KSTOR_STOP_SERVER:
         err = StopServer();
         break;
+    case IOCTL_KSTOR_TEST:
+    {
+        auto& params = cmd->Union.Test;
+        err = RunTest(params.TestId);
+        break;
+    }
     default:
         trace(0, "Unknown ioctl 0x%x", code);
         err = Core::Error::UnknownCode;

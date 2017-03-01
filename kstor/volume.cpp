@@ -61,7 +61,7 @@ Core::Error Volume::Format(unsigned long blockSize)
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
-    err = Device.Write<Core::Memory::PoolType::Kernel>(page, 0);
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).AddExec(page, 0, true, true);
 
     trace(1, "Volume 0x%p write header, err %d", this, err.GetCode());
 
@@ -75,7 +75,7 @@ Core::Error Volume::Load()
     if (!err.Ok())
         return err;
 
-    err = Device.Read<Core::Memory::PoolType::Kernel>(page, 0);
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).AddExec(page, 0, false);
     if (!err.Ok())
     {
         trace(0, "Volume 0x%p read header, err %d", this, err.GetCode());
@@ -238,6 +238,36 @@ Core::Error Volume::ChunkLookup(const Guid& chunkId)
     if (!ChunkTable.CheckExist(chunkId))
         return Core::Error::NotFound;
     return Core::Error::Success;
+}
+
+Core::Error Volume::TestJournal()
+{
+    trace(1, "Test journal");
+
+    auto tx = JournalObj.BeginTx();
+    if (tx.Get() == nullptr)
+    {
+        return Core::Error::NoMemory;
+    }
+
+    trace(1, "Test journal, tx created %s", tx->GetTxId().ToString().GetBuf());
+
+    unsigned long long position = (JournalObj.GetStart() + JournalObj.GetSize()) * GetBlockSize();
+
+    Core::Error err;
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    if (!err.Ok())
+        return err;
+
+    err = tx->Write(*page.Get(), position);
+    if (!err.Ok())
+        return err;
+
+    err = tx->Commit();
+
+    trace(1, "Test journal, err %d", err.GetCode());
+
+    return err;
 }
 
 }

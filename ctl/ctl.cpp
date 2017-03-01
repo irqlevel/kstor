@@ -130,6 +130,16 @@ int Ctl::StopServer()
     return ioctl(DevFd, IOCTL_KSTOR_STOP_SERVER, &cmd);
 }
 
+int Ctl::Test(unsigned int testId)
+{
+    Cmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+    auto& params = cmd.Union.Test;
+    params.TestId = testId;
+    return ioctl(DevFd, IOCTL_KSTOR_TEST, &cmd);
+}
+
 Ctl::~Ctl()
 {
     if (DevFd >= 0)
