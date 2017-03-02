@@ -136,7 +136,7 @@ public:
         if (!err.Ok())
             return;
 
-        T* Arr = new (other.PoolType) T[other.Capacity];
+        T* Arr = new (PoolType) T[other.Capacity];
         if (!Arr)
         {
             err.SetNoMemory();
