@@ -302,7 +302,7 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
             if (!err.Ok())
                 goto fail;
 
-            err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
+            err = JournalRef.WriteTxBlock(blockIndex, block, bioList);
             if (!err.Ok())
                 goto fail;
         }
@@ -312,9 +312,13 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
     if (!err.Ok())
         goto fail;
 
-    err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
-    if (!err.Ok())
-        goto fail;
+    {
+        Api::JournalTxCommitBlock *commitBlock = reinterpret_cast<Api::JournalTxCommitBlock*>(CommitBlock.Get());
+        commitBlock->State = Api::JournalTxStateCommited;
+        err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
+        if (!err.Ok())
+            goto fail;
+    }
 
     return err;
 
