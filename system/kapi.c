@@ -731,7 +731,7 @@ static void kapi_submit_bio(void* bio, unsigned int op, unsigned int op_flags)
     bio_set_op_attrs(bio_, kapi_get_bio_op(op), kapi_get_bio_op_flags(op_flags));
     submit_bio(bio_);
 #else
-    submit_bio(kapi_get_bio_rw(bio_), bio_);
+    submit_bio(kapi_get_bio_rw(bio_, op, op_flags), bio_);
 #endif
 }
 
