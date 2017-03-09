@@ -2,7 +2,7 @@
 
 #include <linux/kthread.h>
 
-static inline unsigned long hash_ptr(void *ptr)
+static inline unsigned long hash_pointer(void *ptr)
 {
     unsigned long val = (unsigned long)ptr;
     unsigned long hash, i, c;

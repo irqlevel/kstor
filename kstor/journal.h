@@ -15,6 +15,7 @@
 #include <core/runnable.h>
 #include <core/event.h>
 #include <core/bio.h>
+#include <core/ring_buffer.h>
 
 namespace KStor
 {
@@ -101,7 +102,7 @@ private:
     JournalTxBlockPtr ReadTxBlock(uint64_t index, Core::Error& err);
     Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block, Core::NoIOBioList& bioList);
 
-    Core::Error GetNextBlockIndex(uint64_t& index);
+    Core::Error GetNextBlock(uint64_t& index);
 
     Core::Error Run(const Core::Threadable& thread) override;
 
@@ -116,9 +117,9 @@ private:
     Core::RWSem TxListLock;
     Core::Event TxListEvent;
     Core::RWSem Lock;
+    Core::RingBuffer LogRb;
     uint64_t Start;
     uint64_t Size;
-    uint64_t CurrBlockIndex;
     unsigned int State;
 };
 

@@ -201,7 +201,7 @@ struct page *page_checker_alloc_page(gfp_t flags)
 	save_stack_trace(&entry->stack);
 #endif
 
-	i = hash_ptr(page) % ARRAY_SIZE(checker->entries_list);
+	i = hash_pointer(page) % ARRAY_SIZE(checker->entries_list);
 	spin_lock_irqsave(&checker->entries_list_lock[i], irq_flags);
 	list_add(&entry->link, &checker->entries_list[i]);
 	spin_unlock_irqrestore(&checker->entries_list_lock[i], irq_flags);
@@ -275,7 +275,7 @@ void page_checker_free_page(struct page *page)
 #endif
 
 	INIT_LIST_HEAD(&entries_list);
-	i = hash_ptr(page) % ARRAY_SIZE(checker->entries_list);
+	i = hash_pointer(page) % ARRAY_SIZE(checker->entries_list);
 	spin_lock_irqsave(&checker->entries_list_lock[i], irq_flags);
 	list_for_each_entry_safe(curr, tmp, &checker->entries_list[i], link) {
 		if (curr->page == page) {

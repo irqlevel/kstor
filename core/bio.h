@@ -26,6 +26,10 @@ public:
         , IoError(Error::NotExecuted)
         , PostEndIoHandler(nullptr)
         , PostEndIoCtx(nullptr)
+        , Write(false)
+        , Flush(false)
+        , Fua(false)
+        , Sync(false)
     {
         if (!err.Ok())
         {
@@ -101,22 +105,22 @@ public:
 
     void SetRead()
     {
-        get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_READ);
+        Write = false;
     }
 
     void SetWrite()
     {
-        get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_WRITE);
+        Write = true;
     }
 
     void SetFua()
     {
-        get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_FUA);
+        Fua = true;
     }
 
     void SetFlush()
     {
-        get_kapi()->set_bio_rw(BioPtr, KAPI_BIO_FLUSH);
+        Flush = true;
     }
 
     Error SetPage(int pageIndex, const typename Page<PoolType>::Ptr& page, int offset, int len)
@@ -147,7 +151,12 @@ public:
     void Submit()
     {
         trace(4, "Bio 0x%p bio 0x%p submit", this, BioPtr);
-        get_kapi()->submit_bio(BioPtr);
+        get_kapi()->submit_bio(BioPtr,
+            (Flush) ? KAPI_BIO_OP_FLUSH :
+            ((Write) ? KAPI_BIO_OP_WRITE : KAPI_BIO_OP_READ),
+            ((Fua) ? KAPI_BIO_REQ_FUA : 0) |
+            ((Sync) ? KAPI_BIO_REQ_SYNC : 0) |
+            ((Flush) ? KAPI_BIO_REQ_FLUSH : 0));
     }
 
     Error GetError()
@@ -223,6 +232,10 @@ private:
     LinkedList<typename Page<PoolType>::Ptr, PoolType> PageList;
     PostEndIoHandlerType PostEndIoHandler;
     void* PostEndIoCtx;
+    bool Write;
+    bool Flush;
+    bool Fua;
+    bool Sync;
 };
 
 template<Memory::PoolType PoolType>

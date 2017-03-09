@@ -212,7 +212,7 @@ void *malloc_checker_kmalloc(size_t size, gfp_t flags)
     save_stack_trace(&entry->stack);
 #endif
 
-    i = hash_ptr(ptr) % ARRAY_SIZE(checker->entries_list);
+    i = hash_pointer(ptr) % ARRAY_SIZE(checker->entries_list);
     spin_lock_irqsave(&checker->entries_list_lock[i], irq_flags);
     list_add(&entry->link, &checker->entries_list[i]);
     spin_unlock_irqrestore(&checker->entries_list_lock[i], irq_flags);
@@ -271,7 +271,7 @@ void malloc_checker_kfree(void *ptr)
     struct list_head entries_list;
 
     INIT_LIST_HEAD(&entries_list);
-    i = hash_ptr(ptr) % ARRAY_SIZE(checker->entries_list);
+    i = hash_pointer(ptr) % ARRAY_SIZE(checker->entries_list);
     spin_lock_irqsave(&checker->entries_list_lock[i], irq_flags);
     list_for_each_entry_safe(curr, tmp, &checker->entries_list[i], link)
     {

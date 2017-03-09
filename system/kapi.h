@@ -102,11 +102,10 @@ struct kernel_api
     int (*set_bio_page)(void* bio, int page_index, void* page, int offset, int len);
     int (*set_bio_end_io)(void* bio, void (*bio_end_io)(void* bio, int err), void* priv);
     void (*set_bio_bdev)(void* bio, void* bdev);
-    void (*set_bio_rw)(void* bio, int rw);
     void (*set_bio_flags)(void* bio, int flags);
     void (*set_bio_position)(void* bio, unsigned long long sector);
     void* (*get_bio_private)(void* bio);
-    void (*submit_bio)(void* bio);
+    void (*submit_bio)(void* bio, unsigned int op, unsigned int op_flags);
 
     int (*vfs_file_open)(const char *path, int flags, void** file);
     int (*vfs_file_write)(void* file, const void* buf, unsigned long len, unsigned long long offset);
@@ -150,16 +149,20 @@ struct kernel_api
 #define KAPI_BDEV_MODE_WRITE        0x2
 #define KAPI_BDEV_MODE_EXCLUSIVE    0x4
 
-#define KAPI_BIO_READ 0x1
-#define KAPI_BIO_WRITE 0x2
-#define KAPI_BIO_FLUSH 0x4
-#define KAPI_BIO_FUA 0x8
+#define KAPI_BIO_OP_READ    1
+#define KAPI_BIO_OP_WRITE   2 
+#define KAPI_BIO_OP_FLUSH   3
+#define KAPI_BIO_OP_DISCARD 4
 
-#define KAPI_VFS_FILE_RDONLY 0x1
-#define KAPI_VFS_FILE_WRONLY 0x2
-#define KAPI_VFS_FILE_RDWR 0x4
-#define KAPI_VFS_FILE_CREAT 0x8
-#define KAPI_VFS_FILE_EXCL 0x10
+#define KAPI_BIO_REQ_FUA    0x1
+#define KAPI_BIO_REQ_SYNC   0x2
+#define KAPI_BIO_REQ_FLUSH  0x4
+
+#define KAPI_VFS_FILE_RDONLY    0x1
+#define KAPI_VFS_FILE_WRONLY    0x2
+#define KAPI_VFS_FILE_RDWR      0x4
+#define KAPI_VFS_FILE_CREAT     0x8
+#define KAPI_VFS_FILE_EXCL      0x10
 
 struct kapi_atomic
 {

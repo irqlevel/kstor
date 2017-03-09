@@ -629,31 +629,6 @@ static void kapi_set_bio_bdev(void* bio, void* bdev)
     bio_->bi_bdev = (struct block_device*)bdev;
 }
 
-static void kapi_set_bio_rw(void* bio, int rw)
-{
-    struct bio* bio_ = (struct bio*)bio;
-
-    if (rw & KAPI_BIO_READ)
-    {
-        bio_->bi_rw |= READ;
-    }
-
-    if (rw & KAPI_BIO_WRITE)
-    {
-        bio_->bi_rw |= WRITE;
-    }
-
-    if (rw & KAPI_BIO_FLUSH)
-    {
-        bio_->bi_rw |= REQ_FLUSH;
-    }
-
-    if (rw & KAPI_BIO_FUA)
-    {
-        bio_->bi_rw |= REQ_FUA;
-    }
-}
-
 static void kapi_set_bio_flags(void* bio, int flags)
 {
     struct bio* bio_ = (struct bio*)bio;
@@ -680,11 +655,84 @@ static void* kapi_get_bio_private(void* bio)
     return priv_->priv;
 }
 
-static void kapi_submit_bio(void* bio)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+static unsigned int kapi_get_bio_op(unsigned int op)
+{
+    switch (op)
+    {
+    case KAPI_BIO_OP_READ:
+        return REQ_OP_READ;
+    case KAPI_BIO_OP_WRITE:
+        return REQ_OP_WRITE;
+    case KAPI_BIO_OP_FLUSH:
+        return REQ_OP_FLUSH;
+    case KAPI_BIO_OP_DISCARD:
+        return REQ_OP_DISCARD;
+    default:
+        return 0;
+    }
+}
+
+static unsigned int kapi_get_bio_op_flags(unsigned int op_flags)
+{
+    unsigned int result;
+
+    result = 0;
+    if (op_flags & KAPI_BIO_REQ_FUA)
+        result |= REQ_FUA;
+    if (op_flags & KAPI_BIO_REQ_SYNC)
+        result |= REQ_SYNC;
+    if (op_flags & KAPI_BIO_REQ_FLUSH)
+        result |= REQ_PREFLUSH;
+
+    return result;
+}
+#else
+
+static int kapi_get_bio_rw(unsigned int op, unsigned int op_flags)
+{
+    int rw;
+
+    rw = 0;
+    switch (rw)
+    {
+    case KAPI_BIO_OP_READ:
+        rw =  0;
+        break;
+    case KAPI_BIO_OP_WRITE:
+        rw =  REQ_WRITE;
+        break;
+    case KAPI_BIO_OP_FLUSH:
+        rw =  REQ_WRITE | REQ_FLUSH;
+        break;
+    case KAPI_BIO_OP_DISCARD:
+        rw = REQ_WRITE | REQ_DISCARD;
+        break;
+    default:
+        break;
+    }
+
+    if (op_flags & KAPI_BIO_REQ_FUA)
+        rw |= REQ_FUA;
+    if (op_flags & KAPI_BIO_REQ_SYNC)
+        rw |= REQ_SYNC;
+    if (op_flags & KAPI_BIO_REQ_FLUSH)
+        rw |= REQ_FLUSH;
+
+    return rw;
+}
+
+#endif
+
+static void kapi_submit_bio(void* bio, unsigned int op, unsigned int op_flags)
 {
     struct bio* bio_ = (struct bio*)bio;
-
-    submit_bio(bio_->bi_rw, bio_);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+    bio_set_op_attrs(bio_, kapi_get_bio_op(op), kapi_get_bio_op_flags(op_flags));
+    submit_bio(bio_);
+#else
+    submit_bio(kapi_get_bio_rw(bio_), bio_);
+#endif
 }
 
 static int kapi_vfs_file_open(const char *path, int flags, void** file)
@@ -1172,7 +1220,6 @@ static struct kernel_api g_kapi =
     .set_bio_page = kapi_set_bio_page,
     .set_bio_end_io = kapi_set_bio_end_io,
     .set_bio_bdev = kapi_set_bio_bdev,
-    .set_bio_rw = kapi_set_bio_rw,
     .set_bio_flags = kapi_set_bio_flags,
     .set_bio_position = kapi_set_bio_position,
     .get_bio_private = kapi_get_bio_private,

@@ -79,7 +79,10 @@ struct JournalHeader
     unsigned int Magic;
     unsigned char Padding[12];
     unsigned long long Size;
-    unsigned char Unused[PageSize - 2 * 16];
+    unsigned long long LogStartIndex;
+    unsigned long long LogEndIndex;
+    unsigned long long LogSize;
+    unsigned char Unused[PageSize - 2 * 16 - 3 * 8];
     unsigned char Hash[HashSize];
 };
 

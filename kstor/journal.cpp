@@ -58,6 +58,13 @@ Core::Error Journal::Load(uint64_t start)
     if (size <= 1)
         return Core::Error::BadSize;
 
+    uint64_t logSize = Core::BitOps::Le64ToCpu(header->LogSize);
+    uint64_t logStartIndex = Core::BitOps::Le64ToCpu(header->LogStartIndex);
+    uint64_t logEndIndex = Core::BitOps::Le64ToCpu(header->LogEndIndex);
+
+    if (!LogRb.Reset(logStartIndex, logEndIndex, logSize, size - 1))
+        return Core::Error::BadSize;
+
     Start = start;
     Size = size;
 
@@ -68,7 +75,6 @@ Core::Error Journal::Load(uint64_t start)
         return err;
     }
 
-    CurrBlockIndex = Start + 1;
     TxThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
     if (TxThread.Get() == nullptr)
     {
@@ -98,6 +104,11 @@ Core::Error Journal::Format(uint64_t start, uint64_t size)
 
     header->Magic = Core::BitOps::CpuToLe32(Api::JournalMagic);
     header->Size = Core::BitOps::CpuToLe64(size);
+
+    header->LogSize = Core::BitOps::CpuToLe64(0);
+    header->LogStartIndex = Core::BitOps::CpuToLe64(0);
+    header->LogEndIndex = Core::BitOps::CpuToLe64(0);
+
     Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
 
     trace(1, "Journal 0x%p start %llu size %llu", this, start, size);
@@ -201,6 +212,9 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
     if (position < page.GetSize())
         return Core::Error::Overlap;
 
+    if (position & 511)
+        return Core::Error::InvalidValue;
+
     if (Core::Memory::CheckIntersection(position, position + page.GetSize(),
                     JournalRef.GetStart() * JournalRef.GetBlockSize(),
                     (JournalRef.GetStart() + JournalRef.GetSize()) * JournalRef.GetBlockSize()))
@@ -210,6 +224,9 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
     size_t off = 0;
     while (off < page.GetSize())
     {
+        if (position & 511)
+            return Core::Error::InvalidValue;
+
         JournalTxBlockPtr blockPtr = CreateTxBlock(Api::JournalBlockTypeTxData);
         if (blockPtr.Get() == nullptr)
         {
@@ -217,7 +234,11 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
         }
 
         Api::JournalTxDataBlock* block = reinterpret_cast<Api::JournalTxDataBlock*>(blockPtr.Get());
-        size_t read = page.Read(block->Data, sizeof(block->Data), off);
+        size_t sizeToRead = (sizeof(block->Data) / 512) * 512;
+        if (sizeToRead == 0)
+            return Core::Error::InvalidValue;
+
+        size_t read = page.Read(block->Data, sizeToRead, off);
         block->Position = position;
         block->DataSize = read;
 
@@ -285,7 +306,7 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
     }
 
     uint64_t blockIndex;
-    err = JournalRef.GetNextBlockIndex(blockIndex);
+    err = JournalRef.GetNextBlock(blockIndex);
     if (!err.Ok())
         goto fail;
 
@@ -298,7 +319,7 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
         for (;it.IsValid(); it.Next())
         {
             auto block = it.Get();
-            err = JournalRef.GetNextBlockIndex(blockIndex);
+            err = JournalRef.GetNextBlock(blockIndex);
             if (!err.Ok())
                 goto fail;
 
@@ -308,7 +329,7 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
         }
     }
 
-    err = JournalRef.GetNextBlockIndex(blockIndex);
+    err = JournalRef.GetNextBlock(blockIndex);
     if (!err.Ok())
         goto fail;
 
@@ -502,6 +523,7 @@ Core::Error Journal::Replay()
 
 Core::Error Journal::Flush(Core::NoIOBioList& bioList)
 {
+    Core::AutoLock lock(Lock);
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::NoIO>::Create(err);
     if (!err.Ok())
@@ -513,6 +535,13 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
 
     header->Magic = Core::BitOps::CpuToLe32(Api::JournalMagic);
     header->Size = Core::BitOps::CpuToLe64(Size);
+    header->LogStartIndex = Core::BitOps::CpuToLe64(LogRb.GetStartIndex());
+    header->LogEndIndex = Core::BitOps::CpuToLe64(LogRb.GetEndIndex());
+    header->LogSize = Core::BitOps::CpuToLe64(LogRb.GetSize());
+
+    trace(1, "Journal 0x%p flush, startIndex %llu endIndex %llu size %llu",
+        this, LogRb.GetStartIndex(), LogRb.GetEndIndex(), LogRb.GetSize());
+
     Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
 
     err = bioList.AddIo(page, Start * GetBlockSize(), true);
@@ -663,29 +692,38 @@ size_t Journal::GetBlockSize()
 
 void Journal::Stop()
 {
-    Core::AutoLock lock(Lock);
 
     trace(1, "Journal 0x%p stopping", this);
-
-    State = JournalStateStopping;
+    {
+        Core::AutoLock lock(Lock);
+        State = JournalStateStopping;
+    }
     if (TxThread.Get() != nullptr)
     {
         TxThread->StopAndWait();
         TxThread.Reset();
     }
-    State = JournalStateStopped;
+
+    {
+        Core::AutoLock lock(Lock);
+        State = JournalStateStopped;
+    }
+
+    Core::NoIOBioList bioList(VolumeRef.GetDevice());
+    Flush(bioList);
 
     trace(1, "Journal 0x%p stopped", this);
 }
 
-Core::Error Journal::GetNextBlockIndex(uint64_t& index)
+Core::Error Journal::GetNextBlock(uint64_t& index)
 {
-    index = CurrBlockIndex;
-    if ((CurrBlockIndex + 1) >= (Start + Size))
-        CurrBlockIndex = Start + 1;
-    else
-        CurrBlockIndex++;
+    size_t position;
 
+    auto err = LogRb.PushBack(position);
+    if (!err.Ok())
+        return err;
+    index = Start + 1 + position;
+    trace(1, "Journal 0x%p next index %llu", this, index);
     return Core::Error::Success;
 }
 
