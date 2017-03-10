@@ -88,7 +88,7 @@ public:
 
     size_t GetBlockSize();
 
-    void Stop();
+    Core::Error Unload();
 
 private:
     Core::Error Replay();
@@ -118,6 +118,7 @@ private:
     Core::Event TxListEvent;
     Core::RWSem Lock;
     Core::RingBuffer LogRb;
+    Core::RWSem LogRbLock;
     uint64_t Start;
     uint64_t Size;
     unsigned int State;

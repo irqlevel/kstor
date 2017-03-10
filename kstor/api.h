@@ -64,11 +64,10 @@ struct VolumeHeader
     unsigned int Magic;
     unsigned char Padding[12];
     Guid VolumeId;
-    unsigned long long BlockSize;
     unsigned long long Size;
     unsigned long long JournalSize;
     unsigned long long BitmapSize;
-    unsigned char Unused[PageSize - 2 * 16 - 4 * 8 - 8];
+    unsigned char Unused[PageSize - 2 * 16 - 4 * 8];
     unsigned char Hash[HashSize];
 };
 
@@ -82,7 +81,8 @@ struct JournalHeader
     unsigned long long LogStartIndex;
     unsigned long long LogEndIndex;
     unsigned long long LogSize;
-    unsigned char Unused[PageSize - 2 * 16 - 3 * 8];
+    unsigned long long LogCapacity;
+    unsigned char Unused[PageSize - 2 * 16 - 4 * 8];
     unsigned char Hash[HashSize];
 };
 

@@ -22,7 +22,7 @@ ControlDevice::ControlDevice(Core::Error& err)
 {
 }
 
-Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, uint64_t blockSize, Guid& volumeId)
+Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, Guid& volumeId)
 {
     Core::AutoLock lock(VolumeLock);
     if (VolumeRef.Get() != nullptr)
@@ -47,7 +47,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, u
 
     if (format)
     {
-        err = VolumeRef->Format(blockSize);
+        err = VolumeRef->Format();
         if (!err.Ok())
         {
             trace(0, "CtrlDev 0x%p device format err %d", this, err.GetCode());
@@ -76,8 +76,9 @@ Core::Error ControlDevice::Unmount(const Guid& volumeId)
 
     if (VolumeRef->GetVolumeId() == volumeId)
     {
+        auto err = VolumeRef->Unload();
         VolumeRef.Reset();
-        return Core::Error::Success;
+        return err;
     }
 
     return Core::Error::NotFound;
@@ -93,8 +94,9 @@ Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
 
     if (VolumeRef->GetDeviceName().Compare(deviceName) == 0)
     {
+        auto err = VolumeRef->Unload();
         VolumeRef.Reset();
-        return Core::Error::Success;
+        return err;
     }
 
     return Core::Error::NotFound;
@@ -185,7 +187,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         }
 
         Guid volumeId;
-        err = Mount(deviceName, params.Format, params.BlockSize, volumeId);
+        err = Mount(deviceName, params.Format, volumeId);
         if (err.Ok()) {
             params.VolumeId = volumeId.GetContent();
         }

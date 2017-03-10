@@ -4,6 +4,7 @@
 #include "threadable.h"
 #include "event.h"
 #include "error.h"
+#include "astring.h"
 
 namespace Core
 {
@@ -12,8 +13,8 @@ class Thread : public Threadable
 {
 public:
     Thread();
-    Thread(Runnable *routine, Error& err);
-    void Start(Runnable *routine, Error& err);
+    Thread(const AString& name, Runnable *routine, Error& err);
+    Core::Error Start(const AString& name, Runnable *routine);
     void Stop();
     void Wait();
     void StopAndWait();
@@ -35,6 +36,7 @@ private:
     bool Stopping;
     bool Running;
     Event CompEvent;
+    AString Name;
 };
 
 }

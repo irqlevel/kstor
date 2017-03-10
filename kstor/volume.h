@@ -16,15 +16,20 @@
 namespace KStor 
 {
 
+const unsigned int VolumeStateNew = 1;
+const unsigned int VolumeStateRunning = 2;
+const unsigned int VolumeStateStopping = 3;
+const unsigned int VolumeStateStopped = 4;
+
 class Volume
 {
 public:
     Volume(const Core::AString& deviceName, Core::Error& err);
     virtual ~Volume();
 
-    Core::Error Format(unsigned long blockSize);
+    Core::Error Format();
     Core::Error Load();
-
+    Core::Error Unload();
     const Guid& GetVolumeId() const;
 
     uint64_t GetSize() const;
@@ -55,6 +60,8 @@ private:
     uint64_t Size;
     uint64_t BlockSize;
     Journal JournalObj;
+    Core::RWSem Lock;
+    unsigned int State;
 };
 
 typedef Core::SharedPtr<Volume, Core::Memory::PoolType::Kernel> VolumePtr;

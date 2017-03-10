@@ -231,6 +231,17 @@ public:
         return Iterator(*this);
     }
 
+    size_t Count()
+    {
+        size_t count = 0;
+        auto it = GetIterator();
+        for (; it.IsValid();it.Next())
+        {
+            count++;
+        }
+        return count;
+    }
+
 private:
     LinkedList(const LinkedList& other) = delete;
     LinkedList& operator=(const LinkedList& other) = delete;

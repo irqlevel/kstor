@@ -3,6 +3,7 @@
 #include <core/bitops.h>
 #include <core/xxhash.h>
 #include <core/hex.h>
+#include <core/astring.h>
 
 namespace KStor 
 {
@@ -146,7 +147,11 @@ Core::Error Server::Connection::Start()
     }
 
     Core::Error err;
-    ConnThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
+    Core::AString name("kstor-con", err);
+    if (!err.Ok())
+        return err;
+
+    ConnThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(name, this, err);
     if (ConnThread.Get() == nullptr)
     {
         err.SetNoMemory();
@@ -398,12 +403,20 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
         return Core::Error::NoMemory;
 
     Core::Error err = ListenSocket->Listen(host, port, 65536);
-    if (!err.Ok()) {
+    if (!err.Ok())
+    {
         ListenSocket.Reset();
         return err;
     }
 
-    AcceptThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
+    Core::AString name("kstor-srv", err);
+    if (!err.Ok())
+    {
+        ListenSocket.Reset();
+        return err;
+    }
+
+    AcceptThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(name, this, err);
     if (AcceptThread.Get() == nullptr) {
         ListenSocket.Reset();
         return Core::Error::NoMemory;

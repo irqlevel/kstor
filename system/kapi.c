@@ -682,7 +682,7 @@ static unsigned int kapi_get_bio_op_flags(unsigned int op_flags)
         result |= REQ_FUA;
     if (op_flags & KAPI_BIO_REQ_SYNC)
         result |= REQ_SYNC;
-    if (op_flags & KAPI_BIO_REQ_FLUSH)
+    if (op_flags & KAPI_BIO_REQ_PREFLUSH)
         result |= REQ_PREFLUSH;
 
     return result;
@@ -716,7 +716,7 @@ static int kapi_get_bio_rw(unsigned int op, unsigned int op_flags)
         rw |= REQ_FUA;
     if (op_flags & KAPI_BIO_REQ_SYNC)
         rw |= REQ_SYNC;
-    if (op_flags & KAPI_BIO_REQ_FLUSH)
+    if (op_flags & KAPI_BIO_REQ_PREFLUSH)
         rw |= REQ_FLUSH;
 
     return rw;

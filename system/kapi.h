@@ -154,9 +154,9 @@ struct kernel_api
 #define KAPI_BIO_OP_FLUSH   3
 #define KAPI_BIO_OP_DISCARD 4
 
-#define KAPI_BIO_REQ_FUA    0x1
-#define KAPI_BIO_REQ_SYNC   0x2
-#define KAPI_BIO_REQ_FLUSH  0x4
+#define KAPI_BIO_REQ_FUA        0x1
+#define KAPI_BIO_REQ_SYNC       0x2
+#define KAPI_BIO_REQ_PREFLUSH   0x4
 
 #define KAPI_VFS_FILE_RDONLY    0x1
 #define KAPI_VFS_FILE_WRONLY    0x2

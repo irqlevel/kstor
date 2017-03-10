@@ -9,10 +9,13 @@ Thread::Thread()
 {
 }
 
-Thread::Thread(Runnable* routine, Error& err)
+Thread::Thread(const AString& name, Runnable* routine, Error& err)
    : Routine(nullptr), Task(nullptr), Stopping(false), Running(false)
 {
-    Start(routine, err);
+    if (!err.Ok())
+        return;
+
+    err = Start(name, routine);
 }
 
 int Thread::StartRoutine(void* context)
@@ -28,33 +31,34 @@ Error Thread::ExecuteRoutine()
     return err;
 }
 
-void Thread::Start(Runnable* routine, Error& err)
+Core::Error Thread::Start(const AString &name, Runnable* routine)
 {
-    if (!err.Ok())
-    {
-        return;
-    }
-    if (!routine)
+    Core::Error err;
+
+    if (routine == nullptr)
     {
         err.SetInvalidValue();
-        return;
+        return err;
     }
+
+    AString localName(name, err);
     if (!err.Ok())
     {
-        return;
+        return err;
     }
+
+    Name = Memory::Move(localName);
     Routine = routine;
-    Task = get_kapi()->task_create(&Thread::StartRoutine, this,
-				   "kstor-thread");
+    Task = get_kapi()->task_create(&Thread::StartRoutine, this, Name.GetBuf());
     if (!Task)
     {
         err.SetNoMemory();
-        return;
+        return err;
     }
     Running = true;
     get_kapi()->task_get(Task);
     get_kapi()->task_wakeup(Task);
-    err = Error::Success;
+    return err;
 }
 
 void Thread::Stop()

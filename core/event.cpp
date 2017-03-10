@@ -33,6 +33,10 @@ void Event::Wait(unsigned long timeout)
     get_kapi()->completion_wait_timeout(&Completion, timeout);
 }
 
+void Event::Reset()
+{
+}
+
 Event::~Event()
 {
 }

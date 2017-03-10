@@ -23,13 +23,14 @@ public:
     Bio(int pageCount, Error& err)
         : BioPtr(nullptr)
         , PageCount(pageCount)
-        , IoError(Error::NotExecuted)
         , PostEndIoHandler(nullptr)
         , PostEndIoCtx(nullptr)
         , Write(false)
         , Flush(false)
+        , Preflush(false)
         , Fua(false)
         , Sync(false)
+        , Position(0)
     {
         if (!err.Ok())
         {
@@ -64,7 +65,7 @@ public:
     }
 
     Bio(BlockDeviceInterface& blockDevice, const typename Page<PoolType>::Ptr& page, unsigned long long sector,
-        Error& err, bool write, bool flush = false, bool fua = false, int offset = 0, int len = 0)
+        Error& err, bool write, bool preflush = false, bool fua = false, bool sync = false, int offset = 0, int len = 0)
         : Bio(1, err)
     {
         if (!err.Ok())
@@ -85,9 +86,13 @@ public:
             {
                 SetFua();
             }
-            if (flush)
+            if (preflush)
             {
-                SetFlush();
+                SetPreflush();
+            }
+            if (sync)
+            {
+                SetSync();
             }
         }
         else
@@ -123,6 +128,16 @@ public:
         Flush = true;
     }
 
+    void SetPreflush()
+    {
+        Preflush = true;
+    }
+
+    void SetSync()
+    {
+        Sync = true;
+    }
+
     Error SetPage(int pageIndex, const typename Page<PoolType>::Ptr& page, int offset, int len)
     {
         if (!PageList.AddTail(page))
@@ -145,30 +160,33 @@ public:
 
     void SetPosition(unsigned long long sector)
     {
-        get_kapi()->set_bio_position(BioPtr, sector);
+        Position = sector;
+        get_kapi()->set_bio_position(BioPtr, Position);
     }
 
     void Submit()
     {
-        trace(4, "Bio 0x%p bio 0x%p submit", this, BioPtr);
+        trace(4, "Bio 0x%p bio 0x%p submit pos %llu write %d flush %d fua %d sync %d",
+            this, BioPtr, Position, Write, Flush, Fua, Sync);
+
         get_kapi()->submit_bio(BioPtr,
             (Flush) ? KAPI_BIO_OP_FLUSH :
             ((Write) ? KAPI_BIO_OP_WRITE : KAPI_BIO_OP_READ),
             ((Fua) ? KAPI_BIO_REQ_FUA : 0) |
             ((Sync) ? KAPI_BIO_REQ_SYNC : 0) |
-            ((Flush) ? KAPI_BIO_REQ_FLUSH : 0));
+            ((Preflush) ? KAPI_BIO_REQ_PREFLUSH : 0));
     }
 
-    Error GetError()
+    Error GetResult()
     {
-        return IoError;
+        return Result;
     }
 
-    Error Exec()
+    Error SubmitWaitResult()
     {
         Submit();
         Wait();
-        return GetError();
+        return GetResult();
     }
 
     virtual ~Bio()
@@ -183,11 +201,11 @@ public:
 
     static SharedPtr<Bio<PoolType>, PoolType> Create(BlockDeviceInterface& blockDevice,
         const typename Page<PoolType>::Ptr& page, unsigned long long sector, Error& err,
-        bool write, bool flush = false, bool fua = false, int offset = 0, int len = 0)
+        bool write, bool preflush = false, bool fua = false, bool sync = false, int offset = 0, int len = 0)
     {
         SharedPtr<Bio<PoolType>, PoolType> bio =
             MakeShared<Bio<PoolType>, PoolType>(blockDevice, page, sector, err,
-                                                write, flush, fua, offset, len);
+                                                write, preflush, fua, sync, offset, len);
         if (bio.Get() == nullptr)
         {
             err = Error::NoMemory;
@@ -212,7 +230,7 @@ private:
     void EndIo(int err)
     {
         trace(4, "Bio 0x%p bio 0x%p endio err %d", this, BioPtr, err);
-        IoError.SetCode(err);
+        Result.SetCode(err);
         EndIoEvent.SetAll();
 
         if (PostEndIoHandler != nullptr)
@@ -228,14 +246,16 @@ private:
     void* BioPtr;
     int PageCount;
     Event EndIoEvent;
-    Error IoError;
+    Error Result;
     LinkedList<typename Page<PoolType>::Ptr, PoolType> PageList;
     PostEndIoHandlerType PostEndIoHandler;
     void* PostEndIoCtx;
     bool Write;
     bool Flush;
+    bool Preflush;
     bool Fua;
     bool Sync;
+    unsigned long long Position;
 };
 
 template<Memory::PoolType PoolType>
@@ -273,39 +293,36 @@ public:
         return Error::Success;
     }
 
-    void Submit(bool flushFua = false)
+    void SubmitWait(bool preflushFua = false)
     {
         if (ReqList.IsEmpty())
             return;
 
-        if (flushFua)
+        if (!preflushFua)
         {
-            auto lastBio = ReqList.Tail();
-            lastBio->SetFlush();
-            lastBio->SetFua();
+            Submit(ReqList, ReqList.Count());
+            Wait();
+            return;
         }
 
-        auto it = ReqList.GetIterator();
-        for (;it.IsValid(); it.Next())
+        auto lastBio = ReqList.Tail();
+        lastBio->SetPreflush();
+        lastBio->SetFua();
+        lastBio->SetSync();
+
+        size_t count = ReqList.Count();
+        if (count > 1)
         {
-            ReqCompleteCount.Inc();
+            Submit(ReqList, count - 1);
+            Wait();
+            auto err = GetResult();
+            if (!err.Ok())
+            {
+                return;
+            }
         }
 
-        it = ReqList.GetIterator();
-        for (;it.IsValid(); it.Next())
-        {
-            auto bio = it.Get();
-            bio->SetPostEndIoHandler(&BioList<PoolType>::PostEndIoHandler, this);
-            bio->Submit();
-        }
-    }
-
-    void Wait()
-    {
-        if (!ReqList.IsEmpty())
-        {
-            ReqCompleteEvent.Wait();
-        }
+        Result = lastBio->SubmitWaitResult();
     }
 
     Error GetResult()
@@ -313,21 +330,20 @@ public:
         return Result;
     }
 
-    Error Exec(bool flushFua = false)
+    Error SubmitWaitResult(bool preflushFua = false)
     {
-        Submit();
-        Wait();
+        SubmitWait(preflushFua);
         return GetResult();
     }
 
-    Error AddExec(const typename Page<PoolType>::Ptr& page, unsigned long long position,
-                bool write, bool flushFua = false)
+    Error SubmitWaitResult(const typename Page<PoolType>::Ptr& page, unsigned long long position,
+                bool write, bool preflushFua = false)
     {
         Error err = AddIo(page, position, write);
         if (!err.Ok())
             return err;
 
-        return Exec(flushFua);
+        return SubmitWaitResult(preflushFua);
     }
 
 private:
@@ -338,8 +354,8 @@ private:
 
     void PostEndIoHandler(Bio<PoolType>* bio)
     {
-        auto err = bio->GetError();
-        if (!err.Ok())
+        auto err = bio->GetResult();
+        if (!err.Ok() && Result.Ok())
             Result = err;
 
         if (ReqCompleteCount.DecAndTest())
@@ -350,6 +366,45 @@ private:
     {
         BioList<PoolType>* bioList = static_cast<BioList<PoolType>*>(ctx);
         bioList->PostEndIoHandler(bio);
+    }
+
+    void Submit(LinkedList<typename Bio<PoolType>::Ptr, PoolType>& reqList, size_t maxCount)
+    {
+        ReqCompleteCount.Set(0);
+        ReqCompleteEvent.Reset();
+
+        size_t i = 0;
+        auto it = reqList.GetIterator();
+        for (;it.IsValid(); it.Next())
+        {
+            if (i >= maxCount)
+                break;
+
+            ReqCompleteCount.Inc();
+            i++;
+        }
+
+        i = 0;
+        it = reqList.GetIterator();
+        for (;it.IsValid(); it.Next())
+        {
+            if (i >= maxCount)
+                break;
+
+            auto bio = it.Get();
+            bio->SetPostEndIoHandler(&BioList<PoolType>::PostEndIoHandler, this);
+            bio->Submit();
+            i++;
+        }
+    }
+
+    void Wait()
+    {
+        if (ReqCompleteCount.Get() != 0)
+        {
+            ReqCompleteEvent.Wait();
+            ReqCompleteEvent.Reset();
+        }
     }
 
     LinkedList<typename Bio<PoolType>::Ptr, PoolType> ReqList;

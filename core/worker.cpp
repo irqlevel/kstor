@@ -62,10 +62,18 @@ Error Worker::Run(const Threadable& thread)
     return Error::Success;
 }
 
-Worker::Worker(Error& err)
-    : Stopping(false), Running(false),
-      WorkerThread(this, err)
+Worker::Worker(const AString& name, Error& err)
+    : Stopping(false), Running(false)
 {
+    if (!err.Ok())
+        return;
+
+    AString localName(name, err);
+    if (!err.Ok())
+        return;
+    Name = Memory::Move(localName);
+
+    err = WorkerThread.Start(Name, this);
     if (!err.Ok())
         return;
 

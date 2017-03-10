@@ -26,13 +26,15 @@ Journal::Journal(Volume& volume)
 Core::Error Journal::Load(uint64_t start)
 {
     Core::AutoLock lock(Lock);
+    if (State != JournalStateNew)
+        return Core::Error::InvalidState;
 
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).AddExec(page,
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).SubmitWaitResult(page,
                                                         start * GetBlockSize(), false);
     if (!err.Ok())
         return err;
@@ -41,7 +43,7 @@ Core::Error Journal::Load(uint64_t start)
     Api::JournalHeader *header = static_cast<Api::JournalHeader *>(pageMap.GetAddress());
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::JournalMagic)
     {
-        trace(0, "Journal 0x%p invalid header magic", this);
+        trace(0, "Journal 0x%p invalid header magic 0x%x", this, Core::BitOps::Le32ToCpu(header->Magic));
         return Core::Error::BadMagic;
     }
 
@@ -61,9 +63,19 @@ Core::Error Journal::Load(uint64_t start)
     uint64_t logSize = Core::BitOps::Le64ToCpu(header->LogSize);
     uint64_t logStartIndex = Core::BitOps::Le64ToCpu(header->LogStartIndex);
     uint64_t logEndIndex = Core::BitOps::Le64ToCpu(header->LogEndIndex);
+    uint64_t logCapacity = Core::BitOps::Le64ToCpu(header->LogCapacity);
 
-    if (!LogRb.Reset(logStartIndex, logEndIndex, logSize, size - 1))
+    trace(1, "Journal 0x%p load, logStartIndex %llu logEndIndex %llu logSize %llu logCapacity %llu",
+        this, logStartIndex, logEndIndex, logSize, logCapacity);
+
+    if (logCapacity != (size - 1))
         return Core::Error::BadSize;
+
+    {
+        Core::AutoLock lock(LogRbLock);
+        if (!LogRb.Reset(logStartIndex, logEndIndex, logSize, logCapacity))
+            return Core::Error::BadSize;
+    }
 
     Start = start;
     Size = size;
@@ -75,7 +87,13 @@ Core::Error Journal::Load(uint64_t start)
         return err;
     }
 
-    TxThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(this, err);
+    Core::AString name("kstor-jrnl", err);
+    if (!err.Ok())
+    {
+        return err;
+    }
+
+    TxThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(name, this, err);
     if (TxThread.Get() == nullptr)
     {
         return Core::Error::NoMemory;
@@ -92,6 +110,8 @@ Core::Error Journal::Format(uint64_t start, uint64_t size)
     Core::AutoLock lock(Lock);
     if (size <= 1)
         return Core::Error::InvalidValue;
+    if (State != JournalStateNew)
+        return Core::Error::InvalidState;
 
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
@@ -108,12 +128,13 @@ Core::Error Journal::Format(uint64_t start, uint64_t size)
     header->LogSize = Core::BitOps::CpuToLe64(0);
     header->LogStartIndex = Core::BitOps::CpuToLe64(0);
     header->LogEndIndex = Core::BitOps::CpuToLe64(0);
+    header->LogCapacity = Core::BitOps::CpuToLe64(size - 1);
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
 
     trace(1, "Journal 0x%p start %llu size %llu", this, start, size);
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).AddExec(page,
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).SubmitWaitResult(page,
                                                         start * GetBlockSize(), true, true);
     if (!err.Ok())
     {
@@ -140,7 +161,7 @@ uint64_t Journal::GetSize()
 Journal::~Journal()
 {
     trace(1, "Journal 0x%p dtor", this);
-    Stop();
+    Unload();
 }
 
 Transaction::Transaction(Journal& journal, Core::Error& err)
@@ -376,8 +397,11 @@ void Transaction::OnCommitComplete(const Core::Error& result)
 TransactionPtr Journal::BeginTx()
 {
     Core::SharedAutoLock lock(Lock);
-    Core::Error err;
 
+    if (State != JournalStateRunning)
+        return TransactionPtr();
+
+    Core::Error err;
     TransactionPtr tx = Core::MakeShared<Transaction, Core::Memory::PoolType::Kernel>(*this, err);
     if (tx.Get() == nullptr)
     {
@@ -477,10 +501,6 @@ Core::Error Journal::Run(const Core::Threadable& thread)
         if (err.Ok())
         {
             err = Flush(bioList);
-            if (err.Ok())
-            {
-                err = bioList.Exec(true);
-            }
         }
 
         while (!txList.IsEmpty())
@@ -492,21 +512,6 @@ Core::Error Journal::Run(const Core::Threadable& thread)
     }
 
     trace(1, "Journal 0x%p tx thread stop", this);
-
-    {
-        Core::AutoLock lock(TxListLock);
-        txList = Core::Memory::Move(TxList);
-    }
-
-    while (!txList.IsEmpty())
-    {
-        auto tx = txList.Head();
-        txList.PopHead();
-        tx->Cancel();
-    }
-
-    Core::NoIOBioList bioList(VolumeRef.GetDevice());
-    err = Flush(bioList);
 
     return err;
 }
@@ -524,6 +529,8 @@ Core::Error Journal::Replay()
 Core::Error Journal::Flush(Core::NoIOBioList& bioList)
 {
     Core::AutoLock lock(Lock);
+    Core::SharedAutoLock lock2(LogRbLock);
+
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::NoIO>::Create(err);
     if (!err.Ok())
@@ -538,9 +545,10 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
     header->LogStartIndex = Core::BitOps::CpuToLe64(LogRb.GetStartIndex());
     header->LogEndIndex = Core::BitOps::CpuToLe64(LogRb.GetEndIndex());
     header->LogSize = Core::BitOps::CpuToLe64(LogRb.GetSize());
+    header->LogCapacity = Core::BitOps::CpuToLe64(LogRb.GetCapacity());
 
-    trace(1, "Journal 0x%p flush, startIndex %llu endIndex %llu size %llu",
-        this, LogRb.GetStartIndex(), LogRb.GetEndIndex(), LogRb.GetSize());
+    trace(1, "Journal 0x%p flush, logStartIndex %llu logEndIndex %llu logSize %llu logCapacity %llu",
+        this, LogRb.GetStartIndex(), LogRb.GetEndIndex(), LogRb.GetSize(), LogRb.GetCapacity());
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
 
@@ -548,6 +556,13 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
     if (!err.Ok())
     {
         trace(0, "Journal 0x%p write header err %d", this, err.GetCode());
+        return err;
+    }
+
+    err = bioList.SubmitWaitResult(true);
+    if (!err.Ok())
+    {
+        trace(0, "Journal 0x%p flush err %d", this, err.GetCode());
         return err;
     }
 
@@ -637,7 +652,7 @@ JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
     if (!err.Ok())
         return JournalTxBlockPtr();
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).AddExec(page,
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).SubmitWaitResult(page,
                                                         index * GetBlockSize(), false);
     if (!err.Ok())
         return JournalTxBlockPtr();
@@ -690,35 +705,53 @@ size_t Journal::GetBlockSize()
     return VolumeRef.GetBlockSize();
 }
 
-void Journal::Stop()
+Core::Error Journal::Unload()
 {
-
-    trace(1, "Journal 0x%p stopping", this);
+    trace(1, "Journal 0x%p unload", this);
     {
         Core::AutoLock lock(Lock);
+        if (State == JournalStateStopped)
+            return Core::Error::Success;
+        if (State != JournalStateRunning)
+            return Core::Error::InvalidState;
         State = JournalStateStopping;
     }
+
     if (TxThread.Get() != nullptr)
     {
         TxThread->StopAndWait();
         TxThread.Reset();
     }
 
+    TxListLock.Acquire();
+    auto txList = Core::Memory::Move(TxList);
+    TxListLock.Release();
+
+    while (!txList.IsEmpty())
+    {
+        auto tx = txList.Head();
+        txList.PopHead();
+        tx->Cancel();
+    }
+
+    Core::NoIOBioList bioList(VolumeRef.GetDevice());
+    auto err = Flush(bioList);
+
     {
         Core::AutoLock lock(Lock);
         State = JournalStateStopped;
     }
 
-    Core::NoIOBioList bioList(VolumeRef.GetDevice());
-    Flush(bioList);
+    trace(1, "Journal 0x%p unload, err %d", this, err.GetCode());
 
-    trace(1, "Journal 0x%p stopped", this);
+    return err;
 }
 
 Core::Error Journal::GetNextBlock(uint64_t& index)
 {
     size_t position;
 
+    Core::AutoLock lock(LogRbLock);
     auto err = LogRb.PushBack(position);
     if (!err.Ok())
         return err;

@@ -16,7 +16,7 @@ public:
     int GetTime(unsigned long long& time);
     int GetRandomUlong(unsigned long& value);
 
-    int Mount(const char* deviceName, bool format, unsigned long blockSize, KStor::Api::Guid& volumeId);
+    int Mount(const char* deviceName, bool format, KStor::Api::Guid& volumeId);
     int Unmount(const KStor::Api::Guid& volumeId);
     int Unmount(const char* deviceName);
 

@@ -13,6 +13,7 @@ public:
     void SetAll();
     void Wait();
     void Wait(unsigned long timeout);
+    void Reset();
     virtual ~Event();
 
 private:

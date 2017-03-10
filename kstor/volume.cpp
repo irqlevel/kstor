@@ -12,8 +12,9 @@ Volume::Volume(const Core::AString& deviceName, Core::Error& err)
     : DeviceName(deviceName, err)
     , Device(DeviceName, err)
     , Size(0)
-    , BlockSize(0)
+    , BlockSize(Api::PageSize)
     , JournalObj(*this)
+    , State(VolumeStateNew)
 {
     if (!err.Ok())
     {
@@ -26,22 +27,24 @@ Volume::Volume(const Core::AString& deviceName, Core::Error& err)
 
 Volume::~Volume()
 {
+    Unload();
     trace(1, "Volume 0x%p dtor", this);
 }
 
-Core::Error Volume::Format(unsigned long blockSize)
+Core::Error Volume::Format()
 {
-    if (blockSize == 0 || blockSize % Api::PageSize)
-        return Core::Error::InvalidValue;
+    Core::AutoLock lock(Lock);
+
+    if (State != VolumeStateNew)
+        return Core::Error::InvalidState;
 
     uint64_t size = Device.GetSize();
-    if (size == 0 || size % blockSize)
+    if (size == 0 || size % BlockSize)
         return Core::Error::InvalidValue;
 
-    BlockSize = blockSize;
     Size = size;
 
-    Core::Error err = JournalObj.Format(1, (size / 10) / blockSize);
+    Core::Error err = JournalObj.Format(1, (size / 10) / BlockSize);
     if (!err.Ok())
         return err;
 
@@ -56,12 +59,11 @@ Core::Error Volume::Format(unsigned long blockSize)
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
     header->Size = Core::BitOps::CpuToLe64(size);
-    header->BlockSize = Core::BitOps::CpuToLe64(blockSize);
     header->JournalSize = Core::BitOps::CpuToLe64(JournalObj.GetSize());
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).AddExec(page, 0, true, true);
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).SubmitWaitResult(page, 0, true, true);
 
     trace(1, "Volume 0x%p write header, err %d", this, err.GetCode());
 
@@ -70,12 +72,16 @@ Core::Error Volume::Format(unsigned long blockSize)
 
 Core::Error Volume::Load()
 {
+    Core::AutoLock lock(Lock);
+    if (State != VolumeStateNew)
+        return Core::Error::InvalidState;
+
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).AddExec(page, 0, false);
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).SubmitWaitResult(page, 0, false);
     if (!err.Ok())
     {
         trace(0, "Volume 0x%p read header, err %d", this, err.GetCode());
@@ -86,7 +92,7 @@ Core::Error Volume::Load()
     Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(pageMap.GetAddress());
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
     {
-        trace(0, "Volume 0x%p bad header magic", this);
+        trace(0, "Volume 0x%p bad header magic 0x%x", this, Core::BitOps::Le32ToCpu(header->Magic));
         return Core::Error::BadMagic;
     }
 
@@ -100,11 +106,9 @@ Core::Error Volume::Load()
     }
 
     uint64_t size = Core::BitOps::Le64ToCpu(header->Size);
-    uint64_t blockSize = Core::BitOps::Le64ToCpu(header->BlockSize);
-
-    if (blockSize == 0 || blockSize % Api::PageSize || size % blockSize)
+    if (size % BlockSize)
     {
-        trace(0, "Volume 0x%p bad block size %llu", this, blockSize);
+        trace(0, "Volume 0x%p bad size %llu", this, size);
         return Core::Error::BadSize;
     }
 
@@ -130,12 +134,51 @@ Core::Error Volume::Load()
     }
 
     Size = size;
-    BlockSize = blockSize;
 
     VolumeId.SetContent(header->VolumeId);
 
+    State = VolumeStateRunning;
     trace(1, "Volume 0x%p load volumeId %s size %llu blockSize %llu",
         this, VolumeId.ToString().GetBuf(), Size, BlockSize);
+
+    return err;
+}
+
+Core::Error Volume::Unload()
+{
+    trace(1, "Volume 0x%p unload", this);
+
+    Core::AutoLock lock(Lock);
+    if (State == VolumeStateStopped)
+        return Core::Error::Success;
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
+    State = VolumeStateStopping;
+    auto err = JournalObj.Unload();
+    if (!err.Ok())
+        return err;
+
+    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    if (!err.Ok())
+        return err;
+
+    page->Zero();
+
+    Core::PageMap pageMap(*page.Get());
+    Api::VolumeHeader *header = static_cast<Api::VolumeHeader*>(pageMap.GetAddress());
+    header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
+    header->VolumeId = VolumeId.GetContent();
+    header->Size = Core::BitOps::CpuToLe64(Size);
+    header->JournalSize = Core::BitOps::CpuToLe64(JournalObj.GetSize());
+
+    Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
+
+    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).SubmitWaitResult(page, 0, true, true);
+
+    State = VolumeStateStopped;
+
+    trace(1, "Volume 0x%p unload, err %d", this, err.GetCode());
 
     return err;
 }
@@ -167,6 +210,10 @@ Core::BlockDevice& Volume::GetDevice()
 
 Core::Error Volume::ChunkCreate(const Guid& chunkId)
 {
+    Core::SharedAutoLock lock(Lock);
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
     trace(1, "Chunk %s create", chunkId.ToString().GetBuf());
 
     auto chunk = ChunkTable.Get(chunkId);
@@ -187,6 +234,10 @@ Core::Error Volume::ChunkCreate(const Guid& chunkId)
 
 Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::ChunkSize])
 {
+    Core::SharedAutoLock lock(Lock);
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
     trace(1, "Chunk %s write", chunkId.ToString().GetBuf());
 
     auto chunk = ChunkTable.Get(chunkId);
@@ -205,6 +256,10 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
 
 Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::ChunkSize])
 {
+    Core::SharedAutoLock lock(Lock);
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
     trace(1, "Chunk %s read", chunkId.ToString().GetBuf());
 
     auto chunk = ChunkTable.Get(chunkId);
@@ -223,6 +278,10 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
 
 Core::Error Volume::ChunkDelete(const Guid& chunkId)
 {
+    Core::SharedAutoLock lock(Lock);
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
     trace(1, "Chunk %s delete", chunkId.ToString().GetBuf());
 
     if (ChunkTable.Remove(chunkId))
@@ -233,6 +292,10 @@ Core::Error Volume::ChunkDelete(const Guid& chunkId)
 
 Core::Error Volume::ChunkLookup(const Guid& chunkId)
 {
+    Core::SharedAutoLock lock(Lock);
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
     trace(1, "Chunk %s lookup", chunkId.ToString().GetBuf());
 
     if (!ChunkTable.CheckExist(chunkId))
@@ -242,6 +305,10 @@ Core::Error Volume::ChunkLookup(const Guid& chunkId)
 
 Core::Error Volume::TestJournal()
 {
+    Core::SharedAutoLock lock(Lock);
+    if (State != VolumeStateRunning)
+        return Core::Error::InvalidState;
+
     trace(1, "Test journal");
 
     auto tx = JournalObj.BeginTx();

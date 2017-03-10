@@ -6,7 +6,7 @@ LIB_OUT = core.a
 LIB_SRC = kapi.cpp init.cpp new.cpp atomic.cpp thread.cpp \
           event.cpp worker.cpp spinlock.cpp pure_virtual.cpp trace.cpp \
           list_entry.cpp smp.cpp rwsem.cpp error.cpp page.cpp \
-		  block_device.cpp bio.cpp vfs_file.cpp random.cpp misc_device.cpp \
+		  block_device.cpp vfs_file.cpp random.cpp misc_device.cpp \
 		  bitops.cpp bitmap.cpp socket.cpp sha256.cpp xxhash.cpp \
 
 all:

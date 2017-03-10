@@ -21,16 +21,23 @@ int main(int argc, char* argv[])
     std::string cmd(argv[1]);
     if (cmd == "mount")
     {
-        if (argc != 4)
+        if (argc < 3 || argc > 4)
         {
-            printf("Invalid number of args\n");
+            printf("Invalid number of args %d\n", argc);
             return 1;
         }
 
         std::string deviceName(argv[2]);
+        bool format = false;
+        if (argc == 4)
+        {
+            std::string param(argv[3]);
+            if (param == "-f")
+                format = true;
+        }
+
         KStor::Api::Guid volumeId;
-        unsigned long blockSize = strtoul(argv[3], nullptr, 10);
-        err = ctl.Mount(deviceName.c_str(), true, blockSize, volumeId);
+        err = ctl.Mount(deviceName.c_str(), format, volumeId);
         if (err)
         {
             printf("Ctl mount err %d\n", err);

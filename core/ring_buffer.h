@@ -20,6 +20,8 @@ public:
 
     bool Reset(size_t startIndex, size_t endIndex, size_t size, size_t capacity)
     {
+        if (capacity == 0)
+            return false;
         if (size >= capacity)
             return false;
         if (startIndex >= capacity)
