@@ -98,8 +98,8 @@ private:
     Core::Error WriteTx(const TransactionPtr& tx, Core::NoIOBioList& bioList);
     void UnlinkTx(Transaction* tx, bool cancel);
 
-    Core::Error ReadTxBlockComplete(Core::PageInterface& blockPage);
-    Core::Error WriteTxBlockPrepare(Core::PageInterface& blockPage);
+    Core::Error ReadTxBlockComplete(Core::PageInterface& page);
+    Core::Error WriteTxBlockPrepare(Core::PageInterface& page);
 
     JournalTxBlockPtr ReadTxBlock(uint64_t index, Core::Error& err);
     Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block, Core::NoIOBioList& bioList);

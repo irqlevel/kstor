@@ -112,9 +112,10 @@ struct JournalTxDataBlock
 {
     Guid TxId;
     unsigned int Type;
+    unsigned int Index;
     unsigned int DataSize;
     unsigned long long Position;
-    unsigned char Data[PageSize - 16 - 2 * 8 - 2 * 4];
+    unsigned char Data[PageSize - 16 - 2 * 8 - 3 * 4];
     unsigned char Hash[HashSize];
 };
 

@@ -242,6 +242,7 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
         return Core::Error::Overlap;
 
     Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel> blockList;
+    unsigned int index = DataBlockList.Count();
     size_t off = 0;
     while (off < page.GetSize())
     {
@@ -262,7 +263,7 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
         size_t read = page.Read(block->Data, sizeToRead, off);
         block->Position = position;
         block->DataSize = read;
-
+        block->Index = index;
         if (!blockList.AddTail(blockPtr))
         {
             return Core::Error::NoMemory;
@@ -270,6 +271,7 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
 
         off += read;
         position += read;
+        index++;
     }
 
     DataBlockList.AddTail(Core::Memory::Move(blockList));
@@ -542,6 +544,7 @@ Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::Po
         return Core::Error::InvalidValue;
 
     auto it = blockList.GetIterator();
+    unsigned int index = 0;
     for(; it.IsValid(); it.Next())
     {
         auto block = it.Get();
@@ -549,6 +552,15 @@ Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::Po
             return Core::Error::InvalidValue;
         if (txId != Guid(block->TxId))
             return Core::Error::InvalidValue;
+
+        auto& data = *reinterpret_cast<Api::JournalTxDataBlock*>(block.Get());
+        if (data.Index != index)
+            return Core::Error::InvalidValue;
+
+        trace(1, "Journal 0x%p tx %s block %u pos %llu size %u",
+            this, txId.ToString().GetBuf(), data.Index, data.Position, data.DataSize);
+
+        index++;
     }
 
     trace(1, "Journal 0x%p tx %s replayed", this, txId.ToString().GetBuf());
@@ -695,10 +707,14 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
     return err;
 }
 
-Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& blockPage)
+Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& page)
 {
-    Core::PageMap blockMap(blockPage);
-    Api::JournalTxBlock* block = reinterpret_cast<Api::JournalTxBlock*>(blockMap.GetAddress());
+    Api::JournalTxBlock* block;
+    if (sizeof(*block) != page.GetSize())
+        return Core::Error::BadSize;
+
+    Core::PageMap pageMap(page);
+    block = reinterpret_cast<Api::JournalTxBlock*>(pageMap.GetAddress());
 
     unsigned char hash[Api::HashSize];
     Core::XXHash::Sum(block, OFFSET_OF(Api::JournalTxBlock, Hash), hash);
@@ -717,6 +733,7 @@ Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& blockPage)
         Api::JournalTxDataBlock *dataBlock = reinterpret_cast<Api::JournalTxDataBlock*>(block);
         dataBlock->Position = Core::BitOps::Le64ToCpu(dataBlock->Position);
         dataBlock->DataSize = Core::BitOps::Le32ToCpu(dataBlock->DataSize);
+        dataBlock->Index = Core::BitOps::Le32ToCpu(dataBlock->Index);
         break;
     }
     case Api::JournalBlockTypeTxCommit:
@@ -733,10 +750,14 @@ Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& blockPage)
     return Core::Error::Success;
 }
 
-Core::Error Journal::WriteTxBlockPrepare(Core::PageInterface& blockPage)
+Core::Error Journal::WriteTxBlockPrepare(Core::PageInterface& page)
 {
-    Core::PageMap blockMap(blockPage);
-    Api::JournalTxBlock* block = reinterpret_cast<Api::JournalTxBlock*>(blockMap.GetAddress());
+    Api::JournalTxBlock* block;
+    if (sizeof(*block) != page.GetSize())
+        return Core::Error::BadSize;
+
+    Core::PageMap pageMap(page);
+    block = reinterpret_cast<Api::JournalTxBlock*>(pageMap.GetAddress());
 
     switch (block->Type)
     {
@@ -747,6 +768,7 @@ Core::Error Journal::WriteTxBlockPrepare(Core::PageInterface& blockPage)
         Api::JournalTxDataBlock *dataBlock = reinterpret_cast<Api::JournalTxDataBlock*>(block);
         dataBlock->Position = Core::BitOps::CpuToLe64(dataBlock->Position);
         dataBlock->DataSize = Core::BitOps::CpuToLe32(dataBlock->DataSize);
+        dataBlock->Index = Core::BitOps::CpuToLe32(dataBlock->Index);
         break;
     }
     case Api::JournalBlockTypeTxCommit:
