@@ -518,9 +518,38 @@ Core::Error Journal::Run(const Core::Threadable& thread)
 
 Core::Error Journal::Replay()
 {
+
     Core::Error err;
 
     State = JournalStateReplaying;
+    Core::AutoLock lock(LogRbLock);
+
+    for (;;)
+    {
+        size_t index;
+
+        err = LogRb.PopFront(index);
+        if (err == Core::Error::NotFound)
+        {
+            err = Core::Error::Success;
+            break;
+        }
+
+        if (!err.Ok())
+            break;
+
+        uint64_t position = Start + 1 + index;
+
+        auto block = ReadTxBlock(position, err);
+        if (!err.Ok())
+        {
+            trace(0, "Journal 0x%p read position %llu err %d", position, err.GetCode());
+            break;
+        }
+
+        trace(1, "Journal 0x%p replay index %lu block %u", this, index, block->Type);
+    }
+
     trace(1, "Journal 0x%p replay %d", this, err.GetCode());
 
     return err;
