@@ -91,7 +91,9 @@ public:
     Core::Error Unload();
 
 private:
+    Core::Error Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& txBlockList);
     Core::Error Replay();
+
     Core::Error StartCommitTx(Transaction* tx);
     Core::Error WriteTx(const TransactionPtr& tx, Core::NoIOBioList& bioList);
     void UnlinkTx(Transaction* tx, bool cancel);

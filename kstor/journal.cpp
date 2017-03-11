@@ -516,14 +516,54 @@ Core::Error Journal::Run(const Core::Threadable& thread)
     return err;
 }
 
+Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& txBlockList)
+{
+    auto blockList = Core::Memory::Move(txBlockList);
+
+    if (blockList.Count() < 3)
+        return Core::Error::InvalidValue;
+
+    auto beginBlock = blockList.Head();
+    blockList.PopHead();
+    auto commitBlock = blockList.Tail();
+    blockList.PopTail();
+
+    if (beginBlock->Type != Api::JournalBlockTypeTxBegin)
+        return Core::Error::InvalidValue;
+    if (commitBlock->Type != Api::JournalBlockTypeTxCommit)
+        return Core::Error::InvalidValue;
+
+    auto commitData = reinterpret_cast<Api::JournalTxCommitBlock*>(commitBlock.Get());
+    if (commitData->State != Api::JournalTxStateCommited)
+        return Core::Error::InvalidValue;
+
+    auto txId = Guid(beginBlock->TxId);
+    if (txId != Guid(commitBlock->TxId))
+        return Core::Error::InvalidValue;
+
+    auto it = blockList.GetIterator();
+    for(; it.IsValid(); it.Next())
+    {
+        auto block = it.Get();
+        if (block->Type != Api::JournalBlockTypeTxData)
+            return Core::Error::InvalidValue;
+        if (txId != Guid(block->TxId))
+            return Core::Error::InvalidValue;
+    }
+
+    trace(1, "Journal 0x%p tx %s replayed", this, txId.ToString().GetBuf());
+
+    return Core::Error::Success;
+}
+
 Core::Error Journal::Replay()
 {
-
     Core::Error err;
 
     State = JournalStateReplaying;
     Core::AutoLock lock(LogRbLock);
 
+    Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel> blockList;
     for (;;)
     {
         size_t index;
@@ -548,6 +588,62 @@ Core::Error Journal::Replay()
         }
 
         trace(1, "Journal 0x%p replay index %lu block %u", this, index, block->Type);
+
+        switch (block->Type)
+        {
+        case Api::JournalBlockTypeTxBegin:
+        {
+            if (!blockList.IsEmpty())
+            {
+                err = Core::Error::InvalidState;
+                break;
+            }
+            if (!blockList.AddTail(block))
+            {
+                err = Core::Error::NoMemory;
+                break;
+            }
+            break;
+        }
+        case Api::JournalBlockTypeTxData:
+        {
+            if (blockList.IsEmpty())
+            {
+                err = Core::Error::InvalidState;
+                break;
+            }
+            if (!blockList.AddTail(block))
+            {
+                err = Core::Error::NoMemory;
+                break;
+            }
+            break;
+        }
+        case Api::JournalBlockTypeTxCommit:
+        {
+            if (blockList.Count() < 2)
+            {
+                err = Core::Error::InvalidState;
+                break;
+            }
+            if (!blockList.AddTail(block))
+            {
+                err = Core::Error::NoMemory;
+                break;
+            }
+
+            err = Replay(Core::Memory::Move(blockList));
+            break;
+        }
+        default:
+            err = Core::Error::InvalidValue;
+            break;
+        }
+
+        if (!err.Ok())
+        {
+            break;
+        }
     }
 
     trace(1, "Journal 0x%p replay %d", this, err.GetCode());

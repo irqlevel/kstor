@@ -35,12 +35,15 @@ public:
     virtual ~Guid();
 
     bool operator==(const Guid& other) const;
+    bool operator!=(const Guid& other) const;
 
     Core::AString ToString() const;
 
     size_t Hash() const;
 
 private:
+    int Compare(const Guid& other) const;
+
     Api::Guid Content;
 };
 

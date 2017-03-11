@@ -58,10 +58,20 @@ void Guid::SetContent(const Api::Guid& content)
     Content = content;
 }
 
+int Guid::Compare(const Guid& other) const
+{
+    return Core::Memory::MemCmp(const_cast<unsigned char*>(Content.Data),
+            const_cast<unsigned char*>(other.Content.Data), sizeof(Content.Data));
+}
+
 bool Guid::operator==(const Guid& other) const
 {
-    return (Core::Memory::MemCmp(const_cast<unsigned char*>(Content.Data),
-            const_cast<unsigned char*>(other.Content.Data), sizeof(Content.Data)) == 0) ? true : false;
+    return (Compare(other) == 0) ? true : false;
+}
+
+bool Guid::operator!=(const Guid& other) const
+{
+    return (Compare(other) != 0) ? true : false;
 }
 
 Guid::~Guid()
