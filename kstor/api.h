@@ -126,8 +126,9 @@ struct JournalTxCommitBlock
     Guid TxId;
     unsigned int Type;
     unsigned int State;
+    unsigned int BlockCount;
     unsigned long long Time;
-    unsigned char Unused[PageSize - 16 - 2 * 8 - 2 * 4];
+    unsigned char Unused[PageSize - 16 - 2 * 8 - 3 * 4];
     unsigned char Hash[HashSize];
 };
 

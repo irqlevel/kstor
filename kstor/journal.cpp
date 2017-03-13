@@ -359,6 +359,7 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
     {
         Api::JournalTxCommitBlock *commitBlock = reinterpret_cast<Api::JournalTxCommitBlock*>(CommitBlock.Get());
         commitBlock->State = Api::JournalTxStateCommited;
+        commitBlock->BlockCount = DataBlockList.Count();
         err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
         if (!err.Ok())
             goto fail;
@@ -541,6 +542,9 @@ Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::Po
 
     auto txId = Guid(beginBlock->TxId);
     if (txId != Guid(commitBlock->TxId))
+        return Core::Error::InvalidValue;
+
+    if (commitData->BlockCount != blockList.Count())
         return Core::Error::InvalidValue;
 
     auto it = blockList.GetIterator();
@@ -741,6 +745,7 @@ Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& page)
         Api::JournalTxCommitBlock *commitBlock = reinterpret_cast<Api::JournalTxCommitBlock*>(block);
         commitBlock->State = Core::BitOps::Le32ToCpu(commitBlock->State);
         commitBlock->Time = Core::BitOps::Le64ToCpu(commitBlock->Time);
+        commitBlock->BlockCount = Core::BitOps::Le32ToCpu(commitBlock->BlockCount);
         break;
     }
     default:
@@ -776,6 +781,7 @@ Core::Error Journal::WriteTxBlockPrepare(Core::PageInterface& page)
         Api::JournalTxCommitBlock *commitBlock = reinterpret_cast<Api::JournalTxCommitBlock*>(block);
         commitBlock->State = Core::BitOps::CpuToLe32(commitBlock->State);
         commitBlock->Time = Core::BitOps::CpuToLe64(commitBlock->Time);
+        commitBlock->BlockCount = Core::BitOps::CpuToLe32(commitBlock->BlockCount);
         break;
     }
     default:
