@@ -20,9 +20,9 @@ private:
     }
 
 public:
-    static Core::AString Encode(const unsigned char *buf, size_t len)
+    static AString Encode(const unsigned char *buf, size_t len)
     {
-        Core::AString result;
+        AString result;
 
         if (!result.ReserveAndUse(2 * len))
             return result;
@@ -37,6 +37,11 @@ public:
         dst[2 * len] = '\0';
 
         return result;
+    }
+
+    static AString Encode(const unsigned char *buf, size_t len, size_t max)
+    {
+        return Encode(buf, Memory::Min<size_t>(len, max));
     }
 
 };

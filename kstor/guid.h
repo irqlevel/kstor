@@ -15,7 +15,7 @@ class Guid
 {
 public:
     Guid();
-    Guid(Core::Random& rng, Core::Error& err);
+    Guid(Core::RandomFile& rng, Core::Error& err);
     Guid(Core::Error& err);
     Guid(const Api::Guid& content);
     Guid(const Guid& other);
@@ -25,7 +25,7 @@ public:
 
     const Api::Guid& GetContent() const;
 
-    Core::Error Generate(Core::Random& rng);
+    Core::Error Generate(Core::RandomFile& rng);
     Core::Error Generate();
 
     void Clear();

@@ -65,7 +65,8 @@ public:
     }
 
     Bio(BlockDeviceInterface& blockDevice, const typename Page<PoolType>::Ptr& page, unsigned long long sector,
-        Error& err, bool write, bool preflush = false, bool fua = false, bool sync = false, int offset = 0, int len = 0)
+        Error& err, bool write, size_t len = 0, size_t offset = 0,
+        bool preflush = false, bool fua = false, bool sync = false)
         : Bio(1, err)
     {
         if (!err.Ok())
@@ -138,7 +139,7 @@ public:
         Sync = true;
     }
 
-    Error SetPage(int pageIndex, const typename Page<PoolType>::Ptr& page, int offset, int len)
+    Error SetPage(int pageIndex, const typename Page<PoolType>::Ptr& page, size_t offset, size_t len)
     {
         if (!PageList.AddTail(page))
             return Error::NoMemory;
@@ -201,15 +202,20 @@ public:
 
     static SharedPtr<Bio<PoolType>, PoolType> Create(BlockDeviceInterface& blockDevice,
         const typename Page<PoolType>::Ptr& page, unsigned long long sector, Error& err,
-        bool write, bool preflush = false, bool fua = false, bool sync = false, int offset = 0, int len = 0)
+        bool write, int len = 0, int offset = 0, bool preflush = false, bool fua = false, bool sync = false)
     {
         SharedPtr<Bio<PoolType>, PoolType> bio =
             MakeShared<Bio<PoolType>, PoolType>(blockDevice, page, sector, err,
-                                                write, preflush, fua, sync, offset, len);
+                                                write, len, offset, preflush, fua, sync);
         if (bio.Get() == nullptr)
         {
             err = Error::NoMemory;
+            return bio;
         }
+
+        if (!err.Ok())
+            bio.Reset();
+
         return bio;
     }
 
@@ -273,13 +279,31 @@ public:
     {
     }
 
-    Error AddIo(const typename Page<PoolType>::Ptr& page, unsigned long long position, bool write)
+    Error AddIo(const void *data, size_t dataSize, unsigned long long position, bool write)
+    {
+        Error err;
+        auto page = Page<PoolType>::Create(err);
+        if (!err.Ok())
+            return err;
+
+        if (dataSize > page->GetSize())
+            return Core::Error::Overflow;
+
+        auto size = page->Write(data, dataSize, 0);
+        if (size != dataSize)
+            return Core::Error::UnexpectedEOF;
+
+        return AddIo(page, position, write, dataSize);
+    }
+
+    Error AddIo(const typename Page<PoolType>::Ptr& page, unsigned long long position, bool write,
+        size_t len = 0)
     {
         if (position & 511)
             return Error::InvalidValue;
 
         Error err;
-        auto bio = Bio<PoolType>::Create(BlockDev, page, position / 512, err, write);
+        auto bio = Bio<PoolType>::Create(BlockDev, page, position / 512, err, write, len);
         if (!err.Ok())
         {
             return err;

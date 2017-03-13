@@ -143,6 +143,9 @@ struct kernel_api
 
     unsigned long long (*le64_to_cpu)(unsigned long long value);
     unsigned long long (*cpu_to_le64)(unsigned long long value);
+
+    void (*get_random_bytes)(void *buf, int len);
+
 };
 
 #define KAPI_BDEV_MODE_READ         0x1

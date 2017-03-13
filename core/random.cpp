@@ -2,11 +2,12 @@
 #include "astring.h"
 #include "memory.h"
 #include "trace.h"
+#include "kapi.h"
 
 namespace Core
 {
 
-Random::Random(Error& err, bool pseudoRandom)
+RandomFile::RandomFile(Error& err, bool pseudoRandom)
 {
     if (!err.Ok())
     {
@@ -20,7 +21,7 @@ Random::Random(Error& err, bool pseudoRandom)
         return;
     }
 
-    err = DevRandomFile.Open(devName, true, false);
+    err = File.Open(devName, true, false);
     if (!err.Ok())
     {
         trace(0, "Can't open dev random file %s, err %d", devName.GetBuf(), err.GetCode());
@@ -30,9 +31,9 @@ Random::Random(Error& err, bool pseudoRandom)
     trace(3, "Random 0x%p dev %s ctor", this, devName.GetBuf());
 }
 
-Error Random::GetBytes(void* buf, unsigned long len)
+Error RandomFile::GetBytes(void* buf, unsigned long len)
 {
-    Error err = DevRandomFile.Read(0, buf, len);
+    Error err = File.Read(0, buf, len);
     if (!err.Ok())
     {
         trace(0, "Can't read dev random file, err %d", err.GetCode());
@@ -40,7 +41,7 @@ Error Random::GetBytes(void* buf, unsigned long len)
     return err;
 }
 
-unsigned long Random::GetUlong()
+unsigned long RandomFile::GetUlong()
 {
     unsigned long result;
 
@@ -53,9 +54,14 @@ unsigned long Random::GetUlong()
     return result;
 }
 
-Random::~Random()
+RandomFile::~RandomFile()
 {
     trace(3, "Random 0x%p dtor", this);
+}
+
+void Random::GetBytes(void* buf, int len)
+{
+    get_kapi()->get_random_bytes(buf, len);
 }
 
 }

@@ -18,6 +18,7 @@
 #include <linux/device.h>
 #include <linux/miscdevice.h>
 #include <linux/timekeeping.h>
+#include <linux/random.h>
 
 #include <stdarg.h>
 
@@ -1139,6 +1140,11 @@ static unsigned long long kapi_cpu_to_le64(unsigned long long value)
     return cpu_to_le64(value);
 }
 
+static void kapi_get_random_bytes(void *buf, int len)
+{
+    get_random_bytes(buf, len);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1259,6 +1265,7 @@ static struct kernel_api g_kapi =
     .le64_to_cpu = kapi_le64_to_cpu,
     .cpu_to_le64 = kapi_cpu_to_le64,
 
+    .get_random_bytes = kapi_get_random_bytes,
 };
 
 int kapi_init(void)

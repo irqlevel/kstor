@@ -83,8 +83,14 @@ Core::Error Journal::Load(uint64_t start)
     err = Replay();
     if (!err.Ok())
     {
-        trace(0, "Journal 0x%p replay error %d", this, err.GetCode());
-        return err;
+        if (err == Core::Error::DataCorrupt)
+        {
+            trace(1, "Journal 0x%p replay error %d", this, err.GetCode());
+            err = Core::Error::Success;
+        } else {
+            trace(0, "Journal 0x%p replay error %d", this, err.GetCode());
+            return err;
+        }
     }
 
     Core::AString name("kstor-jrnl", err);
@@ -228,18 +234,12 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
     if (State != Api::JournalTxStateNew)
         return Core::Error::InvalidState;
 
-    trace(1, "Tx 0x%p %s write %llu", this, TxId.ToString().GetBuf(), position);
+    trace(1, "Tx 0x%p %s write %llu data %s",
+        this, TxId.ToString().GetBuf(), position, page.ToHex(16).GetBuf());
 
-    if (position < page.GetSize())
-        return Core::Error::Overlap;
-
-    if (position & 511)
-        return Core::Error::InvalidValue;
-
-    if (Core::Memory::CheckIntersection(position, position + page.GetSize(),
-                    JournalRef.GetStart() * JournalRef.GetBlockSize(),
-                    (JournalRef.GetStart() + JournalRef.GetSize()) * JournalRef.GetBlockSize()))
-        return Core::Error::Overlap;
+    auto err = JournalRef.CheckPosition(position, page.GetSize());
+    if (!err.Ok())
+        return err;
 
     Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel> blockList;
     unsigned int index = DataBlockList.Count();
@@ -305,7 +305,18 @@ Core::Error Transaction::Commit()
     CommitEvent.Wait();
 
     Core::AutoLock lock(Lock);
-    return CommitResult;
+    if (!CommitResult.Ok())
+    {
+        return CommitResult;
+    }
+
+    if (State != Api::JournalTxStateCommited)
+    {
+        return Core::Error::InvalidState;
+    }
+
+    auto err = JournalRef.ApplyBlocks(DataBlockList, false);
+    return err;
 }
 
 void Transaction::Cancel()
@@ -519,47 +530,91 @@ Core::Error Journal::Run(const Core::Threadable& thread)
     return err;
 }
 
-Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& txBlockList)
+Core::Error Journal::CheckPosition(unsigned long long position, size_t size)
 {
-    auto blockList = Core::Memory::Move(txBlockList);
-
-    if (blockList.Count() < 3)
+    if (position & 511)
         return Core::Error::InvalidValue;
 
-    auto beginBlock = blockList.Head();
-    blockList.PopHead();
-    auto commitBlock = blockList.Tail();
-    blockList.PopTail();
+    if (position < GetBlockSize())
+        return Core::Error::Overlap;
+
+    if (Core::Memory::CheckIntersection(position, position + size,
+                    GetStart() * GetBlockSize(), (GetStart() + GetSize()) * GetBlockSize()))
+        return Core::Error::Overlap;
+
+    return Core::Error::Success;
+}
+
+Core::Error Journal::ApplyBlocks(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>& blockList,
+    bool preflushFua)
+{
+    Core::NoIOBioList bioList(VolumeRef.GetDevice());
+
+    auto it = blockList.GetIterator();
+    for(; it.IsValid(); it.Next())
+    {
+        auto block = it.Get();
+        auto data = reinterpret_cast<Api::JournalTxDataBlock*>(block.Get());
+
+        if (data->Type != Api::JournalBlockTypeTxData)
+            return Core::Error::InvalidValue;
+
+        auto err = CheckPosition(data->Position, data->DataSize);
+        if (!err.Ok())
+            return err;
+
+        trace(1, "Journal 0x%p position %llu size %lu data %s",
+            this, data->Position, data->DataSize, Core::Hex::Encode(data->Data, 16, data->DataSize).GetBuf());
+
+        err = bioList.AddIo(data->Data, data->DataSize, data->Position, true);
+        if (!err.Ok())
+            return err;
+    }
+
+    return bioList.SubmitWaitResult(preflushFua);
+}
+
+Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& blockList)
+{
+    auto localBlockList = Core::Memory::Move(blockList);
+
+    if (localBlockList.Count() < 3)
+        return Core::Error::DataCorrupt;
+
+    auto beginBlock = localBlockList.Head();
+    localBlockList.PopHead();
+    auto commitBlock = localBlockList.Tail();
+    localBlockList.PopTail();
 
     if (beginBlock->Type != Api::JournalBlockTypeTxBegin)
-        return Core::Error::InvalidValue;
+        return Core::Error::DataCorrupt;
     if (commitBlock->Type != Api::JournalBlockTypeTxCommit)
-        return Core::Error::InvalidValue;
+        return Core::Error::DataCorrupt;
 
     auto commitData = reinterpret_cast<Api::JournalTxCommitBlock*>(commitBlock.Get());
     if (commitData->State != Api::JournalTxStateCommited)
-        return Core::Error::InvalidValue;
+        return Core::Error::DataCorrupt;
 
     auto txId = Guid(beginBlock->TxId);
     if (txId != Guid(commitBlock->TxId))
-        return Core::Error::InvalidValue;
+        return Core::Error::DataCorrupt;
 
-    if (commitData->BlockCount != blockList.Count())
-        return Core::Error::InvalidValue;
+    if (commitData->BlockCount != localBlockList.Count())
+        return Core::Error::DataCorrupt;
 
-    auto it = blockList.GetIterator();
+    auto it = localBlockList.GetIterator();
     unsigned int index = 0;
     for(; it.IsValid(); it.Next())
     {
         auto block = it.Get();
         if (block->Type != Api::JournalBlockTypeTxData)
-            return Core::Error::InvalidValue;
+            return Core::Error::DataCorrupt;
         if (txId != Guid(block->TxId))
-            return Core::Error::InvalidValue;
+            return Core::Error::DataCorrupt;
 
         auto& data = *reinterpret_cast<Api::JournalTxDataBlock*>(block.Get());
         if (data.Index != index)
-            return Core::Error::InvalidValue;
+            return Core::Error::DataCorrupt;
 
         trace(1, "Journal 0x%p tx %s block %u pos %llu size %u",
             this, txId.ToString().GetBuf(), data.Index, data.Position, data.DataSize);
@@ -567,9 +622,11 @@ Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::Po
         index++;
     }
 
-    trace(1, "Journal 0x%p tx %s replayed", this, txId.ToString().GetBuf());
+    auto err = ApplyBlocks(localBlockList, true);
 
-    return Core::Error::Success;
+    trace(1, "Journal 0x%p tx %s replayed, err %d", this, txId.ToString().GetBuf(), err.GetCode());
+
+    return err;
 }
 
 Core::Error Journal::Replay()
@@ -611,7 +668,7 @@ Core::Error Journal::Replay()
         {
             if (!blockList.IsEmpty())
             {
-                err = Core::Error::InvalidState;
+                err = Core::Error::DataCorrupt;
                 break;
             }
             if (!blockList.AddTail(block))
@@ -625,7 +682,7 @@ Core::Error Journal::Replay()
         {
             if (blockList.IsEmpty())
             {
-                err = Core::Error::InvalidState;
+                err = Core::Error::DataCorrupt;
                 break;
             }
             if (!blockList.AddTail(block))
@@ -639,7 +696,7 @@ Core::Error Journal::Replay()
         {
             if (blockList.Count() < 2)
             {
-                err = Core::Error::InvalidState;
+                err = Core::Error::DataCorrupt;
                 break;
             }
             if (!blockList.AddTail(block))
@@ -652,7 +709,7 @@ Core::Error Journal::Replay()
             break;
         }
         default:
-            err = Core::Error::InvalidValue;
+            err = Core::Error::DataCorrupt;
             break;
         }
 
@@ -749,7 +806,7 @@ Core::Error Journal::ReadTxBlockComplete(Core::PageInterface& page)
         break;
     }
     default:
-        return Core::Error::InvalidValue;
+        return Core::Error::DataCorrupt;
     }
 
     return Core::Error::Success;

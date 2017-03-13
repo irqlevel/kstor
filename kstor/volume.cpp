@@ -326,6 +326,8 @@ Core::Error Volume::TestJournal()
     if (!err.Ok())
         return err;
 
+    page->FillRandom();
+
     err = tx->Write(*page.Get(), position);
     if (!err.Ok())
         return err;

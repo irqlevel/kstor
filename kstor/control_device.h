@@ -44,7 +44,7 @@ public:
 
 private:
     Server Srv;
-    Core::Random Rng;
+    Core::RandomFile Rng;
     Core::RWSem VolumeLock;
     VolumePtr VolumeRef;
     static ControlDevice* Device;

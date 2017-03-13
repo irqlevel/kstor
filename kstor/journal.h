@@ -91,7 +91,10 @@ public:
     Core::Error Unload();
 
 private:
-    Core::Error Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& txBlockList);
+    Core::Error ApplyBlocks(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>& blockList,
+        bool preflushFua = false);
+
+    Core::Error Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& blockList);
     Core::Error Replay();
 
     Core::Error StartCommitTx(Transaction* tx);
@@ -109,6 +112,8 @@ private:
     Core::Error Run(const Core::Threadable& thread) override;
 
     Core::Error Flush(Core::NoIOBioList& bioList);
+
+    Core::Error CheckPosition(unsigned long long position, size_t size);
 
 private:
 

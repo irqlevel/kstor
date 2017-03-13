@@ -9,7 +9,7 @@ Guid::Guid()
     Core::Memory::MemSet(Content.Data, 0, sizeof(Content.Data));
 }
 
-Guid::Guid(Core::Random& rng, Core::Error& err)
+Guid::Guid(Core::RandomFile& rng, Core::Error& err)
     : Guid()
 {
     if (!err.Ok())
@@ -32,7 +32,7 @@ Guid::Guid(const Api::Guid& content)
 {
 }
 
-Core::Error Guid::Generate(Core::Random& rng)
+Core::Error Guid::Generate(Core::RandomFile& rng)
 {
     return rng.GetBytes(Content.Data, sizeof(Content.Data));
 }
@@ -41,7 +41,7 @@ Core::Error Guid::Generate()
 {
     Core::Error err;
 
-    Core::Random rng(err, false);
+    Core::RandomFile rng(err, false);
     if (!err.Ok())
         return err;
 

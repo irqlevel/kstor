@@ -4,6 +4,7 @@
 #include "error.h"
 #include "random.h"
 #include "shared_ptr.h"
+#include "hex.h"
 
 namespace Core
 {
@@ -19,6 +20,7 @@ public:
     virtual size_t Read(void *buf, size_t len, size_t off) const = 0;
     virtual size_t Write(const void *buf, size_t len, size_t off) = 0;
     virtual void Zero() = 0;
+    virtual AString ToHex(size_t len) const = 0;
 };
 
 template<Memory::PoolType PoolType>
@@ -71,6 +73,11 @@ public:
 
     virtual size_t GetSize() const override
     {
+        return GetPageSize();
+    }
+
+    static size_t GetPageSize()
+    {
         return get_kapi()->get_page_size();
     }
 
@@ -81,12 +88,19 @@ public:
         UnmapAtomic(va);
     }
 
-    Error FillRandom(Random& rng)
+    Error FillRandom(RandomFile& rng)
     {
         void* va = MapAtomic();
         Error err = rng.GetBytes(va, GetSize());
         UnmapAtomic(va);
         return err;
+    }
+
+    void FillRandom()
+    {
+        void* va = MapAtomic();
+        Random::GetBytes(va, GetSize());
+        UnmapAtomic(va);
     }
 
     int CompareContent(PageInterface& other)
@@ -138,8 +152,26 @@ public:
         if (page.Get() == nullptr)
         {
             err = Error::NoMemory;
+            return page;
         }
+
+        if (!err.Ok())
+            page.Reset();
+
         return page;
+    }
+
+    virtual Core::AString ToHex(size_t len) const override
+    {
+        Core::AString result;
+
+        auto size = GetSize();
+        void* va = ConstMapAtomic();
+        if (len > size)
+            len = size;
+        result = Hex::Encode(static_cast<const unsigned char *>(va), len);
+        ConstUnmapAtomic(va);
+        return result;
     }
 
 private:
