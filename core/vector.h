@@ -94,7 +94,12 @@ public:
         return true;
     }
 
-    const T* GetBuf() const
+    const T* GetConstBuf() const
+    {
+        return Arr;
+    }
+
+    T* GetBuf()
     {
         return Arr;
     }

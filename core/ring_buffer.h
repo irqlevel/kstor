@@ -90,6 +90,31 @@ public:
         return Capacity;
     }
 
+    bool Erase(Core::LinkedList<size_t, Core::Memory::PoolType::Kernel>& indexList)
+    {
+        size_t startIndex = StartIndex;
+        size_t size = Size;
+
+        auto it = indexList.GetIterator();
+        for (;it.IsValid();it.Next())
+        {
+            if (size == 0)
+                return false;
+
+            auto index = it.Get();
+            if (index != startIndex)
+                return false;
+
+            startIndex = (startIndex + 1) % Capacity;
+            size--;
+        }
+
+        StartIndex = startIndex;
+        Size = size;
+
+        return true;
+    }
+
 private:
     size_t StartIndex;
     size_t EndIndex;

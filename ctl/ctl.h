@@ -25,6 +25,8 @@ public:
 
     int Test(unsigned int testId);
 
+    int GetTaskStack(int pid, char *buf, unsigned long len);
+
     virtual ~Ctl();
 private:
     int DevFd;

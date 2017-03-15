@@ -62,6 +62,11 @@ struct Cmd
             unsigned int TestId;
         } Test;
 
+        struct {
+            char Stack[65536];
+            int Pid;
+        } GetTaskStack;
+
     } Union;
 };
 
@@ -80,4 +85,6 @@ struct Cmd
 #define IOCTL_KSTOR_START_SERVER   _IOWR(KSTOR_IOC_MAGIC, 6, KStor::Control::Cmd*)
 #define IOCTL_KSTOR_STOP_SERVER   _IOWR(KSTOR_IOC_MAGIC, 7, KStor::Control::Cmd*)
 
-#define IOCTL_KSTOR_TEST    _IOWR(KSTOR_IOC_MAGIC, 8, KStor::Control::Cmd*)
+#define IOCTL_KSTOR_TEST        _IOWR(KSTOR_IOC_MAGIC, 8, KStor::Control::Cmd*)
+
+#define IOCTL_KSTOR_GET_TASK_STACK  _IOWR(KSTOR_IOC_MAGIC, 9, KStor::Control::Cmd*)

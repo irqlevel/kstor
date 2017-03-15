@@ -51,7 +51,10 @@ struct kernel_api
     void (*task_get)(void *task);
     void (*task_put)(void *task);
     void *(*task_current)(void);
-    int (*task_get_id)(void *task);
+    int (*task_get_pid)(void *task);
+    void* (*task_lookup)(int pid);
+    unsigned long (*task_stack_read)(void *task, void *buf, unsigned long len, unsigned long *sp_delta);
+    int (*sprint_symbol)(char *buf, unsigned long address);
 
     void (*msleep)(unsigned int msecs);
 
@@ -145,6 +148,8 @@ struct kernel_api
     unsigned long long (*cpu_to_le64)(unsigned long long value);
 
     void (*get_random_bytes)(void *buf, int len);
+
+    size_t (*vsnprintf)(char *buf, size_t size, const char *fmt, va_list args);
 
 };
 

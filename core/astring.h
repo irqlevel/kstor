@@ -69,12 +69,24 @@ public:
 
     const char* GetBuf() const
     {
+        return Buf.GetConstBuf();
+    }
+
+    char* GetMutBuf()
+    {
         return Buf.GetBuf();
     }
 
     bool ReserveAndUse(size_t len)
     {
         if (!Buf.ReserveAndUse(len + 1))
+            return false;
+        return true;
+    }
+
+    bool Truncate(size_t len)
+    {
+        if (!Buf.Truncate(len + 1))
             return false;
         return true;
     }
@@ -158,6 +170,26 @@ public:
     static size_t Hash(const AStringBase& key)
     {
         return key.Hash();
+    }
+
+    Error Append(const AStringBase& other)
+    {
+        size_t otherLen = other.GetLen();
+        size_t oldLen = GetLen();
+        size_t newLen = oldLen + otherLen;
+
+        if (!ReserveAndUse(newLen))
+            return Core::Error::NoMemory;
+
+        char* dst = Buf.GetBuf();
+        const char* src = other.Buf.GetConstBuf();
+        for (size_t i = oldLen, j = 0; j < otherLen; i++, j++)
+        {
+            dst[i] = src[j];
+        }
+
+        dst[newLen] = '\0';
+        return Error::Success;
     }
 
 private:

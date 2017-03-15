@@ -242,6 +242,11 @@ public:
         return count;
     }
 
+    void Clear()
+    {
+        Release();
+    }
+
 private:
     LinkedList(const LinkedList& other) = delete;
     LinkedList& operator=(const LinkedList& other) = delete;

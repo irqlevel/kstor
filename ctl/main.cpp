@@ -130,6 +130,34 @@ int main(int argc, char* argv[])
 
         return 0;   
     }
+    else if (cmd == "task-stack")
+    {
+        if (argc != 3)
+        {
+            printf("Invalid number of args\n");
+            return 1;
+        }
+
+        int pid = atoi(argv[2]);
+        if (pid <= 0)
+        {
+            printf("Invalid test id\n");
+            err = EINVAL;
+            return err;
+        }
+
+        char stack[65536];
+        err = ctl.GetTaskStack(pid, stack, sizeof(stack));
+        if (err)
+        {
+            printf("Ctl task stack err %d\n", err);
+            return err;
+        }
+
+        printf("%s\n", stack);
+
+        return 0;
+    }
     else
     {
         printf("Unknown cmd %s\n", cmd.c_str());

@@ -241,7 +241,7 @@ static void *kapi_task_current(void)
     return current;
 }
 
-static int kapi_task_get_id(void *task)
+static int kapi_task_get_pid(void *task)
 {
     return ((struct task_struct *)task)->pid;
 }
@@ -695,7 +695,7 @@ static int kapi_get_bio_rw(unsigned int op, unsigned int op_flags)
     int rw;
 
     rw = 0;
-    switch (rw)
+    switch (op)
     {
     case KAPI_BIO_OP_READ:
         rw =  0;
@@ -732,7 +732,7 @@ static void kapi_submit_bio(void* bio, unsigned int op, unsigned int op_flags)
     bio_set_op_attrs(bio_, kapi_get_bio_op(op), kapi_get_bio_op_flags(op_flags));
     submit_bio(bio_);
 #else
-    submit_bio(kapi_get_bio_rw(bio_, op, op_flags), bio_);
+    submit_bio(kapi_get_bio_rw(op, op_flags), bio_);
 #endif
 }
 
@@ -1145,6 +1145,55 @@ static void kapi_get_random_bytes(void *buf, int len)
     get_random_bytes(buf, len);
 }
 
+static void* kapi_task_lookup(int pid)
+{
+    struct task_struct *task;
+    struct pid *pid_s;
+
+    pid_s = find_get_pid(pid);
+    if (!pid_s)
+        return NULL;
+
+    task = get_pid_task(pid_s, PIDTYPE_PID);
+    put_pid(pid_s);
+    return task;
+}
+
+static unsigned long kapi_task_stack_read(void *task, void *buf, unsigned long len,
+                                          unsigned long *sp_delta)
+{
+    struct task_struct *task_s = task;
+    unsigned long sp;
+    void *stack;
+
+    stack = task_s->stack;
+    if (!stack)
+        return 0;
+
+    sp = task_s->thread.sp;
+    if (sp >= ((unsigned long)stack) &&
+        sp < ((unsigned long)stack + THREAD_SIZE))
+        *sp_delta = sp - (unsigned long)stack;
+    else
+        *sp_delta = 0;
+
+    if (len > THREAD_SIZE)
+        len = THREAD_SIZE;
+
+    memcpy(buf, stack, len);
+    return len;
+}
+
+static int kapi_sprint_symbol(char *buf, unsigned long address)
+{
+    return sprint_symbol(buf, address);
+}
+
+static size_t kapi_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
+{
+    return vsnprintf(buf, size, fmt, args);
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1178,9 +1227,12 @@ static struct kernel_api g_kapi =
     .task_should_stop = kapi_task_should_stop,
     .task_put = kapi_task_put,
     .task_get = kapi_task_get,
-    .task_get_id = kapi_task_get_id,
+    .task_get_pid = kapi_task_get_pid,
     .task_current = kapi_task_current,
     .msleep = kapi_msleep,
+    .task_lookup = kapi_task_lookup,
+    .task_stack_read = kapi_task_stack_read,
+    .sprint_symbol = kapi_sprint_symbol,
 
     .spinlock_create = kapi_spinlock_create,
     .spinlock_init = kapi_spinlock_init,
@@ -1266,6 +1318,8 @@ static struct kernel_api g_kapi =
     .cpu_to_le64 = kapi_cpu_to_le64,
 
     .get_random_bytes = kapi_get_random_bytes,
+
+    .vsnprintf = kapi_vsnprintf,
 };
 
 int kapi_init(void)

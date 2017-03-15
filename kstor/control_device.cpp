@@ -8,6 +8,7 @@
 #include <core/trace.h>
 #include <core/auto_lock.h>
 #include <core/shared_auto_lock.h>
+#include <core/task.h>
 
 #include <include/ctl.h>
 
@@ -144,6 +145,33 @@ Core::Error ControlDevice::RunTest(unsigned int testId)
     return err;
 }
 
+Core::Error ControlDevice::GetTaskStack(int pid, char *stack, unsigned long len)
+{
+    Core::Error err;
+
+    trace(1, "Get task %d stack", pid);
+
+
+    Core::Task task(pid, err);
+    if (!err.Ok())
+        goto out;
+
+    {
+        Core::AString stackStr;
+
+        err = task.DumpStack(stackStr);
+        if (!err.Ok())
+            goto out;
+
+        Core::Memory::SnPrintf(stack, len, "%s", stackStr.GetBuf());
+    }
+
+out:
+    trace(1, "Get task %d stack result %d", pid, err.GetCode());
+
+    return err;
+}
+
 Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
 {
     trace(3, "Ioctl 0x%x arg 0x%lx", code, arg);
@@ -239,6 +267,12 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     {
         auto& params = cmd->Union.Test;
         err = RunTest(params.TestId);
+        break;
+    }
+    case IOCTL_KSTOR_GET_TASK_STACK:
+    {
+        auto& params = cmd->Union.GetTaskStack;
+        err = GetTaskStack(params.Pid, params.Stack, sizeof(params.Stack));
         break;
     }
     default:

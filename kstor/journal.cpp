@@ -304,19 +304,38 @@ Core::Error Transaction::Commit()
 
     CommitEvent.Wait();
 
-    Core::AutoLock lock(Lock);
-    if (!CommitResult.Ok())
+    Core::Error err;
     {
-        return CommitResult;
+        Core::AutoLock lock(Lock);
+        if (!CommitResult.Ok())
+        {
+            return CommitResult;
+        }
+
+        if (State != Api::JournalTxStateCommited)
+        {
+            return Core::Error::InvalidState;
+        }
+
+        err = JournalRef.ApplyBlocks(DataBlockList, false);
+        if (!err.Ok())
+        {
+            trace(0, "Tx 0x%p %s apply error %d", this, TxId.ToString().GetBuf(), err.GetCode());
+        }
     }
 
-    if (State != Api::JournalTxStateCommited)
+    if (err.Ok())
     {
-        return Core::Error::InvalidState;
+        err = JournalRef.EraseTx(this);
+        if (!err.Ok())
+        {
+            trace(0, "Tx 0x%p %s erase error %d", this, TxId.ToString().GetBuf(), err.GetCode());
+        }
     }
 
-    auto err = JournalRef.ApplyBlocks(DataBlockList, false);
-    return err;
+    //Return success despite apply/erase tx errors
+    //due to tx already commited into log
+    return Core::Error::Success;
 }
 
 void Transaction::Cancel()
@@ -339,12 +358,18 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
         goto fail;
     }
 
-    uint64_t blockIndex;
-    err = JournalRef.GetNextBlock(blockIndex);
+    size_t index;
+    err = JournalRef.GetNextIndex(index);
     if (!err.Ok())
         goto fail;
 
-    err = JournalRef.WriteTxBlock(blockIndex, BeginBlock, bioList);
+    if (!IndexList.AddTail(index))
+    {
+        err = Core::Error::NoMemory;
+        goto fail;
+    }
+
+    err = JournalRef.WriteTxBlock(index, BeginBlock, bioList);
     if (!err.Ok())
         goto fail;
 
@@ -353,25 +378,37 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
         for (;it.IsValid(); it.Next())
         {
             auto block = it.Get();
-            err = JournalRef.GetNextBlock(blockIndex);
+            err = JournalRef.GetNextIndex(index);
             if (!err.Ok())
                 goto fail;
 
-            err = JournalRef.WriteTxBlock(blockIndex, block, bioList);
+            if (!IndexList.AddTail(index))
+            {
+                err = Core::Error::NoMemory;
+                goto fail;
+            }
+
+            err = JournalRef.WriteTxBlock(index, block, bioList);
             if (!err.Ok())
                 goto fail;
         }
     }
 
-    err = JournalRef.GetNextBlock(blockIndex);
+    err = JournalRef.GetNextIndex(index);
     if (!err.Ok())
         goto fail;
+
+    if (!IndexList.AddTail(index))
+    {
+        err = Core::Error::NoMemory;
+        goto fail;
+    }
 
     {
         Api::JournalTxCommitBlock *commitBlock = reinterpret_cast<Api::JournalTxCommitBlock*>(CommitBlock.Get());
         commitBlock->State = Api::JournalTxStateCommited;
         commitBlock->BlockCount = DataBlockList.Count();
-        err = JournalRef.WriteTxBlock(blockIndex, CommitBlock, bioList);
+        err = JournalRef.WriteTxBlock(index, CommitBlock, bioList);
         if (!err.Ok())
             goto fail;
     }
@@ -379,6 +416,7 @@ Core::Error Transaction::WriteTx(Core::NoIOBioList& bioList)
     return err;
 
 fail:
+    IndexList.Clear();
     OnCommitCompleteLocked(err);
     return err;
 }
@@ -406,6 +444,26 @@ void Transaction::OnCommitComplete(const Core::Error& result)
     Core::AutoLock lock(Lock);
 
     OnCommitCompleteLocked(result);
+}
+
+Core::LinkedList<size_t, Core::Memory::PoolType::Kernel>& Transaction::GetIndexList()
+{
+    return IndexList;
+}
+
+void Transaction::AcquireLock()
+{
+    Lock.Acquire();
+}
+
+void Transaction::ReleaseLock()
+{
+    Lock.Release();
+}
+
+unsigned int Transaction::GetState()
+{
+    return State;
 }
 
 TransactionPtr Journal::BeginTx()
@@ -439,8 +497,6 @@ TransactionPtr Journal::BeginTx()
 
 void Journal::UnlinkTx(Transaction* tx, bool cancel)
 {
-    Core::SharedAutoLock lock(Lock);
-
     trace(1, "Journal 0x%p tx 0x%p %s unlink cancel %d",
         this, tx, tx->GetTxId().ToString().GetBuf(), cancel);
 
@@ -541,6 +597,12 @@ Core::Error Journal::CheckPosition(unsigned long long position, size_t size)
     if (Core::Memory::CheckIntersection(position, position + size,
                     GetStart() * GetBlockSize(), (GetStart() + GetSize()) * GetBlockSize()))
         return Core::Error::Overlap;
+
+    if (position >= VolumeRef.GetSize())
+        return Core::Error::Overflow;
+
+    if ((position + size) > VolumeRef.GetSize())
+        return Core::Error::Overflow;
 
     return Core::Error::Success;
 }
@@ -651,12 +713,10 @@ Core::Error Journal::Replay()
         if (!err.Ok())
             break;
 
-        uint64_t position = Start + 1 + index;
-
-        auto block = ReadTxBlock(position, err);
+        auto block = ReadTxBlock(index, err);
         if (!err.Ok())
         {
-            trace(0, "Journal 0x%p read position %llu err %d", position, err.GetCode());
+            trace(0, "Journal 0x%p read index %lu err %d", this, index, err.GetCode());
             break;
         }
 
@@ -727,7 +787,6 @@ Core::Error Journal::Replay()
 Core::Error Journal::Flush(Core::NoIOBioList& bioList)
 {
     Core::AutoLock lock(Lock);
-    Core::SharedAutoLock lock2(LogRbLock);
 
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::NoIO>::Create(err);
@@ -738,15 +797,20 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
     Core::PageMap pageMap(*page.Get());
     Api::JournalHeader *header = static_cast<Api::JournalHeader *>(pageMap.GetAddress());
 
+
     header->Magic = Core::BitOps::CpuToLe32(Api::JournalMagic);
     header->Size = Core::BitOps::CpuToLe64(Size);
-    header->LogStartIndex = Core::BitOps::CpuToLe64(LogRb.GetStartIndex());
-    header->LogEndIndex = Core::BitOps::CpuToLe64(LogRb.GetEndIndex());
-    header->LogSize = Core::BitOps::CpuToLe64(LogRb.GetSize());
-    header->LogCapacity = Core::BitOps::CpuToLe64(LogRb.GetCapacity());
+    {
+        Core::SharedAutoLock lock2(LogRbLock);
 
-    trace(1, "Journal 0x%p flush, logStartIndex %llu logEndIndex %llu logSize %llu logCapacity %llu",
-        this, LogRb.GetStartIndex(), LogRb.GetEndIndex(), LogRb.GetSize(), LogRb.GetCapacity());
+        header->LogStartIndex = Core::BitOps::CpuToLe64(LogRb.GetStartIndex());
+        header->LogEndIndex = Core::BitOps::CpuToLe64(LogRb.GetEndIndex());
+        header->LogSize = Core::BitOps::CpuToLe64(LogRb.GetSize());
+        header->LogCapacity = Core::BitOps::CpuToLe64(LogRb.GetCapacity());
+
+        trace(1, "Journal 0x%p flush, logStartIndex %llu logEndIndex %llu logSize %llu logCapacity %llu",
+            this, LogRb.GetStartIndex(), LogRb.GetEndIndex(), LogRb.GetSize(), LogRb.GetCapacity());
+    }
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::JournalHeader, Hash), header->Hash);
 
@@ -763,6 +827,8 @@ Core::Error Journal::Flush(Core::NoIOBioList& bioList)
         trace(0, "Journal 0x%p flush err %d", this, err.GetCode());
         return err;
     }
+
+    CompactLog();
 
     trace(1, "Journal 0x%p flush %d", this, err.GetCode());
     return err;
@@ -850,28 +916,54 @@ Core::Error Journal::WriteTxBlockPrepare(Core::PageInterface& page)
     return Core::Error::Success;
 }
 
+Core::Error Journal::IndexToPosition(size_t index, uint64_t& position)
+{
+    if ((index + 1) >= Size)
+    {
+        return Core::Error::Overflow;
+    }
+
+    position =  (Start + 1 + index) * GetBlockSize();
+    return Core::Error::Success;
+}
+
+Core::Error Journal::PositionToIndex(uint64_t position, size_t& index)
+{
+    if ((position % GetBlockSize()) != 0)
+        return Core::Error::InvalidValue;
+
+    uint64_t localIndex = position / GetBlockSize();
+    if (localIndex < (Start + 1) ||
+        position >= (Start + Size))
+        return Core::Error::Overflow;
+
+    index = localIndex - (Start + 1);
+    return Core::Error::Success;
+}
+
 JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
 {
-    if (index <= Start || index >= (Start + Size))
-    {
-        err = Core::Error::InvalidValue;
-        return JournalTxBlockPtr();
-    }
+    JournalTxBlockPtr block;
+
+    uint64_t position;
+    err = IndexToPosition(index, position);
+    if (!err.Ok())
+        return block;
 
     auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
-        return JournalTxBlockPtr();
+        return block;
 
     err = Core::BioList<Core::Memory::PoolType::Kernel>(VolumeRef.GetDevice()).SubmitWaitResult(page,
-                                                        index * GetBlockSize(), false);
+                                                        position, false);
     if (!err.Ok())
-        return JournalTxBlockPtr();
+        return block;
 
     err = ReadTxBlockComplete(*page.Get());
     if (!err.Ok())
-        return JournalTxBlockPtr();
+        return block;
 
-    JournalTxBlockPtr block = Core::MakeShared<Api::JournalTxBlock, Core::Memory::PoolType::Kernel>();
+    block = Core::MakeShared<Api::JournalTxBlock, Core::Memory::PoolType::Kernel>();
     if (block.Get() == nullptr)
     {
         err = Core::Error::NoMemory;
@@ -890,10 +982,11 @@ JournalTxBlockPtr Journal::ReadTxBlock(uint64_t index, Core::Error& err)
 
 Core::Error Journal::WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block, Core::NoIOBioList& bioList)
 {
-    if (index <= Start || index >= (Start + Size))
-        return Core::Error::InvalidValue;
+    uint64_t position;
+    auto err = IndexToPosition(index, position);
+    if (!err.Ok())
+        return err;
 
-    Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::NoIO>::Create(err);
     if (!err.Ok())
         return err;
@@ -907,7 +1000,7 @@ Core::Error Journal::WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block
     if (!err.Ok())
         return err;
 
-    return bioList.AddIo(page, index * GetBlockSize(), true);
+    return bioList.AddIo(page, position, true);
 }
 
 size_t Journal::GetBlockSize()
@@ -957,17 +1050,69 @@ Core::Error Journal::Unload()
     return err;
 }
 
-Core::Error Journal::GetNextBlock(uint64_t& index)
+Core::Error Journal::GetNextIndex(size_t& index)
 {
-    size_t position;
+    size_t localIndex;
 
     Core::AutoLock lock(LogRbLock);
-    auto err = LogRb.PushBack(position);
+    auto err = LogRb.PushBack(localIndex);
     if (!err.Ok())
         return err;
-    index = Start + 1 + position;
-    trace(1, "Journal 0x%p next index %llu", this, index);
+
+    trace(1, "Journal 0x%p next index %llu", this, localIndex);
+    index = localIndex;
     return Core::Error::Success;
+}
+
+Core::Error Journal::EraseTx(Transaction* tx)
+{
+    Core::AutoLock lock(Lock);
+    auto txPtr = TxTable.Get(tx->GetTxId());
+    if (txPtr.Get() != tx)
+        return Core::Error::NotFound;
+
+    {
+        Core::AutoLock lock(LogRbLock);
+        if (!TxToErase.AddTail(txPtr))
+            return Core::Error::NoMemory;
+    }
+
+    return Core::Error::Success;
+}
+
+void Journal::CompactLog()
+{
+    Core::AutoLock lock(LogRbLock);
+
+    for (;;)
+    {
+        size_t count = 0;
+        auto it = TxToErase.GetIterator();
+        for (;it.IsValid(); it.Next())
+        {
+            auto tx = it.Get();
+
+            tx->AcquireLock();
+            auto erased = LogRb.Erase(tx->GetIndexList());
+            tx->ReleaseLock();
+
+            if (erased)
+            {
+                trace(1, "Journal 0x%p tx %p %s erased",
+                    this, tx.Get(), tx->GetTxId().ToString().GetBuf());
+                it.Erase();
+                count++;
+            }
+        }
+
+        if (count == 0)
+            break;
+    }
+
+    trace(1, "Journal 0x%p tx leaks %lu",
+        this, TxToErase.Count());
+
+    TxToErase.Clear();
 }
 
 }

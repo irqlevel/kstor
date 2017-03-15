@@ -142,6 +142,21 @@ namespace Memory
         return true;
     }
 
+    static inline size_t VsnPrintf(char* buf, size_t size, const char* fmt, va_list args)
+    {
+        return get_kapi()->vsnprintf(buf, size, fmt, args);
+    }
+
+    static inline size_t SnPrintf(char* buf, size_t size, const char* fmt, ...)
+    {
+        va_list args;
+
+        va_start(args, fmt);
+        size_t len = VsnPrintf(buf, size, fmt, args);
+        va_end(args);
+
+        return len;
+    }
 }
 
 }

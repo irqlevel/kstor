@@ -117,6 +117,7 @@ Core::Error Volume::Load()
         trace(0, "Volume 0x%p bad size %llu", this, size);
         return Core::Error::BadSize;
     }
+    Size = size;
 
     uint64_t journalSize = Core::BitOps::Le64ToCpu(header->JournalSize);
     err = JournalObj.Load(1);
@@ -132,8 +133,6 @@ Core::Error Volume::Load()
             this, JournalObj.GetSize(), journalSize);
         return Core::Error::BadSize;
     }
-
-    Size = size;
 
     VolumeId.SetContent(header->VolumeId);
 

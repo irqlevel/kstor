@@ -16,6 +16,7 @@
 #include <core/event.h>
 #include <core/bio.h>
 #include <core/ring_buffer.h>
+#include <core/pair.h>
 
 namespace KStor
 {
@@ -40,6 +41,12 @@ public:
 
     void Cancel();
 
+    void AcquireLock();
+    void ReleaseLock();
+    unsigned int GetState();
+
+    Core::LinkedList<size_t, Core::Memory::PoolType::Kernel>& GetIndexList();
+
 private:
 
     void OnCommitCompleteLocked(const Core::Error& result);
@@ -52,7 +59,10 @@ private:
     unsigned int State;
     Guid TxId;
     JournalTxBlockPtr BeginBlock;
+
     Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel> DataBlockList;
+    Core::LinkedList<size_t, Core::Memory::PoolType::Kernel> IndexList;
+
     JournalTxBlockPtr CommitBlock;
     Core::RWSem Lock;
     Core::Event CommitEvent;
@@ -107,13 +117,21 @@ private:
     JournalTxBlockPtr ReadTxBlock(uint64_t index, Core::Error& err);
     Core::Error WriteTxBlock(uint64_t index, const JournalTxBlockPtr& block, Core::NoIOBioList& bioList);
 
-    Core::Error GetNextBlock(uint64_t& index);
+    Core::Error GetNextIndex(size_t& index);
 
     Core::Error Run(const Core::Threadable& thread) override;
 
     Core::Error Flush(Core::NoIOBioList& bioList);
 
     Core::Error CheckPosition(unsigned long long position, size_t size);
+
+    Core::Error IndexToPosition(size_t index, uint64_t& position);
+
+    Core::Error PositionToIndex(uint64_t position, size_t& index);
+
+    Core::Error EraseTx(Transaction* tx);
+
+    void CompactLog();
 
 private:
 
@@ -124,8 +142,11 @@ private:
     Core::RWSem TxListLock;
     Core::Event TxListEvent;
     Core::RWSem Lock;
+
     Core::RingBuffer LogRb;
+    Core::LinkedList<TransactionPtr, Core::Memory::PoolType::Kernel> TxToErase;
     Core::RWSem LogRbLock;
+
     uint64_t Start;
     uint64_t Size;
     unsigned int State;

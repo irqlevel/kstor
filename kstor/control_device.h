@@ -42,6 +42,8 @@ public:
 
     Core::Error RunTest(unsigned int testId);
 
+    Core::Error GetTaskStack(int pid, char *stack, unsigned long len);
+
 private:
     Server Srv;
     Core::RandomFile Rng;

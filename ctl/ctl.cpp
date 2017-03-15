@@ -139,6 +139,21 @@ int Ctl::Test(unsigned int testId)
     return ioctl(DevFd, IOCTL_KSTOR_TEST, &cmd);
 }
 
+int Ctl::GetTaskStack(int pid, char *buf, unsigned long len)
+{
+    Cmd cmd;
+
+    memset(&cmd, 0, sizeof(cmd));
+    auto& params = cmd.Union.GetTaskStack;
+    params.Pid = pid;
+    auto r = ioctl(DevFd, IOCTL_KSTOR_GET_TASK_STACK, &cmd);
+    if (r)
+        return r;
+
+    snprintf(buf, len, "%s", params.Stack);
+    return 0;
+}
+
 Ctl::~Ctl()
 {
     if (DevFd >= 0)
