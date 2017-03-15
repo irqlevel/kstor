@@ -52,7 +52,7 @@ Error Task::DumpStack(AString& result)
         if (!symbol.ReserveAndUse(4096))
             return Core::Error::NoMemory;
 
-        size_t len = get_kapi()->sprint_symbol(symbol.GetMutBuf(), *stackPos);
+        size_t len = get_kapi()->sprint_symbol(symbol.GetBuf(), *stackPos);
         if (!symbol.Truncate(len))
             return Core::Error::InvalidState;
 

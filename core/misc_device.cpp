@@ -45,14 +45,14 @@ Error MiscDevice::Create(const char* devName)
 Error MiscDevice::Create(const AString& devName)
 {
     Error err;
-    err = get_kapi()->misc_dev_register(devName.GetBuf(), this, &MiscDevice::Ioctl, &MiscDevPtr);
+    err = get_kapi()->misc_dev_register(devName.GetConstBuf(), this, &MiscDevice::Ioctl, &MiscDevPtr);
     if (!err.Ok())
     {
-        trace(0, "Device %s register failed, err %d", devName.GetBuf(), err.GetCode());
+        trace(0, "Device %s register failed, err %d", devName.GetConstBuf(), err.GetCode());
         return err;
     }
 
-    trace(4, "Device 0x%p dev 0x%p name %s", this, MiscDevPtr, devName.GetBuf());
+    trace(4, "Device 0x%p dev 0x%p name %s", this, MiscDevPtr, devName.GetConstBuf());
     return err;
 }
 

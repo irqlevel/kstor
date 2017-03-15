@@ -30,10 +30,10 @@ Error VfsFile::Open(const AString& path, bool read, bool create)
         flags |= (KAPI_VFS_FILE_CREAT | KAPI_VFS_FILE_EXCL);
     }
 
-    int rc = get_kapi()->vfs_file_open(path.GetBuf(), flags, &FilePtr);
+    int rc = get_kapi()->vfs_file_open(path.GetConstBuf(), flags, &FilePtr);
     if (rc)
     {
-        trace(0, "Can't open file %s, rc %d", path.GetBuf(), rc);
+        trace(0, "Can't open file %s, rc %d", path.GetConstBuf(), rc);
         return Error(rc);
     }
 

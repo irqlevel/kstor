@@ -49,7 +49,7 @@ Core::Error Thread::Start(const AString &name, Runnable* routine)
 
     Name = Memory::Move(localName);
     Routine = routine;
-    Task = get_kapi()->task_create(&Thread::StartRoutine, this, Name.GetBuf());
+    Task = get_kapi()->task_create(&Thread::StartRoutine, this, Name.GetConstBuf());
     if (!Task)
     {
         err.SetNoMemory();

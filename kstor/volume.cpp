@@ -22,7 +22,7 @@ Volume::Volume(const Core::AString& deviceName, Core::Error& err)
     }
 
     trace(1, "Volume 0x%p name %s size %llu ctor",
-        this, deviceName.GetBuf(), Device.GetSize());
+        this, deviceName.GetConstBuf(), Device.GetSize());
 }
 
 Volume::~Volume()
@@ -138,7 +138,7 @@ Core::Error Volume::Load()
 
     State = VolumeStateRunning;
     trace(1, "Volume 0x%p load volumeId %s size %llu blockSize %llu",
-        this, VolumeId.ToString().GetBuf(), Size, BlockSize);
+        this, VolumeId.ToString().GetConstBuf(), Size, BlockSize);
 
     return err;
 }
@@ -213,7 +213,7 @@ Core::Error Volume::ChunkCreate(const Guid& chunkId)
     if (State != VolumeStateRunning)
         return Core::Error::InvalidState;
 
-    trace(1, "Chunk %s create", chunkId.ToString().GetBuf());
+    trace(1, "Chunk %s create", chunkId.ToString().GetConstBuf());
 
     auto chunk = ChunkTable.Get(chunkId);
     if (chunk.Get() != nullptr)
@@ -237,7 +237,7 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
     if (State != VolumeStateRunning)
         return Core::Error::InvalidState;
 
-    trace(1, "Chunk %s write", chunkId.ToString().GetBuf());
+    trace(1, "Chunk %s write", chunkId.ToString().GetConstBuf());
 
     auto chunk = ChunkTable.Get(chunkId);
     if (chunk.Get() == nullptr)
@@ -247,8 +247,8 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
 
     Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
 
-    trace(3, "Chunk %s write %s size %lu", chunkId.ToString().GetBuf(),
-        Core::Hex::Encode(chunk->Data, 10).GetBuf(), sizeof(chunk->Data));
+    trace(3, "Chunk %s write %s size %lu", chunkId.ToString().GetConstBuf(),
+        Core::Hex::Encode(chunk->Data, 10).GetConstBuf(), sizeof(chunk->Data));
 
     return Core::Error::Success;
 }
@@ -259,7 +259,7 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
     if (State != VolumeStateRunning)
         return Core::Error::InvalidState;
 
-    trace(1, "Chunk %s read", chunkId.ToString().GetBuf());
+    trace(1, "Chunk %s read", chunkId.ToString().GetConstBuf());
 
     auto chunk = ChunkTable.Get(chunkId);
     if (chunk.Get() == nullptr)
@@ -269,8 +269,8 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
 
     Core::Memory::MemCpy(data, chunk->Data, sizeof(chunk->Data));
 
-    trace(3, "Chunk %s read %s size %lu", chunkId.ToString().GetBuf(),
-        Core::Hex::Encode(data, 10).GetBuf(), sizeof(chunk->Data));
+    trace(3, "Chunk %s read %s size %lu", chunkId.ToString().GetConstBuf(),
+        Core::Hex::Encode(data, 10).GetConstBuf(), sizeof(chunk->Data));
 
     return Core::Error::Success;
 }
@@ -281,7 +281,7 @@ Core::Error Volume::ChunkDelete(const Guid& chunkId)
     if (State != VolumeStateRunning)
         return Core::Error::InvalidState;
 
-    trace(1, "Chunk %s delete", chunkId.ToString().GetBuf());
+    trace(1, "Chunk %s delete", chunkId.ToString().GetConstBuf());
 
     if (ChunkTable.Remove(chunkId))
         return Core::Error::Success;
@@ -295,7 +295,7 @@ Core::Error Volume::ChunkLookup(const Guid& chunkId)
     if (State != VolumeStateRunning)
         return Core::Error::InvalidState;
 
-    trace(1, "Chunk %s lookup", chunkId.ToString().GetBuf());
+    trace(1, "Chunk %s lookup", chunkId.ToString().GetConstBuf());
 
     if (!ChunkTable.CheckExist(chunkId))
         return Core::Error::NotFound;
@@ -316,7 +316,7 @@ Core::Error Volume::TestJournal()
         return Core::Error::NoMemory;
     }
 
-    trace(1, "Test journal, tx created %s", tx->GetTxId().ToString().GetBuf());
+    trace(1, "Test journal, tx created %s", tx->GetTxId().ToString().GetConstBuf());
 
     unsigned long long position = (JournalObj.GetStart() + JournalObj.GetSize()) * GetBlockSize();
 

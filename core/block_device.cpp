@@ -13,11 +13,11 @@ BlockDevice::BlockDevice(const AString& deviceName, Error& err)
         return;
     }
 
-    int rc = get_kapi()->bdev_get_by_path(deviceName.GetBuf(),
+    int rc = get_kapi()->bdev_get_by_path(deviceName.GetConstBuf(),
         Mode, this, &BDevPtr);
     if (rc != 0)
     {
-        trace(0, "Can't get bdev %s, err %d", deviceName.GetBuf(), rc);
+        trace(0, "Can't get bdev %s, err %d", deviceName.GetConstBuf(), rc);
         err = Error(rc);
         return;
     }

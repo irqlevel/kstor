@@ -24,11 +24,11 @@ RandomFile::RandomFile(Error& err, bool pseudoRandom)
     err = File.Open(devName, true, false);
     if (!err.Ok())
     {
-        trace(0, "Can't open dev random file %s, err %d", devName.GetBuf(), err.GetCode());
+        trace(0, "Can't open dev random file %s, err %d", devName.GetConstBuf(), err.GetCode());
         return;
     }
 
-    trace(3, "Random 0x%p dev %s ctor", this, devName.GetBuf());
+    trace(3, "Random 0x%p dev %s ctor", this, devName.GetConstBuf());
 }
 
 Error RandomFile::GetBytes(void* buf, unsigned long len)

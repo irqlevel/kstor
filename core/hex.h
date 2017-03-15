@@ -27,7 +27,7 @@ public:
         if (!result.ReserveAndUse(2 * len))
             return result;
         
-        char* dst = const_cast<char *>(result.GetBuf());
+        char* dst = const_cast<char *>(result.GetConstBuf());
         for (size_t i = 0; i < len; i++)
         {
             char c = buf[i];

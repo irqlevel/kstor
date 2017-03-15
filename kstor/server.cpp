@@ -33,8 +33,8 @@ Core::Error Packet::Parse(const Api::PacketHeader &header)
     Core::XXHash::Sum(&header, OFFSET_OF(Api::PacketHeader, Hash), hash);
 
     trace(4, "Connection 0x%p packet header hash %s calc hash %s",
-        this, Core::Hex::Encode(header.Hash, Core::Memory::ArraySize(header.Hash)).GetBuf(),
-        Core::Hex::Encode(hash, Core::Memory::ArraySize(hash)).GetBuf());
+        this, Core::Hex::Encode(header.Hash, Core::Memory::ArraySize(header.Hash)).GetConstBuf(),
+        Core::Hex::Encode(hash, Core::Memory::ArraySize(hash)).GetConstBuf());
 
     if (!Core::Memory::ArrayEqual(header.Hash, hash))
         return Core::Error::HeaderCorrupt;

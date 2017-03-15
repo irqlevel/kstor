@@ -18,7 +18,7 @@ Error Socket::Connect(const AString& host, unsigned short port)
     if (Sockp != nullptr)
         return Error::InvalidState;
 
-    return get_kapi()->sock_connect(&Sockp, const_cast<char *>(host.GetBuf()), port);
+    return get_kapi()->sock_connect(&Sockp, const_cast<char *>(host.GetConstBuf()), port);
 }
 
 Error Socket::Listen(const AString& host, unsigned short port, int backlog)
@@ -26,7 +26,7 @@ Error Socket::Listen(const AString& host, unsigned short port, int backlog)
     if (Sockp != nullptr)
         return Error::InvalidState;
 
-    return get_kapi()->sock_listen(&Sockp, const_cast<char *>(host.GetBuf()), port, backlog);
+    return get_kapi()->sock_listen(&Sockp, const_cast<char *>(host.GetConstBuf()), port, backlog);
 }
 
 Socket *Socket::Accept(Error &err)

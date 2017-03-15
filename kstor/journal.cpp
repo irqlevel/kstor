@@ -195,7 +195,7 @@ Transaction::Transaction(Journal& journal, Core::Error& err)
         BeginBlock.Reset();
         return;
     }
-    trace(1, "Tx 0x%p %s ctor", this, TxId.ToString().GetBuf());
+    trace(1, "Tx 0x%p %s ctor", this, TxId.ToString().GetConstBuf());
 }
 
 JournalTxBlockPtr Transaction::CreateTxBlock(unsigned int type)
@@ -222,7 +222,7 @@ JournalTxBlockPtr Transaction::CreateTxBlock(unsigned int type)
 
 Transaction::~Transaction()
 {
-    trace(1, "Tx 0x%p %s dtor", this, TxId.ToString().GetBuf());
+    trace(1, "Tx 0x%p %s dtor", this, TxId.ToString().GetConstBuf());
     Core::AutoLock lock(Lock);
     JournalRef.UnlinkTx(this, false);
 }
@@ -235,7 +235,7 @@ Core::Error Transaction::Write(const Core::PageInterface& page, uint64_t positio
         return Core::Error::InvalidState;
 
     trace(1, "Tx 0x%p %s write %llu data %s",
-        this, TxId.ToString().GetBuf(), position, page.ToHex(16).GetBuf());
+        this, TxId.ToString().GetConstBuf(), position, page.ToHex(16).GetConstBuf());
 
     auto err = JournalRef.CheckPosition(position, page.GetSize());
     if (!err.Ok())
@@ -320,7 +320,7 @@ Core::Error Transaction::Commit()
         err = JournalRef.ApplyBlocks(DataBlockList, false);
         if (!err.Ok())
         {
-            trace(0, "Tx 0x%p %s apply error %d", this, TxId.ToString().GetBuf(), err.GetCode());
+            trace(0, "Tx 0x%p %s apply error %d", this, TxId.ToString().GetConstBuf(), err.GetCode());
         }
     }
 
@@ -329,7 +329,7 @@ Core::Error Transaction::Commit()
         err = JournalRef.EraseTx(this);
         if (!err.Ok())
         {
-            trace(0, "Tx 0x%p %s erase error %d", this, TxId.ToString().GetBuf(), err.GetCode());
+            trace(0, "Tx 0x%p %s erase error %d", this, TxId.ToString().GetConstBuf(), err.GetCode());
         }
     }
 
@@ -424,7 +424,7 @@ fail:
 void Transaction::OnCommitCompleteLocked(const Core::Error& result)
 {
 
-    trace(1, "Tx 0x%p %s commit complete %d", this, TxId.ToString().GetBuf(), result.GetCode());
+    trace(1, "Tx 0x%p %s commit complete %d", this, TxId.ToString().GetConstBuf(), result.GetCode());
 
     if (!result.Ok())
     {
@@ -498,7 +498,7 @@ TransactionPtr Journal::BeginTx()
 void Journal::UnlinkTx(Transaction* tx, bool cancel)
 {
     trace(1, "Journal 0x%p tx 0x%p %s unlink cancel %d",
-        this, tx, tx->GetTxId().ToString().GetBuf(), cancel);
+        this, tx, tx->GetTxId().ToString().GetConstBuf(), cancel);
 
     auto txPtr = TxTable.Get(tx->GetTxId());
     if (txPtr.Get() != tx)
@@ -523,7 +523,7 @@ Core::Error Journal::StartCommitTx(Transaction* tx)
     }
 
     trace(1, "Journal 0x%p tx 0x%p %s start commit",
-        this, txPtr.Get(), txPtr->GetTxId().ToString().GetBuf());
+        this, txPtr.Get(), txPtr->GetTxId().ToString().GetConstBuf());
 
     return Core::Error::Success;
 }
@@ -534,7 +534,7 @@ Core::Error Journal::WriteTx(const TransactionPtr& tx, Core::NoIOBioList& bioLis
     Core::Error err;
 
     trace(1, "Journal 0x%p tx 0x%p %s write",
-        this, tx.Get(), tx->GetTxId().ToString().GetBuf());
+        this, tx.Get(), tx->GetTxId().ToString().GetConstBuf());
 
     return tx->WriteTx(bioList);
 }
@@ -626,7 +626,8 @@ Core::Error Journal::ApplyBlocks(Core::LinkedList<JournalTxBlockPtr, Core::Memor
             return err;
 
         trace(1, "Journal 0x%p position %llu size %lu data %s",
-            this, data->Position, data->DataSize, Core::Hex::Encode(data->Data, 16, data->DataSize).GetBuf());
+            this, data->Position, data->DataSize,
+            Core::Hex::Encode(data->Data, 16, data->DataSize).GetConstBuf());
 
         err = bioList.AddIo(data->Data, data->DataSize, data->Position, true);
         if (!err.Ok())
@@ -679,14 +680,14 @@ Core::Error Journal::Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::Po
             return Core::Error::DataCorrupt;
 
         trace(1, "Journal 0x%p tx %s block %u pos %llu size %u",
-            this, txId.ToString().GetBuf(), data.Index, data.Position, data.DataSize);
+            this, txId.ToString().GetConstBuf(), data.Index, data.Position, data.DataSize);
 
         index++;
     }
 
     auto err = ApplyBlocks(localBlockList, true);
 
-    trace(1, "Journal 0x%p tx %s replayed, err %d", this, txId.ToString().GetBuf(), err.GetCode());
+    trace(1, "Journal 0x%p tx %s replayed, err %d", this, txId.ToString().GetConstBuf(), err.GetCode());
 
     return err;
 }
@@ -1099,7 +1100,7 @@ void Journal::CompactLog()
             if (erased)
             {
                 trace(1, "Journal 0x%p tx %p %s erased",
-                    this, tx.Get(), tx->GetTxId().ToString().GetBuf());
+                    this, tx.Get(), tx->GetTxId().ToString().GetConstBuf());
                 it.Erase();
                 count++;
             }

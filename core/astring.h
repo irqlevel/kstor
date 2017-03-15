@@ -59,7 +59,7 @@ public:
     }
 
     AStringBase(const AStringBase& s, Error& err)
-        : AStringBase(s.GetBuf(), err)
+        : AStringBase(s.GetConstBuf(), err)
     {
     }
 
@@ -67,12 +67,12 @@ public:
     {
     }
 
-    const char* GetBuf() const
+    const char* GetConstBuf() const
     {
         return Buf.GetConstBuf();
     }
 
-    char* GetMutBuf()
+    char* GetBuf()
     {
         return Buf.GetBuf();
     }
@@ -129,8 +129,8 @@ public:
             return -1;
         }
 
-        const char* buf = GetBuf();
-        const char* otherBuf = other.GetBuf();
+        const char* buf = GetConstBuf();
+        const char* otherBuf = other.GetConstBuf();
 
         for (size_t i = 0; i < len; i++)
         {
@@ -153,9 +153,10 @@ public:
         size_t hash = 5381;
         size_t c;
 
+        const char* buf = GetConstBuf();
         for (size_t i = 0; i < GetLen(); i++)
         {
-            c = GetBuf()[i];
+            c = buf[i];
             hash = ((hash << 5) + hash) + c; // hash * 33 + c
         }
 

@@ -163,7 +163,7 @@ Core::Error ControlDevice::GetTaskStack(int pid, char *stack, unsigned long len)
         if (!err.Ok())
             goto out;
 
-        Core::Memory::SnPrintf(stack, len, "%s", stackStr.GetBuf());
+        Core::Memory::SnPrintf(stack, len, "%s", stackStr.GetConstBuf());
     }
 
 out:
