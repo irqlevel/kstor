@@ -4,6 +4,7 @@ CFLAGS= $(COMMON_CFLAGS) -std=c++11 -mcmodel=kernel -D__CPP__ -ffreestanding -fn
 LIB_OUT = kstor.a
 
 LIB_SRC = init.cpp control_device.cpp volume.cpp server.cpp guid.cpp journal.cpp \
+	block_allocator.cpp
 
 all:
 	rm -rf *.o *.a

@@ -13,7 +13,8 @@ Volume::Volume(const Core::AString& deviceName, Core::Error& err)
     , Device(DeviceName, err)
     , Size(0)
     , BlockSize(Api::PageSize)
-    , JournalObj(*this)
+    , TxJournal(*this)
+    , Balloc(*this)
     , State(VolumeStateNew)
 {
     if (!err.Ok())
@@ -44,7 +45,7 @@ Core::Error Volume::Format()
 
     Size = size;
 
-    Core::Error err = JournalObj.Format(1, (size / 10) / BlockSize);
+    Core::Error err = TxJournal.Format(1, (size / 10) / BlockSize);
     if (!err.Ok())
         return err;
 
@@ -59,7 +60,7 @@ Core::Error Volume::Format()
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
     header->Size = Core::BitOps::CpuToLe64(size);
-    header->JournalSize = Core::BitOps::CpuToLe64(JournalObj.GetSize());
+    header->JournalSize = Core::BitOps::CpuToLe64(TxJournal.GetSize());
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
@@ -120,17 +121,17 @@ Core::Error Volume::Load()
     Size = size;
 
     uint64_t journalSize = Core::BitOps::Le64ToCpu(header->JournalSize);
-    err = JournalObj.Load(1);
+    err = TxJournal.Load(1);
     if (!err.Ok())
     {
         trace(0, "Volume 0x%p can't load journal, err %d", this, err.GetCode());
         return err;
     }
 
-    if (JournalObj.GetSize() != journalSize)
+    if (TxJournal.GetSize() != journalSize)
     {
         trace(0, "Volume 0x%p bad journal size %llu vs. %llu",
-            this, JournalObj.GetSize(), journalSize);
+            this, TxJournal.GetSize(), journalSize);
         return Core::Error::BadSize;
     }
 
@@ -154,7 +155,7 @@ Core::Error Volume::Unload()
         return Core::Error::InvalidState;
 
     State = VolumeStateStopping;
-    auto err = JournalObj.Unload();
+    auto err = TxJournal.Unload();
     if (!err.Ok())
         return err;
 
@@ -169,7 +170,7 @@ Core::Error Volume::Unload()
     header->Magic = Core::BitOps::CpuToLe32(Api::VolumeMagic);
     header->VolumeId = VolumeId.GetContent();
     header->Size = Core::BitOps::CpuToLe64(Size);
-    header->JournalSize = Core::BitOps::CpuToLe64(JournalObj.GetSize());
+    header->JournalSize = Core::BitOps::CpuToLe64(TxJournal.GetSize());
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
@@ -310,7 +311,7 @@ Core::Error Volume::TestJournal()
 
     trace(1, "Test journal");
 
-    auto tx = JournalObj.BeginTx();
+    auto tx = TxJournal.BeginTx();
     if (tx.Get() == nullptr)
     {
         return Core::Error::NoMemory;
@@ -318,18 +319,23 @@ Core::Error Volume::TestJournal()
 
     trace(1, "Test journal, tx created %s", tx->GetTxId().ToString().GetConstBuf());
 
-    unsigned long long position = (JournalObj.GetStart() + JournalObj.GetSize()) * GetBlockSize();
+    unsigned long long position = (TxJournal.GetStart() + TxJournal.GetSize()) * GetBlockSize();
 
     Core::Error err;
     auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
     if (!err.Ok())
         return err;
 
-    page->FillRandom();
+    for (int i = 0; i < 2; i++)
+    {
+        page->FillRandom();
 
-    err = tx->Write(*page.Get(), position);
-    if (!err.Ok())
-        return err;
+        err = tx->Write(*page.Get(), position);
+        if (!err.Ok())
+            return err;
+
+        position+= page->GetSize();
+    }
 
     err = tx->Commit();
 

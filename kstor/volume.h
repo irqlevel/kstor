@@ -12,6 +12,7 @@
 #include "guid.h"
 #include "chunk.h"
 #include "journal.h"
+#include "block_allocator.h"
 
 namespace KStor 
 {
@@ -59,7 +60,8 @@ private:
     Core::HashTable<Guid, ChunkPtr, Core::RWSem, Core::Memory::PoolType::Kernel, 512> ChunkTable;
     uint64_t Size;
     uint64_t BlockSize;
-    Journal JournalObj;
+    Journal TxJournal;
+    BlockAllocator Balloc;
     Core::RWSem Lock;
     unsigned int State;
 };
