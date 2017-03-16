@@ -80,8 +80,7 @@ public:
         return list.AddTail(Memory::Move(entry));
     }
 
-
-    bool Remove(const K& key)
+    bool Delete(const K& key)
     {
         size_t bucket = key.Hash() % BucketCount;
         AutoLock lock(BucketLock[bucket]);
@@ -99,8 +98,9 @@ public:
         return false;
     }
 
-    V& Get(const K& key)
+    V Lookup(const K& key, bool& exist)
     {
+        exist = false;
         size_t bucket = key.Hash() % BucketCount;
         SharedAutoLock lock(BucketLock[bucket]);
         LinkedList<HashEntry, PoolType>& list = Bucket[bucket];
@@ -110,6 +110,7 @@ public:
             HashEntry& entry = it.Get();
             if (entry.GetKey() == key)
             {
+                exist = true;
                 return entry.GetValue();
             }
         }

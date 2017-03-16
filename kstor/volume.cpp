@@ -216,8 +216,9 @@ Core::Error Volume::ChunkCreate(const Guid& chunkId)
 
     trace(1, "Chunk %s create", chunkId.ToString().GetConstBuf());
 
-    auto chunk = ChunkTable.Get(chunkId);
-    if (chunk.Get() != nullptr)
+    bool exist;
+    auto chunk = ChunkTable.Lookup(chunkId, exist);
+    if (exist)
     {
         return Core::Error::AlreadyExists;
     }
@@ -240,8 +241,9 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
 
     trace(1, "Chunk %s write", chunkId.ToString().GetConstBuf());
 
-    auto chunk = ChunkTable.Get(chunkId);
-    if (chunk.Get() == nullptr)
+    bool exist;
+    auto chunk = ChunkTable.Lookup(chunkId, exist);
+    if (!exist)
     {
         return Core::Error::NotFound;
     }
@@ -262,8 +264,9 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
 
     trace(1, "Chunk %s read", chunkId.ToString().GetConstBuf());
 
-    auto chunk = ChunkTable.Get(chunkId);
-    if (chunk.Get() == nullptr)
+    bool exist;
+    auto chunk = ChunkTable.Lookup(chunkId, exist);
+    if (!exist)
     {
         return Core::Error::NotFound;
     }
@@ -284,7 +287,7 @@ Core::Error Volume::ChunkDelete(const Guid& chunkId)
 
     trace(1, "Chunk %s delete", chunkId.ToString().GetConstBuf());
 
-    if (ChunkTable.Remove(chunkId))
+    if (ChunkTable.Delete(chunkId))
         return Core::Error::Success;
 
     return Core::Error::NotFound;

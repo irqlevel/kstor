@@ -500,19 +500,21 @@ void Journal::UnlinkTx(Transaction* tx, bool cancel)
     trace(1, "Journal 0x%p tx 0x%p %s unlink cancel %d",
         this, tx, tx->GetTxId().ToString().GetConstBuf(), cancel);
 
-    auto txPtr = TxTable.Get(tx->GetTxId());
-    if (txPtr.Get() != tx)
+    bool exist;
+    auto txPtr = TxTable.Lookup(tx->GetTxId(), exist);
+    if (!exist || txPtr.Get() != tx)
         return;
 
-    TxTable.Remove(txPtr->GetTxId());
+    TxTable.Delete(tx->GetTxId());
 }
 
 Core::Error Journal::StartCommitTx(Transaction* tx)
 {
     Core::SharedAutoLock lock(Lock);
 
-    auto txPtr = TxTable.Get(tx->GetTxId());
-    if (txPtr.Get() != tx)
+    bool exist;
+    auto txPtr = TxTable.Lookup(tx->GetTxId(), exist);
+    if (!exist || txPtr.Get() != tx)
         return Core::Error::NotFound;
 
     {
@@ -1068,8 +1070,10 @@ Core::Error Journal::GetNextIndex(size_t& index)
 Core::Error Journal::EraseTx(Transaction* tx)
 {
     Core::AutoLock lock(Lock);
-    auto txPtr = TxTable.Get(tx->GetTxId());
-    if (txPtr.Get() != tx)
+
+    bool exist;
+    auto txPtr = TxTable.Lookup(tx->GetTxId(), exist);
+    if (!exist || txPtr.Get() != tx)
         return Core::Error::NotFound;
 
     {
