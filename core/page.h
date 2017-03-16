@@ -193,6 +193,8 @@ private:
     void* PagePtr;
 };
 
+using PagePtr = SharedPtr<Page<Memory::PoolType::Kernel>, Memory::PoolType::Kernel>;
+
 class PageMap
 {
 public:
