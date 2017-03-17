@@ -64,17 +64,17 @@ public:
         Reset(nullptr);
     }
 
-    T* Get()
+    T* Get() const
     {
         return Object;
     }
 
-    T& operator*()
+    T& operator*() const
     {
         return *Get();
     }
 
-    T* operator->()
+    T* operator->() const
     {
         return Get();
     }

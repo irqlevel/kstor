@@ -115,6 +115,11 @@ static void kapi_printk(const char *fmt, ...)
     va_end(args);
 }
 
+static void kapi_vprintk(const char *fmt, va_list args)
+{
+    vprintk(fmt, args);
+}
+
 static void kapi_bug_on(bool condition)
 {
     if (condition)
@@ -1204,6 +1209,7 @@ static struct kernel_api g_kapi =
     .memcpy = kapi_memcpy,
 
     .printk = kapi_printk,
+    .vprintk = kapi_vprintk,
     .bug_on = kapi_bug_on,
 
     .atomic_create = kapi_atomic_create,

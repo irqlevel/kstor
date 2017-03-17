@@ -1,5 +1,8 @@
 #pragma once
 
+#include "bug.h"
+#include "format.h"
+
 namespace Core
 {
 
@@ -10,14 +13,19 @@ public:
     static void SetLevel(int level);
     static int GetLevel();
 
-    static const char *TruncateFileName(const char *fileName);
-
 private:
     static int Level;
 };
 
 }
 
-#define trace(level, fmt, ...)                              \
-              Core::Trace::Output(level, "%d: %s(),%s,%d: " fmt,   \
-                            level, __FUNCTION__, Core::Trace::TruncateFileName(__FILE__), __LINE__, ##__VA_ARGS__)
+#define trace(level, fmt, ...)                                                                  \
+do {                                                                                            \
+    if (level == -1)                                                                            \
+    {                                                                                           \
+        Core::Printk("%d: %s(),%s,%d: " fmt "\n",                                               \
+        level, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__, ##__VA_ARGS__);\
+    }                                                                                           \
+    Core::Trace::Output(level, "%d: %s(),%s,%d: " fmt,                                          \
+        level, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__, ##__VA_ARGS__);\
+} while (false)

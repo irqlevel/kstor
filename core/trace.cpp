@@ -1,4 +1,5 @@
 #include "trace.h"
+#include "bug.h"
 #include "kapi.h"
 
 #include <stdarg.h>
@@ -28,30 +29,6 @@ void Trace::Output(int level, const char *fmt, ...)
     va_start(args, fmt);
     get_kapi()->trace_msg(fmt, args);
     va_end(args);
-
-}
-
-const char *Trace::TruncateFileName(const char *fileName)
-{
-    const char *base, *lastSep = nullptr;
-
-    base = fileName;
-    for (;;)
-    {
-        if (*base == '\0')
-            break;
-
-        if (*base == '/')
-        {
-            lastSep = base;
-        }
-        base++;
-    }
-
-    if (lastSep)
-        return lastSep + 1;
-    else
-        return fileName;
 }
 
 }

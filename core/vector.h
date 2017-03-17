@@ -29,7 +29,7 @@ public:
 
     T& operator[](size_t index)
     {
-        BugOn(index < 0 || index >= Size);
+        panic(index < 0 || index >= Size);
         return Arr[index];
     }
 

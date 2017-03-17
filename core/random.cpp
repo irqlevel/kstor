@@ -64,4 +64,12 @@ void Random::GetBytes(void* buf, int len)
     get_kapi()->get_random_bytes(buf, len);
 }
 
+uint64_t Random::GetUint64()
+{
+    uint64_t result;
+
+    Random::GetBytes(&result, sizeof(result));
+    return result;
+}
+
 }

@@ -40,6 +40,7 @@ public:
     static Core::Error Create();
     static void Delete();
 
+    Core::Error TestBtree();
     Core::Error RunTest(unsigned int testId);
 
     Core::Error GetTaskStack(int pid, char *stack, unsigned long len);

@@ -58,7 +58,7 @@ public:
 
         T& Get()
         {
-            BugOn(CurrListEntry == EndList);
+            panic(CurrListEntry == EndList);
             LinkedListNode* node = CONTAINING_RECORD(CurrListEntry,
                                                      LinkedListNode,
                                                      ListLink);
@@ -87,7 +87,7 @@ public:
 
         void Erase()
         {
-            BugOn(!IsValid());
+            panic(!IsValid());
 
             ListEntry* next = CurrListEntry->Flink;
 
@@ -164,7 +164,7 @@ public:
     {
         LinkedListNode* node;
 
-        BugOn(IsListEmpty(&ListHead));
+        panic(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(ListHead.Flink, LinkedListNode, ListLink);
         return node->Value;
     }
@@ -173,7 +173,7 @@ public:
     {
         LinkedListNode* node;
 
-        BugOn(IsListEmpty(&ListHead));
+        panic(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(ListHead.Blink, LinkedListNode, ListLink);
         return node->Value;
     }
@@ -182,7 +182,7 @@ public:
     {
         LinkedListNode* node;
 
-        BugOn(IsListEmpty(&ListHead));
+        panic(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveHeadList(&ListHead),
                                  LinkedListNode, ListLink);
         delete node;
@@ -192,7 +192,7 @@ public:
     {
         LinkedListNode* node;
 
-        BugOn(IsListEmpty(&ListHead));
+        panic(IsListEmpty(&ListHead));
         node = CONTAINING_RECORD(RemoveTailList(&ListHead),
                                  LinkedListNode, ListLink);
         delete node;

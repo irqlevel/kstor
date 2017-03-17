@@ -925,13 +925,13 @@ XXHash::~XXHash()
 void XXHash::Reset()
 {
     if (XXH64_reset(reinterpret_cast<XXH64_state_t*>(&State[0]), 0) != XXH_OK)
-        BugOn(true);
+        panic(true);
 }
 
 void XXHash::Update(const void *buf, size_t len)
 {
     if (XXH64_update(reinterpret_cast<XXH64_state_t*>(&State[0]), buf, len) != XXH_OK)
-        BugOn(true);
+        panic(true);
 }
 
 void XXHash::GetSum(unsigned char result[8])

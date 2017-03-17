@@ -9,6 +9,8 @@
 #include <core/auto_lock.h>
 #include <core/shared_auto_lock.h>
 #include <core/task.h>
+#include <core/btree.h>
+#include <core/random.h>
 
 #include <include/ctl.h>
 
@@ -114,6 +116,49 @@ Core::Error ControlDevice::StopServer()
     return Core::Error::Success;
 }
 
+Core::Error ControlDevice::TestBtree()
+{
+    Core::Error err;
+
+    trace(1, "Test btree");
+
+    size_t keyCount = 1000;
+    Core::Vector<uint64_t, Core::Memory::PoolType::Kernel> key;
+    if (!key.ReserveAndUse(keyCount))
+        return Core::Error::NoMemory;
+
+    Core::Vector<uint64_t, Core::Memory::PoolType::Kernel> value;
+    if (!value.ReserveAndUse(keyCount))
+        return Core::Error::NoMemory;
+
+    for (size_t i = 0; i < key.GetSize(); i++)
+        key[i] = Core::Random::GetUint64();
+    for (size_t i = 0; i < value.GetSize(); i++)
+        value[i] = Core::Random::GetUint64();
+
+    Core::Btree<uint64_t, uint64_t, Core::RWSem, 2, Core::Memory::PoolType::Kernel> tree;
+
+    for (size_t i = 0; i < key.GetSize(); i++)
+    {
+        if (!tree.Insert(key[i], value[i]))
+            return Core::Error::Unsuccessful;
+    }
+
+    for (size_t i = 0; i < key.GetSize(); i++)
+    {
+        bool exist;
+        auto foundValue = tree.Lookup(key[i], exist);
+        if (!exist)
+            return Core::Error::Unsuccessful;
+        if (foundValue != value[i])
+            return Core::Error::Unsuccessful;
+    }
+
+    trace(1, "Test btree complete");
+
+    return Core::Error::Success;
+}
+
 Core::Error ControlDevice::RunTest(unsigned int testId)
 {
     Core::Error err;
@@ -133,6 +178,11 @@ Core::Error ControlDevice::RunTest(unsigned int testId)
         }
 
         err = VolumeRef->TestJournal();
+        break;
+    }
+    case Api::TestBtree:
+    {
+        TestBtree();
         break;
     }
     default:

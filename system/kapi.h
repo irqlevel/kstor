@@ -26,6 +26,7 @@ struct kernel_api
     void (*memcpy)(void* dst, const void* src, size_t size);
 
     void (*printk)(const char *fmt, ...);
+    void (*vprintk)(const char *fmt, va_list args);
     void (*bug_on)(bool condition);
 
     void* (*atomic_create)(int value, unsigned long pool_type);

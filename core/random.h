@@ -30,6 +30,7 @@ class Random
 {
 public:
     static void GetBytes(void* buf, int len);
+    static uint64_t GetUint64();
 private:
     Random() = delete;
     Random(const Random& other) = delete;
