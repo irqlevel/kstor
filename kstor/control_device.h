@@ -49,7 +49,7 @@ private:
     Server Srv;
     Core::RandomFile Rng;
     Core::RWSem VolumeLock;
-    VolumePtr VolumeRef;
+    Volume::Ptr VolumeRef;
     static ControlDevice* Device;
 };
 

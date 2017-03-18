@@ -1,12 +1,12 @@
 #pragma once
 
-typedef unsigned long size_t;
-typedef unsigned long uintptr_t;
+using size_t = unsigned long;
+using uintptr_t = unsigned long;
 
-typedef int int32_t;
-typedef unsigned int uint32_t;
+using int32_t = int;
+using uint32_t = unsigned int;
 
-typedef long long int64_t;
-typedef unsigned long long uint64_t;
+using int64_t = long long;
+using uint64_t = unsigned long long;
 
-typedef unsigned char byte_t;
+using byte_t = unsigned char;

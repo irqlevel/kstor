@@ -16,11 +16,13 @@ namespace Core
 class Worker : public Runnable
 {
 public:
+    using Ptr = SharedPtr<Worker>;
+
     Worker();
     Worker(const AString& name, Error& err);
     virtual ~Worker();
-    bool Execute(RunnablePtr task);
-    bool ExecuteAndWait(RunnablePtr task, Error& err);
+    bool Execute(const Runnable::Ptr& task);
+    bool ExecuteAndWait(const Runnable::Ptr& task, Error& err);
     Error Run(const Threadable& thread);
 private:
     Worker(const Worker& other) = delete;
@@ -32,12 +34,10 @@ private:
     bool Running;
 
     SpinLock Lock;
-    LinkedList<RunnablePtr, Memory::PoolType::Kernel> TaskList;
+    LinkedList<Runnable::Ptr> TaskList;
     Event TaskEvent;
     Thread WorkerThread;
     AString Name;
 };
-
-typedef SharedPtr<Worker, Memory::PoolType::Kernel> WorkerPtr;
 
 }

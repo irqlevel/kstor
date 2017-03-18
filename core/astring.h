@@ -8,7 +8,7 @@
 namespace Core
 {
 
-template <Memory::PoolType PoolType>
+template <Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class AStringBase
 {
 public:
@@ -200,7 +200,7 @@ private:
     Vector<char, PoolType> Buf;
 };
 
-typedef AStringBase<Memory::PoolType::Kernel> AString;
-typedef SharedPtr<AString, Memory::PoolType::Kernel> AStringPtr;
+using AString = AStringBase<>;
+using AStringPtr =  SharedPtr<AString>;
 
 }

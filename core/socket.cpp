@@ -29,7 +29,7 @@ Error Socket::Listen(const AString& host, unsigned short port, int backlog)
     return get_kapi()->sock_listen(&Sockp, const_cast<char *>(host.GetConstBuf()), port, backlog);
 }
 
-Socket *Socket::Accept(Error &err)
+Socket* Socket::Accept(Error &err)
 {
     if (Sockp == nullptr) {
         err.SetInvalidState();
@@ -41,8 +41,8 @@ Socket *Socket::Accept(Error &err)
     if (!err.Ok())
         return nullptr;
 
-    Socket *newSock = new (Memory::PoolType::Kernel) Socket(newSockp);
-    if (!newSock)
+    Socket* newSock = new (Memory::PoolType::Kernel) Socket(newSockp);
+    if (newSock == nullptr)
         err.SetNoMemory();
 
     return newSock;

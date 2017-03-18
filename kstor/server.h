@@ -23,6 +23,8 @@ namespace KStor
 class Packet
 {
 public:
+    using Ptr = Core::SharedPtr<Packet>;
+
     Packet();
     Packet(const Api::PacketHeader &header, Core::Error &err);
     Core::Error Parse(const Api::PacketHeader &header);
@@ -45,10 +47,8 @@ private:
     unsigned int Type;
     unsigned int Result;
     unsigned int DataSize;
-    Core::Vector<unsigned char, Core::Memory::PoolType::Kernel> Body;
+    Core::Vector<unsigned char> Body;
 };
-
-typedef Core::SharedPtr<Packet, Core::Memory::PoolType::Kernel> PacketPtr;
 
 class Server : public Core::Runnable
 {
@@ -60,13 +60,15 @@ public:
 private:
     class Connection : public Core::Runnable {
     public:
+        using Ptr = Core::SharedPtr<Connection>;
+
         Connection(Server& srv, Core::UniquePtr<Core::Socket>&& sock);
         Core::Error Start();
         void Stop();
         virtual ~Connection();
 
-        PacketPtr RecvPacket(Core::Error& err);
-        Core::Error SendPacket(PacketPtr& packet);
+        Packet::Ptr RecvPacket(Core::Error& err);
+        Core::Error SendPacket(Packet::Ptr& packet);
 
         bool Closed();
 
@@ -78,23 +80,21 @@ private:
         Core::RWSem StateLock;
     };
 
-    typedef Core::SharedPtr<Connection, Core::Memory::PoolType::Kernel> ConnectionPtr;
-
     Core::Error Run(const Core::Threadable& thread) override;
     Core::RWSem ConnListLock;
     Core::RWSem StateLock;
     Core::UniquePtr<Core::Socket> ListenSocket;
     Core::UniquePtr<Core::Thread> AcceptThread;
-    Core::LinkedList<ConnectionPtr, Core::Memory::PoolType::Kernel> ConnList;
+    Core::LinkedList<Connection::Ptr> ConnList;
 
-    Core::Error HandleChunkCreate(PacketPtr& request, PacketPtr& response);
-    Core::Error HandleChunkWrite(PacketPtr& request, PacketPtr& response);
-    Core::Error HandleChunkRead(PacketPtr& request, PacketPtr& response);
-    Core::Error HandleChunkDelete(PacketPtr& request, PacketPtr& response);
+    Core::Error HandleChunkCreate(Packet::Ptr& request, Packet::Ptr& response);
+    Core::Error HandleChunkWrite(Packet::Ptr& request, Packet::Ptr& response);
+    Core::Error HandleChunkRead(Packet::Ptr& request, Packet::Ptr& response);
+    Core::Error HandleChunkDelete(Packet::Ptr& request, Packet::Ptr& response);
 
-    Core::Error HandlePing(PacketPtr& request, PacketPtr& response);
+    Core::Error HandlePing(Packet::Ptr& request, Packet::Ptr& response);
 
-    PacketPtr HandleRequest(PacketPtr& request, Core::Error& err);
+    Packet::Ptr HandleRequest(Packet::Ptr& request, Core::Error& err);
 
 };
 

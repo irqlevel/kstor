@@ -123,11 +123,11 @@ Core::Error ControlDevice::TestBtree()
     trace(1, "Test btree");
 
     size_t keyCount = 1000;
-    Core::Vector<uint64_t, Core::Memory::PoolType::Kernel> key;
+    Core::Vector<uint64_t> key;
     if (!key.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;
 
-    Core::Vector<uint64_t, Core::Memory::PoolType::Kernel> value;
+    Core::Vector<uint64_t> value;
     if (!value.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;
 
@@ -136,7 +136,7 @@ Core::Error ControlDevice::TestBtree()
     for (size_t i = 0; i < value.GetSize(); i++)
         value[i] = Core::Random::GetUint64();
 
-    Core::Btree<uint64_t, uint64_t, Core::RWSem, 2, Core::Memory::PoolType::Kernel> tree;
+    Core::Btree<uint64_t, uint64_t, 2> tree;
 
     for (size_t i = 0; i < key.GetSize(); i++)
     {

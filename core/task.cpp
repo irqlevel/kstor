@@ -20,7 +20,7 @@ Task::Task(int pid, Error& err)
 
 Error Task::DumpStack(AString& result)
 {
-    Vector<byte_t, Memory::PoolType::Kernel> stackBuf;
+    Vector<byte_t> stackBuf;
     if (!stackBuf.ReserveAndUse(4 * 4096))
         return Core::Error::NoMemory;
 

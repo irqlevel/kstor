@@ -14,6 +14,8 @@ namespace KStor
 class BitmapBlock
 {
 public:
+    using Ptr = Core::SharedPtr<BitmapBlock>;
+
     BitmapBlock(uint64_t index, Core::Error& err);
     virtual ~BitmapBlock();
 private:
@@ -22,11 +24,9 @@ private:
     BitmapBlock& operator=(const BitmapBlock& other) = delete;
     BitmapBlock& operator=(BitmapBlock&& other) = delete;
 
-    Core::PagePtr Page;
+    Core::Page<>::Ptr Page;
     uint64_t Index;
 };
-
-using BitmapBlockPtr = Core::SharedPtr<BitmapBlock, Core::Memory::PoolType::Kernel>;
 
 class BlockAllocator
 {
@@ -45,8 +45,8 @@ private:
     BlockAllocator& operator=(const BlockAllocator& other) = delete;
     BlockAllocator& operator=(BlockAllocator&& other) = delete;
 
-    BitmapBlockPtr LookupBlock(uint64_t index);
-    BitmapBlockPtr CreateBlock(uint64_t index);
+    BitmapBlock::Ptr LookupBlock(uint64_t index);
+    BitmapBlock::Ptr CreateBlock(uint64_t index);
     void DeleteBlock(uint64_t index);
 
     Volume& VolumeRef;
@@ -54,7 +54,7 @@ private:
     uint64_t Size;
     uint64_t MaxIndex;
 
-    Core::Btree<uint64_t, BitmapBlockPtr, Core::RWSem, 2, Core::Memory::PoolType::Kernel> BlockTree;
+    Core::Btree<uint64_t, BitmapBlock::Ptr, 2> BlockTree;
 };
 
 }

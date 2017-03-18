@@ -25,6 +25,9 @@ const unsigned int VolumeStateStopped = 4;
 class Volume
 {
 public:
+
+    using Ptr = Core::SharedPtr<Volume>;
+
     Volume(const Core::AString& deviceName, Core::Error& err);
     virtual ~Volume();
 
@@ -57,7 +60,7 @@ private:
     Core::AString DeviceName;
     Core::BlockDevice Device;
     Guid VolumeId;
-    Core::HashTable<Guid, ChunkPtr, Core::RWSem, Core::Memory::PoolType::Kernel, 512> ChunkTable;
+    Core::HashTable<Guid, Chunk::Ptr, 512> ChunkTable;
     uint64_t Size;
     uint64_t BlockSize;
     Journal TxJournal;
@@ -66,6 +69,5 @@ private:
     unsigned int State;
 };
 
-typedef Core::SharedPtr<Volume, Core::Memory::PoolType::Kernel> VolumePtr;
 
 }

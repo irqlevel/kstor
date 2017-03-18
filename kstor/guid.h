@@ -14,6 +14,8 @@ namespace KStor
 class Guid
 {
 public:
+    using Ptr = Core::SharedPtr<Guid>;
+
     Guid();
     Guid(Core::RandomFile& rng, Core::Error& err);
     Guid(Core::Error& err);
@@ -46,7 +48,5 @@ private:
 
     Api::Guid Content;
 };
-
-typedef Core::SharedPtr<Guid, Core::Memory::PoolType::Kernel> GuidPtr;
 
 }

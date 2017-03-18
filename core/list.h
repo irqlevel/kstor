@@ -8,7 +8,7 @@
 namespace Core
 {
 
-template <typename T, Memory::PoolType PoolType> class LinkedList
+template <typename T, Memory::PoolType PoolType = Memory::PoolType::Kernel> class LinkedList
 {
 public:
 

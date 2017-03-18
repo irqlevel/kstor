@@ -49,7 +49,7 @@ Core::Error Volume::Format()
     if (!err.Ok())
         return err;
 
-    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    auto page = Core::Page<>::Create(err);
     if (!err.Ok())
         return err;
     page->Zero();
@@ -64,7 +64,7 @@ Core::Error Volume::Format()
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).SubmitWaitResult(page, 0, true, true);
+    err = Core::BioList<>(Device).SubmitWaitResult(page, 0, true, true);
 
     trace(1, "Volume 0x%p write header, err %d", this, err.GetCode());
 
@@ -78,11 +78,11 @@ Core::Error Volume::Load()
         return Core::Error::InvalidState;
 
     Core::Error err;
-    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    auto page = Core::Page<>::Create(err);
     if (!err.Ok())
         return err;
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).SubmitWaitResult(page, 0, false);
+    err = Core::BioList<>(Device).SubmitWaitResult(page, 0, false);
     if (!err.Ok())
     {
         trace(0, "Volume 0x%p read header, err %d", this, err.GetCode());
@@ -159,7 +159,7 @@ Core::Error Volume::Unload()
     if (!err.Ok())
         return err;
 
-    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    auto page = Core::Page<>::Create(err);
     if (!err.Ok())
         return err;
 
@@ -174,7 +174,7 @@ Core::Error Volume::Unload()
 
     Core::XXHash::Sum(header, OFFSET_OF(Api::VolumeHeader, Hash), header->Hash);
 
-    err = Core::BioList<Core::Memory::PoolType::Kernel>(Device).SubmitWaitResult(page, 0, true, true);
+    err = Core::BioList<>(Device).SubmitWaitResult(page, 0, true, true);
 
     State = VolumeStateStopped;
 
@@ -325,7 +325,7 @@ Core::Error Volume::TestJournal()
     unsigned long long position = (TxJournal.GetStart() + TxJournal.GetSize()) * GetBlockSize();
 
     Core::Error err;
-    auto page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    auto page = Core::Page<>::Create(err);
     if (!err.Ok())
         return err;
 

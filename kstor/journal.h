@@ -23,12 +23,14 @@ namespace KStor
 
 class Journal;
 
-typedef Core::SharedPtr<Api::JournalTxBlock, Core::Memory::PoolType::Kernel> JournalTxBlockPtr;
+using JournalTxBlockPtr = Core::SharedPtr<Api::JournalTxBlock>;
 
 class Transaction
 {
 friend Journal;
 public:
+    using Ptr = Core::SharedPtr<Transaction>;
+
     Transaction(Journal& journal, Core::Error &err);
 
     virtual ~Transaction();
@@ -45,7 +47,7 @@ public:
     void ReleaseLock();
     unsigned int GetState();
 
-    Core::LinkedList<size_t, Core::Memory::PoolType::Kernel>& GetIndexList();
+    Core::LinkedList<size_t>& GetIndexList();
 
 private:
 
@@ -60,16 +62,14 @@ private:
     Guid TxId;
     JournalTxBlockPtr BeginBlock;
 
-    Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel> DataBlockList;
-    Core::LinkedList<size_t, Core::Memory::PoolType::Kernel> IndexList;
+    Core::LinkedList<JournalTxBlockPtr> DataBlockList;
+    Core::LinkedList<size_t> IndexList;
 
     JournalTxBlockPtr CommitBlock;
     Core::RWSem Lock;
     Core::Event CommitEvent;
     Core::Error CommitResult;
 };
-
-typedef Core::SharedPtr<Transaction, Core::Memory::PoolType::Kernel> TransactionPtr;
 
 const unsigned int JournalStateNew = 1;
 const unsigned int JournalStateReplaying = 2;
@@ -94,21 +94,20 @@ public:
 
     virtual ~Journal();
 
-    TransactionPtr BeginTx();
+    Transaction::Ptr BeginTx();
 
     size_t GetBlockSize();
 
     Core::Error Unload();
 
 private:
-    Core::Error ApplyBlocks(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>& blockList,
-        bool preflushFua = false);
+    Core::Error ApplyBlocks(Core::LinkedList<JournalTxBlockPtr>& blockList, bool preflushFua = false);
 
-    Core::Error Replay(Core::LinkedList<JournalTxBlockPtr, Core::Memory::PoolType::Kernel>&& blockList);
+    Core::Error Replay(Core::LinkedList<JournalTxBlockPtr>&& blockList);
     Core::Error Replay();
 
     Core::Error StartCommitTx(Transaction* tx);
-    Core::Error WriteTx(const TransactionPtr& tx, Core::NoIOBioList& bioList);
+    Core::Error WriteTx(const Transaction::Ptr& tx, Core::NoIOBioList& bioList);
     void UnlinkTx(Transaction* tx, bool cancel);
 
     Core::Error ReadTxBlockComplete(Core::PageInterface& page);
@@ -136,15 +135,15 @@ private:
 private:
 
     Volume& VolumeRef;
-    Core::HashTable<Guid, TransactionPtr, Core::RWSem, Core::Memory::PoolType::Kernel, 512> TxTable;
-    Core::LinkedList<TransactionPtr, Core::Memory::PoolType::Kernel> TxList;
+    Core::HashTable<Guid, Transaction::Ptr, 512> TxTable;
+    Core::LinkedList<Transaction::Ptr> TxList;
     Core::UniquePtr<Core::Thread> TxThread;
     Core::RWSem TxListLock;
     Core::Event TxListEvent;
     Core::RWSem Lock;
 
     Core::RingBuffer LogRb;
-    Core::LinkedList<TransactionPtr, Core::Memory::PoolType::Kernel> TxToErase;
+    Core::LinkedList<Transaction::Ptr> TxToErase;
     Core::RWSem LogRbLock;
 
     uint64_t Start;

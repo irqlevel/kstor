@@ -35,7 +35,7 @@ private:
     ObjectReference& operator=(ObjectReference&& other) = delete;
 };
 
-template<typename T, Memory::PoolType PoolType>
+template<typename T, Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class SharedPtr
 {
 public:

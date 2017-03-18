@@ -10,7 +10,7 @@ BitmapBlock::BitmapBlock(uint64_t index, Core::Error& err)
     if (!err.Ok())
         return;
 
-    Page = Core::Page<Core::Memory::PoolType::Kernel>::Create(err);
+    Page = Core::Page<>::Create(err);
     if (!err.Ok())
         return;
 }
@@ -73,12 +73,10 @@ Core::Error Free(uint64_t block)
     return Core::Error::NotImplemented;
 }
 
-BitmapBlockPtr BlockAllocator::LookupBlock(uint64_t index)
+BitmapBlock::Ptr BlockAllocator::LookupBlock(uint64_t index)
 {
-    BitmapBlockPtr block;
-
     bool exist;
-    block = BlockTree.Lookup(index, exist);
+    auto block = BlockTree.Lookup(index, exist);
     if (!exist)
     {
         block.Reset();
@@ -87,7 +85,7 @@ BitmapBlockPtr BlockAllocator::LookupBlock(uint64_t index)
     return block;
 }
 
-BitmapBlockPtr BlockAllocator::CreateBlock(uint64_t index)
+BitmapBlock::Ptr BlockAllocator::CreateBlock(uint64_t index)
 {
     Core::Error err;
     auto block = Core::MakeShared<BitmapBlock, Core::Memory::PoolType::Kernel>(index, err);

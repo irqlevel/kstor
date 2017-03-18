@@ -11,6 +11,8 @@ namespace KStor
 class Chunk
 {
 public:
+    using Ptr =  Core::SharedPtr<Chunk>;
+
     Chunk(const Guid& chunkId)
         : ChunkId(chunkId)
     {
@@ -32,7 +34,5 @@ private:
     Chunk& operator=(const Chunk& other) = delete;
     Chunk& operator=(Chunk&& other) = delete;
 };
-
-typedef Core::SharedPtr<Chunk, Core::Memory::PoolType::Kernel> ChunkPtr;
 
 }

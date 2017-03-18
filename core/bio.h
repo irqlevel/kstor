@@ -13,11 +13,11 @@
 namespace Core
 {
 
-template<Memory::PoolType PoolType>
+template<Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class Bio
 {
 public:
-    typedef SharedPtr<Bio<PoolType>, PoolType> Ptr;
+    using Ptr = SharedPtr<Bio<PoolType>, PoolType>;
 
 public:
     Bio(int pageCount, Error& err)
@@ -219,7 +219,7 @@ public:
         return bio;
     }
 
-    typedef void (*PostEndIoHandlerType)(Bio<PoolType>* bio, void* ctx);
+    using PostEndIoHandlerType = void (*)(Bio<PoolType>* bio, void* ctx);
 
     void SetPostEndIoHandler(PostEndIoHandlerType handler, void* ctx)
     {
@@ -264,11 +264,11 @@ private:
     unsigned long long Position;
 };
 
-template<Memory::PoolType PoolType>
+template<Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class BioList
 {
 public:
-    typedef SharedPtr<BioList<PoolType>, PoolType> Ptr;
+    using Ptr = SharedPtr<BioList<PoolType>, PoolType>;
 public:
     BioList(BlockDeviceInterface& blockDevice)
         : BlockDev(blockDevice)
@@ -438,6 +438,6 @@ private:
     Error Result;
 };
 
-typedef Core::BioList<Core::Memory::PoolType::NoIO> NoIOBioList;
+using NoIOBioList = Core::BioList<Core::Memory::PoolType::NoIO>;
 
 }

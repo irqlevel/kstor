@@ -12,6 +12,8 @@ namespace Core
 class Runnable
 {
 public:
+    using Ptr = SharedPtr<Runnable>;
+
     virtual Error Run(const Threadable& thread) = 0;
 
     Runnable()
@@ -60,7 +62,5 @@ private:
     Error Status;
     Event CompleteEvent;
 };
-
-typedef SharedPtr<Runnable, Memory::PoolType::Kernel> RunnablePtr;
 
 }

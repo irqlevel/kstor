@@ -191,9 +191,9 @@ Server::Connection::~Connection()
     trace(3, "Connection 0x%p dtor", this);
 }
 
-PacketPtr Server::Connection::RecvPacket(Core::Error& err)
+Packet::Ptr Server::Connection::RecvPacket(Core::Error& err)
 {
-    PacketPtr packet;
+    Packet::Ptr packet;
     Api::PacketHeader header;
     unsigned long received;
 
@@ -243,7 +243,7 @@ PacketPtr Server::Connection::RecvPacket(Core::Error& err)
     return packet;
 }
 
-Core::Error Server::Connection::SendPacket(PacketPtr& packet)
+Core::Error Server::Connection::SendPacket(Packet::Ptr& packet)
 {
     packet->PrepareSend();
 
@@ -351,7 +351,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
 
         trace(3, "Server 0x%p accepted new connection", this);
 
-        ConnectionPtr conn = Core::MakeShared<Connection, Core::Memory::PoolType::Kernel>(*this, Core::Memory::Move(socket));
+        auto conn = Core::MakeShared<Connection, Core::Memory::PoolType::Kernel>(*this, Core::Memory::Move(socket));
         if (conn.Get() == nullptr)
         {
             err.SetNoMemory();
@@ -459,7 +459,7 @@ void Server::Stop()
         if (ConnList.IsEmpty())
             break;
 
-        ConnectionPtr conn;
+        Connection::Ptr conn;
         {
             Core::AutoLock lock(ConnListLock);
             if (ConnList.IsEmpty())
@@ -486,7 +486,7 @@ Server::~Server()
     Stop();
 }
 
-Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
+Core::Error Server::HandlePing(Packet::Ptr& request, Packet::Ptr& response)
 {
     Core::Error err;
 
@@ -502,7 +502,7 @@ Core::Error Server::HandlePing(PacketPtr& request, PacketPtr& response)
     return err;
 }
 
-Core::Error Server::HandleChunkCreate(PacketPtr& request, PacketPtr& response)
+Core::Error Server::HandleChunkCreate(Packet::Ptr& request, Packet::Ptr& response)
 {
     Core::Error err;
 
@@ -526,7 +526,7 @@ Core::Error Server::HandleChunkCreate(PacketPtr& request, PacketPtr& response)
     return response->Create(request->GetType(), Api::ResultSuccess, 0);
 }
 
-Core::Error Server::HandleChunkWrite(PacketPtr& request, PacketPtr& response)
+Core::Error Server::HandleChunkWrite(Packet::Ptr& request, Packet::Ptr& response)
 {
     Core::Error err;
 
@@ -550,7 +550,7 @@ Core::Error Server::HandleChunkWrite(PacketPtr& request, PacketPtr& response)
     return err;
 }
 
-Core::Error Server::HandleChunkRead(PacketPtr& request, PacketPtr& response)
+Core::Error Server::HandleChunkRead(Packet::Ptr& request, Packet::Ptr& response)
 {
     Api::ChunkReadRequest* req = static_cast<Api::ChunkReadRequest*>(request->GetData());
     if (request->GetDataSize() != sizeof(*req))
@@ -574,7 +574,7 @@ Core::Error Server::HandleChunkRead(PacketPtr& request, PacketPtr& response)
     return err;
 }
 
-Core::Error Server::HandleChunkDelete(PacketPtr& request, PacketPtr& response)
+Core::Error Server::HandleChunkDelete(Packet::Ptr& request, Packet::Ptr& response)
 {
     Core::Error err;
 
@@ -598,9 +598,9 @@ Core::Error Server::HandleChunkDelete(PacketPtr& request, PacketPtr& response)
     return response->Create(request->GetType(), Api::ResultSuccess, 0);
 }
 
-PacketPtr Server::HandleRequest(PacketPtr& request, Core::Error& err)
+Packet::Ptr Server::HandleRequest(Packet::Ptr& request, Core::Error& err)
 {
-    PacketPtr response(new Packet());
+    Packet::Ptr response(new Packet());
     if (response.Get() == nullptr)
     {
         err = Core::Error::NoMemory;

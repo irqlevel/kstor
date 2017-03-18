@@ -8,7 +8,7 @@
 namespace Core
 {
 
-template<class T, Memory::PoolType PoolType>
+template<class T, Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class Vector
 {
 public:

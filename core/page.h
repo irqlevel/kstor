@@ -23,11 +23,11 @@ public:
     virtual AString ToHex(size_t len) const = 0;
 };
 
-template<Memory::PoolType PoolType>
+template<Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class Page : public PageInterface
 {
 public:
-    typedef SharedPtr<Page<PoolType>, PoolType> Ptr;
+    using Ptr = SharedPtr<Page<PoolType>, PoolType>;
 
 public:
     Page(Error& err)
@@ -192,8 +192,6 @@ private:
 
     void* PagePtr;
 };
-
-using PagePtr = SharedPtr<Page<Memory::PoolType::Kernel>, Memory::PoolType::Kernel>;
 
 class PageMap
 {

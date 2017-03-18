@@ -5,13 +5,15 @@
 #include "shared_auto_lock.h"
 #include "unique_ptr.h"
 #include "bug.h"
+#include "rwsem.h"
 
 namespace Core
 {
 
 const int BtreeLL = 7;
 
-template<typename K, typename V, typename LockType, int T, Memory::PoolType PoolType>
+template<typename K, typename V, int T,
+         typename LockType = RWSem, Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class Btree
 {
 public:
@@ -71,9 +73,41 @@ public:
     bool Delete(const K& key)
     {
         AutoLock lock(Lock);
-        if (Root.Get() == nullptr)
-            return false;
 
+        BtreeNode* node = Root.Get();
+        if (node == nullptr)
+        {
+            return false;
+        }
+
+restart:
+        int i = node->GetKeyIndex(key);
+        if (i >= 0)
+        {
+            if (node->IsLeaf())
+            {
+                node->DeleteKey(i);
+                node->DecKeyCount();
+            }
+            else
+            {
+                /* TODO */
+            }
+        }
+        else
+        {
+            if (node->IsLeaf())
+            {
+                return false;
+            }
+            else
+            {
+                i = node->FindKeyIndex(key);
+                node = node->ChildBalance(i);
+                panic(node == nullptr);
+                goto restart;
+            }
+        }
         return false;
     }
 
@@ -178,6 +212,11 @@ private:
             Child[index] = Memory::Move(child);
         }
 
+        bool IsLeaf()
+        {
+            return Leaf;
+        }
+
         void SetLeaf(bool leaf)
         {
             Leaf = leaf;
@@ -194,6 +233,35 @@ private:
         {
             KeyCount++;
             trace(BtreeLL, "BtreeNode 0x%p inc keyCount %d", this, KeyCount);
+        }
+
+        void DecKeyCount()
+        {
+            KeyCount--;
+            trace(BtreeLL, "BtreeNode 0x%p dec keyCount %d", this, KeyCount);
+        }
+
+        BtreeNode* ChildBalance(int index)
+        {
+            /* TODO */
+            return nullptr;
+        }
+
+        void DeleteChild(int index)
+        {
+            for (int i = (index + 1); i < (KeyCount + 1); i++)
+            {
+                Child[i - 1] = Memory::Move(Child[i]);
+            }
+        }
+
+        void DeleteKey(int index)
+        {
+            for (int i = (index + 1); i < KeyCount; i++)
+            {
+                Key[i - 1] = Memory::Move(Key[i]);
+                Value[i - 1] = Memory::Move(Value[i]);
+            }
         }
 
         void SplitChild(int index, BtreeNodePtr&& newChild)
