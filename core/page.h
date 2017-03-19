@@ -3,6 +3,7 @@
 #include "memory.h"
 #include "error.h"
 #include "random.h"
+#include "random_file.h"
 #include "shared_ptr.h"
 #include "hex.h"
 

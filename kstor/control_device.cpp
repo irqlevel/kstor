@@ -157,6 +157,7 @@ Core::Error ControlDevice::TestBtree()
     }
 
     /* delete all keys */
+    key.Shuffle();
     for (size_t i = 0; i < key.GetSize(); i++)
     {
         if (!tree.Delete(key[i]))
@@ -164,6 +165,7 @@ Core::Error ControlDevice::TestBtree()
     }
 
     /* lookup all keys */
+    key.Shuffle();
     for (size_t i = 0; i < key.GetSize(); i++)
     {
         bool exist;

@@ -4,6 +4,7 @@
 #include "error.h"
 #include "bug.h"
 #include "new.h"
+#include "random.h"
 
 namespace Core
 {
@@ -154,6 +155,18 @@ public:
         }
         Size = other.Size;
         Capacity = other.Capacity;
+    }
+
+    void Shuffle()
+    {
+        if (Size < 2)
+            return;
+
+        for (size_t i = (Size - 1); i >= 1; i--)
+        {
+            size_t j = Random::GetSizeT(i + 1);
+            Memory::Swap(Arr[i], Arr[j]);
+        }
     }
 
 private:

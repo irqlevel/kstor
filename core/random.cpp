@@ -1,63 +1,9 @@
 #include "random.h"
-#include "astring.h"
 #include "memory.h"
-#include "trace.h"
 #include "kapi.h"
 
 namespace Core
 {
-
-RandomFile::RandomFile(Error& err, bool pseudoRandom)
-{
-    if (!err.Ok())
-    {
-        return;
-    }
-
-    AString devName((pseudoRandom) ? "/dev/urandom" : "/dev/random", err);
-    if (!err.Ok())
-    {
-        trace(0, "Can't allocate string");
-        return;
-    }
-
-    err = File.Open(devName, true, false);
-    if (!err.Ok())
-    {
-        trace(0, "Can't open dev random file %s, err %d", devName.GetConstBuf(), err.GetCode());
-        return;
-    }
-
-    trace(3, "Random 0x%p dev %s ctor", this, devName.GetConstBuf());
-}
-
-Error RandomFile::GetBytes(void* buf, unsigned long len)
-{
-    Error err = File.Read(0, buf, len);
-    if (!err.Ok())
-    {
-        trace(0, "Can't read dev random file, err %d", err.GetCode());
-    }
-    return err;
-}
-
-unsigned long RandomFile::GetUlong()
-{
-    unsigned long result;
-
-    Error err = GetBytes(&result, sizeof(result));
-    if (!err.Ok())
-    {
-        return static_cast<unsigned long>(-1);
-    }
-
-    return result;
-}
-
-RandomFile::~RandomFile()
-{
-    trace(3, "Random 0x%p dtor", this);
-}
 
 void Random::GetBytes(void* buf, int len)
 {
@@ -70,6 +16,46 @@ uint64_t Random::GetUint64()
 
     Random::GetBytes(&result, sizeof(result));
     return result;
+}
+
+size_t Random::Log2(size_t value)
+{
+    size_t result = 0;
+
+    while (value > 0)
+    {
+        result++;
+        value >>= 1;
+    }
+    return result;
+}
+
+size_t Random::GetSizeT()
+{
+    size_t result;
+
+    Random::GetBytes(&result, sizeof(result));
+    return result;
+}
+
+size_t Random::GetSizeT(size_t upper)
+{
+    if (upper < 2)
+        return 0;
+
+    if ((upper & (upper - 1)) == 0)
+        return GetSizeT() & (upper -1);
+
+    size_t value, log;
+    log = Random::Log2(upper);
+    for (;;)
+    {
+        value = GetSizeT() & ((static_cast<size_t>(1) << log) - 1);
+        if (value < upper)
+            break;
+    }
+
+    return value;
 }
 
 }

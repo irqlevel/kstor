@@ -3,7 +3,7 @@
 #include <core/error.h>
 #include <core/memory.h>
 #include <core/shared_ptr.h>
-#include <core/random.h>
+#include <core/random_file.h>
 #include <core/astring.h>
 
 #include "api.h"
