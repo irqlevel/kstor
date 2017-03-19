@@ -9,25 +9,70 @@
 namespace Core
 {
 
+const int SharedPtrLL = 255;
+
 template<typename T>
 class ObjectReference
 {
 public:
-    Atomic Counter;
-    T* Object;
-
     ObjectReference(T* object)
         : Object(nullptr)
     {
         Counter.Set(1);
         Object = object;
+
+        trace(SharedPtrLL, "objref 0x%p obj 0x%p ctor", this, Object);
     }
 
     virtual ~ObjectReference()
     {
+        trace(SharedPtrLL, "objref 0x%p dtor", this);
+
+        panic(Object != nullptr);
+        panic(Counter.Get() != 0);
+    }
+
+    void IncCounter()
+    {
+        Counter.Inc();
+        trace(SharedPtrLL, "objref 0x%p obj 0x%p inc counter %d", this, Object, Counter.Get());
+    }
+
+    int GetCounter()
+    {
+        return Counter.Get();
+    }
+
+    void SetObject(T *object)
+    {
+        panic(Object != nullptr);
+
+        Object = object;
+    }
+
+    T* GetObject()
+    {
+        return Object;
+    }
+
+    bool DecCounter()
+    {
+        if (Counter.DecAndTest())
+        {
+            trace(SharedPtrLL, "objref 0x%p obj 0x%p dec counter %d", this, Object, Counter.Get());
+            delete Object;
+            Object = nullptr;
+            return true;
+        }
+        trace(SharedPtrLL, "objref 0x%p obj 0x%p dec counter %d", this, Object, Counter.Get());
+
+        return false;
     }
 
 private:
+    Atomic Counter;
+    T* Object;
+
     ObjectReference() = delete;
     ObjectReference(const ObjectReference& other) = delete;
     ObjectReference(ObjectReference&& other) = delete;
@@ -42,17 +87,23 @@ public:
     SharedPtr()
     {
         ObjectRef = nullptr;
+
+        trace(SharedPtrLL, "ptr 0x%p ctor obj 0x%p", this, Get());
     }
 
     SharedPtr(ObjectReference<T> *objectRef)
     {
         ObjectRef = objectRef;
+
+        trace(SharedPtrLL, "ptr 0x%p ctor obj 0x%p", this, Get());
     }
 
     SharedPtr(T *object)
         : SharedPtr()
     {
         Reset(object);
+
+        trace(SharedPtrLL, "ptr 0x%p ctor obj 0x%p", this, Get());
     }
 
     SharedPtr(const SharedPtr<T, PoolType>& other)
@@ -61,8 +112,10 @@ public:
         ObjectRef = other.ObjectRef;
         if (ObjectRef != nullptr)
         {
-            ObjectRef->Counter.Inc();
+            ObjectRef->IncCounter();
         }
+
+        trace(SharedPtrLL, "ptr 0x%p ctor obj 0x%p", this, Get());
     }
 
     SharedPtr(SharedPtr<T, PoolType>&& other)
@@ -70,6 +123,8 @@ public:
     {
         ObjectRef = other.ObjectRef;
         other.ObjectRef = nullptr;
+
+        trace(SharedPtrLL, "ptr 0x%p ctor obj 0x%p", this, Get());
     }
 
     SharedPtr<T, PoolType>& operator=(const SharedPtr<T, PoolType>& other)
@@ -80,9 +135,12 @@ public:
             ObjectRef = other.ObjectRef;
             if (ObjectRef != nullptr)
             {
-                ObjectRef->Counter.Inc();
+                ObjectRef->IncCounter();
             }
         }
+
+        trace(SharedPtrLL, "ptr 0x%p op= obj 0x%p", this, Get());
+
         return *this;
     }
 
@@ -94,12 +152,15 @@ public:
             ObjectRef = other.ObjectRef;
             other.ObjectRef = nullptr;
         }
+
+        trace(SharedPtrLL, "ptr 0x%p op= obj 0x%p", this, Get());
+
         return *this;
     }
 
     T* Get() const
     {
-        return (ObjectRef != nullptr) ? ObjectRef->Object : nullptr;
+        return (ObjectRef != nullptr) ? ObjectRef->GetObject() : nullptr;
     }
 
     T& operator*() const
@@ -114,7 +175,7 @@ public:
 
     int GetCounter()
     {
-        return (ObjectRef != nullptr) ? ObjectRef->Counter.Get() : 0;
+        return (ObjectRef != nullptr) ? ObjectRef->GetCounter() : 0;
     }
 
     virtual ~SharedPtr()
@@ -124,14 +185,12 @@ public:
 
     void Reset(T* object)
     {
+        trace(SharedPtrLL, "ptr 0x%p reset obj 0x%p new 0x%p", this, Get(), object);
+
         if (ObjectRef != nullptr)
         {
-            if (ObjectRef->Counter.DecAndTest())
+            if (ObjectRef->DecCounter())
             {
-                trace(255, "SharedPtr 0x%p Delete ObjectRef 0x%p Object 0x%p",
-                    this, ObjectRef, ObjectRef->Object);
-
-                delete ObjectRef->Object;
                 delete ObjectRef;
             }
         }
@@ -143,12 +202,8 @@ public:
             ObjectRef = new (PoolType) ObjectReference<T>(object);
             if (ObjectRef == nullptr)
             {
-                trace(0, "SharedPtr 0x%p can't allocate object reference", this);
                 return;
             }
-
-            trace(255, "SharedPtr 0x%p New ObjectRef 0x%p Object 0x%p",
-                    this, ObjectRef, ObjectRef->Object);
         }
     }
 
@@ -175,7 +230,7 @@ SharedPtr<T, PoolType> MakeShared(Args&&... args)
         return SharedPtr<T, PoolType>();
     }
 
-    objRef->Object = object;
+    objRef->SetObject(object);
     return SharedPtr<T, PoolType>(objRef);
 }
 

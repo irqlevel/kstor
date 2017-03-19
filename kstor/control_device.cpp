@@ -122,7 +122,7 @@ Core::Error ControlDevice::TestBtree()
 
     trace(1, "Test btree");
 
-    size_t keyCount = 1000;
+    size_t keyCount = 10000;
     Core::Vector<uint64_t> key;
     if (!key.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;
@@ -136,14 +136,16 @@ Core::Error ControlDevice::TestBtree()
     for (size_t i = 0; i < value.GetSize(); i++)
         value[i] = Core::Random::GetUint64();
 
-    Core::Btree<uint64_t, uint64_t, 2> tree;
+    Core::Btree<uint64_t, uint64_t, 3> tree;
 
+    /* insert all keys */
     for (size_t i = 0; i < key.GetSize(); i++)
     {
         if (!tree.Insert(key[i], value[i]))
             return Core::Error::Unsuccessful;
     }
 
+    /* lookup all keys */
     for (size_t i = 0; i < key.GetSize(); i++)
     {
         bool exist;
@@ -151,6 +153,22 @@ Core::Error ControlDevice::TestBtree()
         if (!exist)
             return Core::Error::Unsuccessful;
         if (foundValue != value[i])
+            return Core::Error::Unsuccessful;
+    }
+
+    /* delete all keys */
+    for (size_t i = 0; i < key.GetSize(); i++)
+    {
+        if (!tree.Delete(key[i]))
+            return Core::Error::Unsuccessful;
+    }
+
+    /* lookup all keys */
+    for (size_t i = 0; i < key.GetSize(); i++)
+    {
+        bool exist;
+        tree.Lookup(key[i], exist);
+        if (exist)
             return Core::Error::Unsuccessful;
     }
 
