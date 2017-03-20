@@ -186,6 +186,9 @@ restart:
     bool Check()
     {
         SharedAutoLock lock(Lock);
+        if (Root.Get() == nullptr)
+            return true;
+
         return Root->Check(true);
     }
 
@@ -772,33 +775,36 @@ private:
             }
 
             K* prevKey = nullptr;
-            int i;
-            for (i = 0; i < KeyCount; i++)
+            for (int i = 0; i < KeyCount; i++)
             {
                 if (prevKey != nullptr && *prevKey >= Key[i])
                     return false;
                 prevKey = &Key[i];
-                if (!Leaf)
-                {
-                    if (Child[i].Get() == nullptr)
-                        return false;
-                }
             }
 
             if (!Leaf)
             {
-                if (!root || (KeyCount > 0)) {
+                for (int i = 0; i < KeyCount + 1; i++)
+                {
                     if (Child[i].Get() == nullptr)
                         return false;
-                }
-            }
 
-            if (!Leaf)
-            {
-                for (i = 0; i < KeyCount + 1; i++)
-                {
                     auto result = Child[i]->Check(false);
                     if (!result)
+                        return false;
+                }
+
+                for (int i = KeyCount + 1; i < 2 * T; i++)
+                {
+                    if (Child[i].Get() != nullptr)
+                        return false;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < 2 * T; i++)
+                {
+                    if (Child[i].Get() != nullptr)
                         return false;
                 }
             }

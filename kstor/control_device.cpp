@@ -138,6 +138,9 @@ Core::Error ControlDevice::TestBtree()
 
     Core::Btree<uint64_t, uint64_t, 3> tree;
 
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
+
     /* insert all keys */
     for (size_t i = 0; i < key.GetSize(); i++)
     {
@@ -188,6 +191,9 @@ Core::Error ControlDevice::TestBtree()
         if (exist)
             return Core::Error::Unsuccessful;
     }
+
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
 
     trace(1, "Test btree complete");
 
