@@ -60,7 +60,7 @@ private:
     Core::AString DeviceName;
     Core::BlockDevice Device;
     Guid VolumeId;
-    Core::HashTable<Guid, Chunk::Ptr, 512> ChunkTable;
+    Core::HashTable<Guid, Chunk::Ptr, 512, Core::RWSem> ChunkTable;
     uint64_t Size;
     uint64_t BlockSize;
     Journal TxJournal;

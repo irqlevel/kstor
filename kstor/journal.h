@@ -135,7 +135,7 @@ private:
 private:
 
     Volume& VolumeRef;
-    Core::HashTable<Guid, Transaction::Ptr, 512> TxTable;
+    Core::HashTable<Guid, Transaction::Ptr, 512, Core::RWSem> TxTable;
     Core::LinkedList<Transaction::Ptr> TxList;
     Core::UniquePtr<Core::Thread> TxThread;
     Core::RWSem TxListLock;

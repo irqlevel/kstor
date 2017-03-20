@@ -6,13 +6,13 @@
 #include "bug.h"
 #include "auto_lock.h"
 #include "shared_auto_lock.h"
-#include "rwsem.h"
+#include "noplock.h"
 
 namespace Core
 {
 
 template <typename K, typename V, size_t BucketCount,
-          typename Lock = RWSem, Memory::PoolType PoolType = Memory::PoolType::Kernel>
+          typename Lock = NopLock, Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class HashTable
 {
 public:

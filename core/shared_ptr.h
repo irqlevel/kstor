@@ -11,8 +11,8 @@ namespace Core
 
 const int SharedPtrLL = 255;
 
-template<typename T>
-class ObjectReference
+template<typename T, Memory::PoolType PoolType = Memory::PoolType::Kernel>
+class ObjectReference final
 {
 public:
     ObjectReference(T* object)
@@ -22,9 +22,12 @@ public:
         Object = object;
 
         trace(SharedPtrLL, "objref 0x%p obj 0x%p ctor", this, Object);
+
+        if (Object != nullptr)
+            panic(get_kapi()->unique_key_register(Object, this, get_kapi_pool_type(PoolType)) != 0);
     }
 
-    virtual ~ObjectReference()
+    ~ObjectReference()
     {
         trace(SharedPtrLL, "objref 0x%p dtor", this);
 
@@ -48,6 +51,7 @@ public:
         panic(Object != nullptr);
 
         Object = object;
+        panic(get_kapi()->unique_key_register(Object, this, get_kapi_pool_type(PoolType)) != 0);
     }
 
     T* GetObject()
@@ -60,6 +64,9 @@ public:
         if (Counter.DecAndTest())
         {
             trace(SharedPtrLL, "objref 0x%p obj 0x%p dec counter %d", this, Object, Counter.Get());
+
+            panic(get_kapi()->unique_key_unregister(Object, this) != 0);
+
             delete Object;
             Object = nullptr;
             return true;
@@ -81,7 +88,7 @@ private:
 };
 
 template<typename T, Memory::PoolType PoolType = Memory::PoolType::Kernel>
-class SharedPtr
+class SharedPtr final
 {
 public:
     SharedPtr()
@@ -91,7 +98,7 @@ public:
         trace(SharedPtrLL, "ptr 0x%p ctor obj 0x%p", this, Get());
     }
 
-    SharedPtr(ObjectReference<T> *objectRef)
+    SharedPtr(ObjectReference<T, PoolType> *objectRef)
     {
         ObjectRef = objectRef;
 
@@ -178,7 +185,7 @@ public:
         return (ObjectRef != nullptr) ? ObjectRef->GetCounter() : 0;
     }
 
-    virtual ~SharedPtr()
+    ~SharedPtr()
     {
         Reset(nullptr);
     }
@@ -186,6 +193,8 @@ public:
     void Reset(T* object)
     {
         trace(SharedPtrLL, "ptr 0x%p reset obj 0x%p new 0x%p", this, Get(), object);
+
+        panic(Get() != nullptr && Get() == object);
 
         if (ObjectRef != nullptr)
         {
@@ -199,7 +208,7 @@ public:
 
         if (object != nullptr)
         {
-            ObjectRef = new (PoolType) ObjectReference<T>(object);
+            ObjectRef = new (PoolType) ObjectReference<T, PoolType>(object);
             if (ObjectRef == nullptr)
             {
                 return;
@@ -213,13 +222,13 @@ public:
     }
 
 private:
-    ObjectReference<T>* ObjectRef;
+    ObjectReference<T, PoolType>* ObjectRef;
 };
 
 template<typename T, Memory::PoolType PoolType, class... Args>
 SharedPtr<T, PoolType> MakeShared(Args&&... args)
 {
-    ObjectReference<T>* objRef = new (PoolType) ObjectReference<T>(nullptr);
+    ObjectReference<T, PoolType>* objRef = new (PoolType) ObjectReference<T, PoolType>(nullptr);
     if (objRef == nullptr)
         return SharedPtr<T, PoolType>();
 

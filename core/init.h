@@ -7,9 +7,9 @@ extern "C"
 
 #include "../system/kapi.h"
 
-int core_init(struct kernel_api *api);
+int CoreInit(struct kernel_api *api);
 
-void core_deinit(void);
+void CoreDeinit(void);
 
 #ifdef __cplusplus
 }

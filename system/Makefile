@@ -5,7 +5,7 @@ KMOD_KO = $(KMOD).ko
 
 obj-m = $(KMOD).o
 $(KMOD)-objs := module.o ksocket.o kapi.o malloc_checker.o page_checker.o   \
-                trace.o ../lib/kstor.a ../lib/core.a
+                trace.o unique_key.o ../lib/kstor.a ../lib/core.a
 
 ccflags-y := -I$(src) -I.. $(COMMON_CFLAGS) -fno-inline    \
             -D __KERNEL__ -D __MALLOC_CHECKER__ \
@@ -14,6 +14,7 @@ ccflags-y := -I$(src) -I.. $(COMMON_CFLAGS) -fno-inline    \
             -D __PAGE_CHECKER__                 \
             -D __PAGE_CHECKER_STACK_TRACE__     \
             -D __PAGE_CHECKER_FILL_CC__         \
+            -D __UNIQUE_KEY__         \
 
 ifndef KERNEL_PATH
 KERNEL_PATH=/lib/modules/$(shell uname -r)/build

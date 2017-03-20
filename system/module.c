@@ -23,7 +23,7 @@ static int __init kstor_module_init(void)
     if (err)
         goto out;
 
-    err = core_init(kapi_get());
+    err = CoreInit(kapi_get());
     if (err)
         goto deinit_kapi;
 
@@ -35,7 +35,7 @@ static int __init kstor_module_init(void)
     return 0;
 
 deinit_core:
-    core_deinit();
+    CoreDeinit();
 deinit_kapi:
     kapi_deinit();
 out:
@@ -47,7 +47,7 @@ static void __exit kstor_module_exit(void)
 {
     PRINTK("exiting\n");
     KStorDeinit();
-    core_deinit();
+    CoreDeinit();
     kapi_deinit();
     PRINTK("exited\n");
     return;

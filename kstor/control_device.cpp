@@ -122,29 +122,39 @@ Core::Error ControlDevice::TestBtree()
 
     trace(1, "Test btree");
 
-    size_t keyCount = 10000;
+    size_t keyCount = 10151;
+
+    Core::Vector<size_t> pos;
+    if (!pos.ReserveAndUse(keyCount))
+        return Core::Error::NoMemory;
+
+    for (size_t i = 0; i < keyCount; i++)
+    {
+        pos[i] = i;
+    }
+
     Core::Vector<uint64_t> key;
     if (!key.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;
+    for (size_t i = 0; i < keyCount; i++)
+        key[i] = Core::Random::GetUint64();
 
     Core::Vector<uint64_t> value;
     if (!value.ReserveAndUse(keyCount))
-        return Core::Error::NoMemory;
-
-    for (size_t i = 0; i < key.GetSize(); i++)
-        key[i] = Core::Random::GetUint64();
-    for (size_t i = 0; i < value.GetSize(); i++)
+        return Core::Error::NoMemory;;
+    for (size_t i = 0; i < keyCount; i++)
         value[i] = Core::Random::GetUint64();
 
-    Core::Btree<uint64_t, uint64_t, 3> tree;
+    Core::Btree<uint64_t, uint64_t, 49> tree;
 
     if (!tree.Check())
         return Core::Error::Unsuccessful;
 
     /* insert all keys */
-    for (size_t i = 0; i < key.GetSize(); i++)
+    pos.Shuffle();
+    for (size_t i = 0; i < keyCount; i++)
     {
-        if (!tree.Insert(key[i], value[i]))
+        if (!tree.Insert(key[pos[i]], value[pos[i]]))
             return Core::Error::Unsuccessful;
     }
 
@@ -152,30 +162,43 @@ Core::Error ControlDevice::TestBtree()
         return Core::Error::Unsuccessful;
 
     /* lookup all keys */
-    for (size_t i = 0; i < key.GetSize(); i++)
+    pos.Shuffle();
+    for (size_t i = 0; i < keyCount; i++)
     {
         bool exist;
-        auto foundValue = tree.Lookup(key[i], exist);
+        auto foundValue = tree.Lookup(key[pos[i]], exist);
         if (!exist)
             return Core::Error::Unsuccessful;
-        if (foundValue != value[i])
+        if (foundValue != value[pos[i]])
             return Core::Error::Unsuccessful;
     }
 
-    /* delete all keys */
-    key.Shuffle();
-    for (size_t i = 0; i < key.GetSize() / 2; i++)
+    /* delete half keys */
+    pos.Shuffle();
+    for (size_t i = 0; i < keyCount / 2; i++)
     {
-        if (!tree.Delete(key[i]))
+        if (!tree.Delete(key[pos[i]]))
             return Core::Error::Unsuccessful;
     }
-
     if (!tree.Check())
         return Core::Error::Unsuccessful;
 
-    for (size_t i = key.GetSize() / 2; i < key.GetSize(); i++)
+    for (size_t i = keyCount / 2; i < keyCount; i++)
     {
-        if (!tree.Delete(key[i]))
+        bool exist;
+        auto foundValue = tree.Lookup(key[pos[i]], exist);
+        if (!exist)
+            return Core::Error::Unsuccessful;
+        if (foundValue != value[pos[i]])
+            return Core::Error::Unsuccessful;
+    }
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
+
+    pos.Shuffle();
+    for (size_t i = keyCount / 2; i < keyCount; i++)
+    {
+        if (!tree.Delete(key[pos[i]]))
             return Core::Error::Unsuccessful;
     }
 
@@ -183,11 +206,11 @@ Core::Error ControlDevice::TestBtree()
         return Core::Error::Unsuccessful;
 
     /* lookup all keys */
-    key.Shuffle();
-    for (size_t i = 0; i < key.GetSize(); i++)
+    pos.Shuffle();
+    for (size_t i = 0; i < keyCount; i++)
     {
         bool exist;
-        tree.Lookup(key[i], exist);
+        tree.Lookup(key[pos[i]], exist);
         if (exist)
             return Core::Error::Unsuccessful;
     }

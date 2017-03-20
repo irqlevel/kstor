@@ -75,6 +75,8 @@ Core::Error Free(uint64_t block)
 
 BitmapBlock::Ptr BlockAllocator::LookupBlock(uint64_t index)
 {
+    Core::SharedAutoLock lock(Lock);
+
     bool exist;
     auto block = BlockTree.Lookup(index, exist);
     if (!exist)
@@ -87,6 +89,17 @@ BitmapBlock::Ptr BlockAllocator::LookupBlock(uint64_t index)
 
 BitmapBlock::Ptr BlockAllocator::CreateBlock(uint64_t index)
 {
+    {
+        Core::SharedAutoLock lock(Lock);
+        bool exist;
+        auto block = BlockTree.Lookup(index, exist);
+        if (exist)
+        {
+            return block;
+        }
+    }
+
+    Core::AutoLock lock(Lock);
     Core::Error err;
     auto block = Core::MakeShared<BitmapBlock, Core::Memory::PoolType::Kernel>(index, err);
     if (block.Get() == nullptr)
@@ -100,6 +113,8 @@ BitmapBlock::Ptr BlockAllocator::CreateBlock(uint64_t index)
 
     if (!BlockTree.Insert(index, block))
     {
+        block.Reset();
+
         bool exist;
         block = BlockTree.Lookup(index, exist);
         if (!exist)
@@ -113,6 +128,8 @@ BitmapBlock::Ptr BlockAllocator::CreateBlock(uint64_t index)
 
 void BlockAllocator::DeleteBlock(uint64_t index)
 {
+    Core::AutoLock lock(Lock);
+
     BlockTree.Delete(index);
 }
 

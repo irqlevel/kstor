@@ -29,6 +29,6 @@ namespace Core
     }
 
 #define panic(condition)    \
-    Core::Panic(condition, __MODULE_NAME__, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__);
+    Core::Panic((condition) ? true : false, __MODULE_NAME__, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__);
 
 }

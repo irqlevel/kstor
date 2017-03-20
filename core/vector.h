@@ -77,7 +77,7 @@ public:
     {
         if (Size == Capacity)
         {
-            if (!Reserve(Size + 1))
+            if (!Reserve(2*Size + 1))
                 return false;
         }
         Arr[Size++] = Memory::Move(e);

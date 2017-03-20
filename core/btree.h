@@ -5,7 +5,7 @@
 #include "shared_auto_lock.h"
 #include "unique_ptr.h"
 #include "bug.h"
-#include "rwsem.h"
+#include "noplock.h"
 
 namespace Core
 {
@@ -13,7 +13,7 @@ namespace Core
 const int BtreeLL = 254;
 
 template<typename K, typename V, int T,
-         typename LockType = RWSem, Memory::PoolType PoolType = Memory::PoolType::Kernel>
+         typename LockType = NopLock, Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class Btree
 {
 public:
@@ -82,10 +82,10 @@ public:
             return false;
         }
 
-        KeyToDelete = key;
+        const K* keyToDelete = &key;
 
 restart:
-        int i = node->GetKeyIndex(KeyToDelete);
+        int i = node->GetKeyIndex(*keyToDelete);
         trace(BtreeLL, "node 0x%p get key index %d", node.Get(), i);
         if (i >= 0)
         {
@@ -109,7 +109,7 @@ restart:
                     int preIndex;
                     auto preNode = preChild->FindLeftMost(preChild, preIndex);
                     panic(preNode.Get() == nullptr);
-                    KeyToDelete = preNode->GetKey(preIndex);
+                    keyToDelete = &preNode->GetKey(preIndex);
                     node->CopyKeyValue(i, preNode, preIndex);
                     node = preNode;
                     goto restart;
@@ -119,7 +119,7 @@ restart:
                     int sucIndex;
                     auto sucNode = sucChild->FindRightMost(sucChild, sucIndex);
                     panic(sucNode.Get() == nullptr);
-                    KeyToDelete = sucNode->GetKey(sucIndex);
+                    keyToDelete = &sucNode->GetKey(sucIndex);
                     node->CopyKeyValue(i, sucNode, sucIndex);
                     node = sucNode;
                     goto restart;
@@ -153,7 +153,7 @@ restart:
 
                     trace(BtreeLL, "node 0x%p get key %d", node.Get(), keyIndex);
 
-                    KeyToDelete = node->GetKey(keyIndex);
+                    keyToDelete = &node->GetKey(keyIndex);
                     goto restart;
                 }
             }
@@ -167,7 +167,7 @@ restart:
             }
             else
             {
-                i = node->FindKeyIndex(KeyToDelete);
+                i = node->FindKeyIndex(*keyToDelete);
                 trace(BtreeLL, "node 0x%p find key index %d", node.Get(), i);
                 node = node->ChildBalance(node, i);
                 panic(node.Get() == nullptr);
@@ -820,7 +820,6 @@ private:
         K Key[2 * T - 1];
         V Value[2 * T - 1];
         BtreeNodePtr Child[2 * T];
-        V EmptyValue;
         int KeyCount;
         bool Leaf;
     };
@@ -828,7 +827,6 @@ private:
     BtreeNodePtr Root;
     LockType Lock;
     V EmptyValue;
-    K KeyToDelete;
 };
 
 }

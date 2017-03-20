@@ -1,10 +1,12 @@
 #pragma once
 
+#include "kapi.h"
+
 namespace Core
 {
 
-template<typename T>
-class UniquePtr
+template<typename T, Memory::PoolType PoolType = Memory::PoolType::Kernel>
+class UniquePtr final
 {
 public:
     UniquePtr(UniquePtr&& other)
@@ -30,7 +32,7 @@ public:
     UniquePtr(T* object)
         : UniquePtr()
     {
-        Object = object;
+        Reset(object);
     }
 
     UniquePtr(const UniquePtr& other) = delete;
@@ -39,12 +41,18 @@ public:
 
     void Reset(T* object)
     {
+        panic(Object != nullptr && Object == object);
+
         if (Object != nullptr)
         {
+            panic(get_kapi()->unique_key_unregister(Object, this) != 0);
             delete Object;
             Object = nullptr;
         }
+
         Object = object;
+        if (Object != nullptr)
+            panic(get_kapi()->unique_key_register(Object, this, get_kapi_pool_type(PoolType)) != 0);
     }
 
     void Reset()
@@ -55,11 +63,15 @@ public:
     T* Release()
     {
         T* object = Object;
+
+        if (object != nullptr)
+            panic(get_kapi()->unique_key_unregister(object, this) != 0);
+
         Object = nullptr;
         return object;
     }
 
-    virtual ~UniquePtr()
+    ~UniquePtr()
     {
         Reset(nullptr);
     }
@@ -84,9 +96,9 @@ private:
 };
 
 template<typename T, Memory::PoolType PoolType, class... Args>
-UniquePtr<T> MakeUnique(Args&&... args)
+UniquePtr<T, PoolType> MakeUnique(Args&&... args)
 {
-    return UniquePtr<T>(new (PoolType) T(Memory::Forward<Args>(args)...));
+    return UniquePtr<T, PoolType>(new (PoolType) T(Memory::Forward<Args>(args)...));
 }
 
 }

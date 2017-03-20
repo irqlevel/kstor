@@ -29,6 +29,7 @@
 #include "page_checker.h"
 #include "trace.h"
 #include "ksocket.h"
+#include "unique_key.h"
 
 _Static_assert(sizeof(struct kapi_spinlock) >= sizeof(spinlock_t), "Bad size");
 _Static_assert(sizeof(struct kapi_atomic) >= sizeof(atomic_t), "Bad size");
@@ -1199,6 +1200,24 @@ static size_t kapi_vsnprintf(char *buf, size_t size, const char *fmt, va_list ar
     return vsnprintf(buf, size, fmt, args);
 }
 
+static int kapi_unique_key_register(void *key, void *value, unsigned long pool_type)
+{
+#ifdef __UNIQUE_KEY__
+    return unique_key_register(key, value, kapi_get_gfp_flags(pool_type));
+#else
+    return 0;
+#endif
+}
+
+static int kapi_unique_key_unregister(void *key, void *value)
+{
+#ifdef __UNIQUE_KEY__
+    return unique_key_unregister(key, value);
+#else
+    return 0;
+#endif
+}
+
 static struct kernel_api g_kapi =
 {
     .kmalloc = kapi_kmalloc,
@@ -1326,6 +1345,9 @@ static struct kernel_api g_kapi =
     .get_random_bytes = kapi_get_random_bytes,
 
     .vsnprintf = kapi_vsnprintf,
+
+    .unique_key_register = kapi_unique_key_register,
+    .unique_key_unregister = kapi_unique_key_unregister,
 };
 
 int kapi_init(void)
@@ -1348,6 +1370,10 @@ int kapi_init(void)
     if (r)
         goto deinit_malloc_checker;
 
+#ifdef __UNIQUE_KEY__
+    unique_key_init();
+#endif
+
     return 0;
 
 deinit_malloc_checker:
@@ -1359,6 +1385,10 @@ deinit_malloc_checker:
 
 void kapi_deinit(void)
 {
+#ifdef __UNIQUE_KEY__
+    unique_key_deinit();
+#endif
+
 #ifdef __PAGE_CHECKER__
     page_checker_deinit();
 #endif

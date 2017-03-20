@@ -7,6 +7,7 @@
 #include <core/page.h>
 #include <core/btree.h>
 #include <core/rwsem.h>
+#include <core/noplock.h>
 
 namespace KStor
 {
@@ -49,11 +50,12 @@ private:
     BitmapBlock::Ptr CreateBlock(uint64_t index);
     void DeleteBlock(uint64_t index);
 
-    Volume& VolumeRef;
     uint64_t Start;
     uint64_t Size;
     uint64_t MaxIndex;
 
+    Volume& VolumeRef;
+    Core::RWSem Lock;
     Core::Btree<uint64_t, BitmapBlock::Ptr, 2> BlockTree;
 };
 

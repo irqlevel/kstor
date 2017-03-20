@@ -16,6 +16,45 @@ extern "C"
 #define KAPI_POOL_TYPE_NOIO       4UL
 #define KAPI_POOL_TYPE_USER       5UL
 
+#define KAPI_BDEV_MODE_READ         0x1
+#define KAPI_BDEV_MODE_WRITE        0x2
+#define KAPI_BDEV_MODE_EXCLUSIVE    0x4
+
+#define KAPI_BIO_OP_READ    1
+#define KAPI_BIO_OP_WRITE   2
+#define KAPI_BIO_OP_FLUSH   3
+#define KAPI_BIO_OP_DISCARD 4
+
+#define KAPI_BIO_REQ_FUA        0x1
+#define KAPI_BIO_REQ_SYNC       0x2
+#define KAPI_BIO_REQ_PREFLUSH   0x4
+
+#define KAPI_VFS_FILE_RDONLY    0x1
+#define KAPI_VFS_FILE_WRONLY    0x2
+#define KAPI_VFS_FILE_RDWR      0x4
+#define KAPI_VFS_FILE_CREAT     0x8
+#define KAPI_VFS_FILE_EXCL      0x10
+
+struct kapi_atomic
+{
+    unsigned long value;
+};
+
+struct kapi_spinlock
+{
+    unsigned long value;
+};
+
+struct kapi_completion
+{
+    unsigned long value[4];
+};
+
+struct kapi_rwsem
+{
+    unsigned long value[5];
+};
+
 struct kernel_api
 {
     void *(*kmalloc)(size_t size, unsigned long pool_type);
@@ -152,45 +191,9 @@ struct kernel_api
 
     size_t (*vsnprintf)(char *buf, size_t size, const char *fmt, va_list args);
 
-};
+    int (*unique_key_register)(void *key, void *value, unsigned long pool_type);
+    int (*unique_key_unregister)(void *key, void *value);
 
-#define KAPI_BDEV_MODE_READ         0x1
-#define KAPI_BDEV_MODE_WRITE        0x2
-#define KAPI_BDEV_MODE_EXCLUSIVE    0x4
-
-#define KAPI_BIO_OP_READ    1
-#define KAPI_BIO_OP_WRITE   2 
-#define KAPI_BIO_OP_FLUSH   3
-#define KAPI_BIO_OP_DISCARD 4
-
-#define KAPI_BIO_REQ_FUA        0x1
-#define KAPI_BIO_REQ_SYNC       0x2
-#define KAPI_BIO_REQ_PREFLUSH   0x4
-
-#define KAPI_VFS_FILE_RDONLY    0x1
-#define KAPI_VFS_FILE_WRONLY    0x2
-#define KAPI_VFS_FILE_RDWR      0x4
-#define KAPI_VFS_FILE_CREAT     0x8
-#define KAPI_VFS_FILE_EXCL      0x10
-
-struct kapi_atomic
-{
-    unsigned long value;
-};
-
-struct kapi_spinlock
-{
-    unsigned long value;
-};
-
-struct kapi_completion
-{
-    unsigned long value[4];
-};
-
-struct kapi_rwsem
-{
-    unsigned long value[5];
 };
 
 #ifdef __cplusplus

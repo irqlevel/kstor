@@ -2,14 +2,14 @@
 #include "kapi.h"
 #include "trace.h"
 
-int core_init(struct kernel_api *api)
+int CoreInit(struct kernel_api *api)
 {
     kapi_init(api);
     trace(1, "inited");
     return 0;
 }
 
-void core_deinit(void)
+void CoreDeinit(void)
 {
     trace(1,"deinited");
 }
