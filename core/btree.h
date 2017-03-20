@@ -421,6 +421,8 @@ finish:
         {
             panic(index < 0 || index >= 2 * T);
 
+            Child[index].Reset();
+
             for (int i = (index + 1); i < (KeyCount + 1); i++)
             {
                 Child[i - 1] = Memory::Move(Child[i]);
