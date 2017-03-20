@@ -26,7 +26,7 @@ public:
     {
         trace(BtreeLL, "tree 0x%p dtor", this);
         trace(BtreeLL, "tree 0x%p dtor, root 0x%p", this, Root.Get());
-        Root.Reset();
+        DeleteAll();
         trace(BtreeLL, "tree 0x%p dtor complete", this);
     }
 
@@ -192,6 +192,11 @@ restart:
         return Root->Check(true);
     }
 
+    void Clear()
+    {
+        DeleteAll();
+    }
+
 private:
     Btree(const Btree& other) = delete;
     Btree(Btree&& other) = delete;
@@ -228,6 +233,57 @@ private:
                 panic(node.Get() == nullptr);
             }
         }
+    }
+
+    void DeleteAll()
+    {
+        AutoLock lock(Lock);
+
+        if (Root.Get() == nullptr)
+            return;
+
+        BtreeNodePtr curr, parent;
+        int childIndex;
+
+restart:
+        curr = Root;
+        parent.Reset(nullptr);
+        childIndex = -1;
+
+        for (;;)
+        {
+            if (curr->IsLeaf())
+            {
+                if (parent.Get() != nullptr)
+                {
+                    parent->DeleteChild(childIndex);
+                    parent->DecKeyCount();
+                    if (parent->GetKeyCount() == 0)
+                    {
+                        parent->SetLeaf(true);
+                    }
+                    goto restart;
+                }
+                else
+                {
+                    panic(curr.Get() != Root.Get());
+                    goto finish;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < (curr->GetKeyCount() + 1); i++)
+                {
+                    parent = curr;
+                    curr = curr->GetChild(i);
+                    childIndex = i;
+                    break;
+                }
+            }
+        }
+
+finish:
+        Root.Reset();
     }
 
     class BtreeNode;

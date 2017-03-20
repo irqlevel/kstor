@@ -214,7 +214,20 @@ Core::Error ControlDevice::TestBtree()
         if (exist)
             return Core::Error::Unsuccessful;
     }
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
 
+    /* insert all keys */
+    pos.Shuffle();
+    for (size_t i = 0; i < keyCount; i++)
+    {
+        if (!tree.Insert(key[pos[i]], value[pos[i]]))
+            return Core::Error::Unsuccessful;
+    }
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
+
+    tree.Clear();
     if (!tree.Check())
         return Core::Error::Unsuccessful;
 
