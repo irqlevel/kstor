@@ -183,6 +183,12 @@ restart:
         return LookupLocked(key, exist);
     }
 
+    bool Check()
+    {
+        SharedAutoLock lock(Lock);
+        return Root->Check(true);
+    }
+
 private:
     Btree(const Btree& other) = delete;
     Btree(Btree&& other) = delete;
@@ -754,6 +760,51 @@ private:
             return KeyCount;
         }
 
+        bool Check(bool root)
+        {
+            if (KeyCount < 0 || KeyCount > (2 * T - 1))
+                return false;
+
+            if (!root)
+            {
+                if (KeyCount < (T - 1))
+                    return false;
+            }
+
+            K* prevKey = nullptr;
+            int i;
+            for (i = 0; i < KeyCount; i++)
+            {
+                if (prevKey != nullptr && *prevKey >= Key[i])
+                    return false;
+                prevKey = &Key[i];
+                if (!Leaf)
+                {
+                    if (Child[i].Get() == nullptr)
+                        return false;
+                }
+            }
+
+            if (!Leaf)
+            {
+                if (!root || (KeyCount > 0)) {
+                    if (Child[i].Get() == nullptr)
+                        return false;
+                }
+            }
+
+            if (!Leaf)
+            {
+                for (i = 0; i < KeyCount + 1; i++)
+                {
+                    auto result = Child[i]->Check(false);
+                    if (!result)
+                        return false;
+                }
+            }
+
+            return true;
+        }
     private:
         BtreeNode(const BtreeNode& other) = delete;
         BtreeNode(BtreeNode&& other) = delete;

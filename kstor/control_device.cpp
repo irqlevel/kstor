@@ -145,6 +145,9 @@ Core::Error ControlDevice::TestBtree()
             return Core::Error::Unsuccessful;
     }
 
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
+
     /* lookup all keys */
     for (size_t i = 0; i < key.GetSize(); i++)
     {
@@ -158,11 +161,23 @@ Core::Error ControlDevice::TestBtree()
 
     /* delete all keys */
     key.Shuffle();
-    for (size_t i = 0; i < key.GetSize(); i++)
+    for (size_t i = 0; i < key.GetSize() / 2; i++)
     {
         if (!tree.Delete(key[i]))
             return Core::Error::Unsuccessful;
     }
+
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
+
+    for (size_t i = key.GetSize() / 2; i < key.GetSize(); i++)
+    {
+        if (!tree.Delete(key[i]))
+            return Core::Error::Unsuccessful;
+    }
+
+    if (!tree.Check())
+        return Core::Error::Unsuccessful;
 
     /* lookup all keys */
     key.Shuffle();
