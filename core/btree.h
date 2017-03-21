@@ -363,6 +363,7 @@ private:
 
             for (int i = 0; i < 2 * T; i++)
             {
+                panic(Child[i].Get() != nullptr);
                 Child[i].Reset();
             }
 

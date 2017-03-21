@@ -145,7 +145,7 @@ Core::Error ControlDevice::TestBtree()
     for (int i = 0; i < keyCount; i++)
         value[i] = Core::Random::GetUint64();
 
-    Core::Btree<uint64_t, uint64_t, 48> tree;
+    Core::Btree<uint64_t, uint64_t, 4> tree;
 
     if (!tree.Check())
     {
