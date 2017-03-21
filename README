@@ -1,1 +1,1 @@
-kstor -  Distributed key-value BLOB's storage which is implemented as Linux kernel module which is written in C++.
+kstor -  Key-value BLOB's storage which is implemented as Linux kernel module which is written in C++.
