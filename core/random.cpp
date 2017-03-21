@@ -18,6 +18,14 @@ uint64_t Random::GetUint64()
     return result;
 }
 
+byte_t Random::GetByte()
+{
+    byte_t result;
+
+    Random::GetBytes(&result, sizeof(result));
+    return result;
+}
+
 size_t Random::Log2(size_t value)
 {
     size_t result = 0;

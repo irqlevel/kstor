@@ -12,6 +12,7 @@ public:
     static uint64_t GetUint64();
     static size_t GetSizeT();
     static size_t GetSizeT(size_t upper);
+    static byte_t GetByte();
 private:
     Random() = delete;
     Random(const Random& other) = delete;

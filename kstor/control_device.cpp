@@ -122,13 +122,13 @@ Core::Error ControlDevice::TestBtree()
 
     trace(1, "Test btree");
 
-    size_t keyCount = 10151;
+    int keyCount = 10151;
 
     Core::Vector<size_t> pos;
     if (!pos.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;
 
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
     {
         pos[i] = i;
     }
@@ -136,102 +136,154 @@ Core::Error ControlDevice::TestBtree()
     Core::Vector<uint64_t> key;
     if (!key.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
         key[i] = Core::Random::GetUint64();
 
     Core::Vector<uint64_t> value;
     if (!value.ReserveAndUse(keyCount))
         return Core::Error::NoMemory;;
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
         value[i] = Core::Random::GetUint64();
 
-    Core::Btree<uint64_t, uint64_t, 49> tree;
+    Core::Btree<uint64_t, uint64_t, 48> tree;
 
     if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
         return Core::Error::Unsuccessful;
+    }
 
-    /* insert all keys */
     pos.Shuffle();
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
     {
         if (!tree.Insert(key[pos[i]], value[pos[i]]))
+        {
+            trace(0, "Test btree: cant insert key %llu", key[pos[i]]);
             return Core::Error::Unsuccessful;
+        }
+    }
+    if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
+        return Core::Error::Unsuccessful;
     }
 
-    if (!tree.Check())
-        return Core::Error::Unsuccessful;
-
-    /* lookup all keys */
     pos.Shuffle();
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
     {
         bool exist;
         auto foundValue = tree.Lookup(key[pos[i]], exist);
         if (!exist)
+        {
+            trace(0, "Test btree: cant find key");
             return Core::Error::Unsuccessful;
-        if (foundValue != value[pos[i]])
-            return Core::Error::Unsuccessful;
-    }
+        }
 
-    /* delete half keys */
-    pos.Shuffle();
-    for (size_t i = 0; i < keyCount / 2; i++)
-    {
-        if (!tree.Delete(key[pos[i]]))
+        if (foundValue != value[pos[i]])
+        {
+            trace(0, "Test btree: unexpected found value");
             return Core::Error::Unsuccessful;
+        }
     }
     if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
         return Core::Error::Unsuccessful;
+    }
 
-    for (size_t i = keyCount / 2; i < keyCount; i++)
+    pos.Shuffle();
+    for (int i = 0; i < keyCount / 2; i++)
+    {
+        if (!tree.Delete(key[pos[i]]))
+        {
+            trace(0, "Test btree: cant delete key[%lu][%lu]=%llu", i, pos[i], key[pos[i]]);
+            return Core::Error::Unsuccessful;
+        }
+    }
+    if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
+        return Core::Error::Unsuccessful;
+    }
+
+    for (int i = keyCount / 2; i < keyCount; i++)
     {
         bool exist;
         auto foundValue = tree.Lookup(key[pos[i]], exist);
         if (!exist)
+        {
+            trace(0, "Test btree: cant find key");
             return Core::Error::Unsuccessful;
+        }
+
         if (foundValue != value[pos[i]])
+        {
+            trace(0, "Test btree: unexpected found value");
             return Core::Error::Unsuccessful;
+        }
     }
     if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
         return Core::Error::Unsuccessful;
+    }
 
-    pos.Shuffle();
-    for (size_t i = keyCount / 2; i < keyCount; i++)
+    for (int i = keyCount / 2; i < keyCount; i++)
     {
         if (!tree.Delete(key[pos[i]]))
+        {
+            trace(0, "Test btree: cant delete key");
             return Core::Error::Unsuccessful;
+        }
+    }
+    if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
+        return Core::Error::Unsuccessful;
     }
 
-    if (!tree.Check())
-        return Core::Error::Unsuccessful;
-
-    /* lookup all keys */
     pos.Shuffle();
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
     {
         bool exist;
         tree.Lookup(key[pos[i]], exist);
         if (exist)
+        {
+            trace(0, "Test btree: key still exist");
             return Core::Error::Unsuccessful;
+        }
     }
     if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
         return Core::Error::Unsuccessful;
+    }
 
-    /* insert all keys */
     pos.Shuffle();
-    for (size_t i = 0; i < keyCount; i++)
+    for (int i = 0; i < keyCount; i++)
     {
         if (!tree.Insert(key[pos[i]], value[pos[i]]))
+        {
+            trace(0, "Test btree: can't insert key'");
             return Core::Error::Unsuccessful;
+        }
     }
     if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
         return Core::Error::Unsuccessful;
+    }
+
+    trace(1, "Test btree: min depth %d max depth %d", tree.MinDepth(), tree.MaxDepth());
 
     tree.Clear();
     if (!tree.Check())
+    {
+        trace(0, "Test btree: check failed");
         return Core::Error::Unsuccessful;
+    }
 
-    trace(1, "Test btree complete");
+    trace(1, "Test btree: complete");
 
     return Core::Error::Success;
 }
@@ -259,7 +311,7 @@ Core::Error ControlDevice::RunTest(unsigned int testId)
     }
     case Api::TestBtree:
     {
-        TestBtree();
+        err = TestBtree();
         break;
     }
     default:
