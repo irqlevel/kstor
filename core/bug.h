@@ -19,16 +19,22 @@ namespace Core
         va_end(args);
     }
 
-    static inline void Panic(bool condition, const char *prefix, const char *func, const char *file, int line)
+    static inline bool Panic(bool condition, const char *prefix, const char *func, const char *file, int line)
     {
         if (condition)
         {
             Printk("%s: panic at %s(),%s,%d\n", prefix, func, file, line);
+
+#if defined(__DEBUG__)
             get_kapi()->bug_on(condition);
+#endif
+
+            return true;
         }
+        return false;
     }
 
 #define panic(condition)    \
-    Core::Panic((condition) ? true : false, __MODULE_NAME__, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__);
+    Core::Panic((condition) ? true : false, __MODULE_NAME__, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__)
 
 }

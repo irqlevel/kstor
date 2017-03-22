@@ -19,7 +19,10 @@ private:
 
 }
 
+#if defined(__DEBUG__)
+
 #define trace(level, fmt, ...)                                                                  \
+                                                                                                \
 do {                                                                                            \
     if (level == -1)                                                                            \
     {                                                                                           \
@@ -29,3 +32,9 @@ do {                                                                            
     Core::Trace::Output(level, "%d: %s(),%s,%d: " fmt,                                          \
         level, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__, ##__VA_ARGS__);\
 } while (false)
+
+#else
+
+#define trace(level, fmt, ...)
+
+#endif

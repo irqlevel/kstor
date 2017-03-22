@@ -1,6 +1,6 @@
 include $(PROJ_ROOT)/Makefile.inc
 
-CFLAGS= $(COMMON_CFLAGS) -std=c++11 -D__CPP__
+CFLAGS= $(COMMON_CFLAGS) $(EXTRA_CFLAGS) -std=c++11 -D__CPP__
 
 BIN_OUT = kstor-ctl
 

@@ -1,6 +1,8 @@
 #pragma once
 
 using size_t = unsigned long;
+using ssize_t = long;
+
 using uintptr_t = unsigned long;
 
 using int32_t = int;

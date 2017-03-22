@@ -23,8 +23,11 @@ public:
 
         trace(SharedPtrLL, "objref 0x%p obj 0x%p ctor", this, Object);
 
+#if defined(__DEBUG__)
         if (Object != nullptr)
             panic(get_kapi()->unique_key_register(Object, this, get_kapi_pool_type(PoolType)) != 0);
+#endif
+
     }
 
     ~ObjectReference()
@@ -48,10 +51,15 @@ public:
 
     void SetObject(T *object)
     {
-        panic(Object != nullptr);
+        if (panic(Object != nullptr))
+            return;
 
         Object = object;
+
+#if defined(__DEBUG__)
         panic(get_kapi()->unique_key_register(Object, this, get_kapi_pool_type(PoolType)) != 0);
+#endif
+
     }
 
     T* GetObject()
@@ -65,7 +73,10 @@ public:
         {
             trace(SharedPtrLL, "objref 0x%p obj 0x%p dec counter %d", this, Object, Counter.Get());
 
-            panic(get_kapi()->unique_key_unregister(Object, this) != 0);
+#if defined(__DEBUG__)
+            if (panic(get_kapi()->unique_key_unregister(Object, this) != 0))
+                return false;
+#endif
 
             delete Object;
             Object = nullptr;

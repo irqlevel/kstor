@@ -23,13 +23,11 @@ void Event::SetAll()
 
 void Event::Wait()
 {
-    trace(255, "Wait %p %u", this, *((unsigned int *)&Completion));
     get_kapi()->completion_wait(&Completion);
 }
 
 void Event::Wait(unsigned long timeout)
 {
-    trace(255, "Wait %p %u", this, *((unsigned int *)&Completion));
     get_kapi()->completion_wait_timeout(&Completion, timeout);
 }
 

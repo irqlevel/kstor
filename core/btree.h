@@ -12,7 +12,7 @@ namespace Core
 
 const int BtreeLL = 254;
 
-template<typename K, typename V, int T,
+template<typename K, typename V, size_t T,
          typename LockType = NopLock, Memory::PoolType PoolType = Memory::PoolType::Kernel>
 class Btree
 {
@@ -84,9 +84,10 @@ public:
         KeyToDelete = key;
 
 restart:
-        int i = node->GetKeyIndex(KeyToDelete);
-        trace(BtreeLL, "node 0x%p get key index %d %llu", node.Get(), i, KeyToDelete);
-        if (i >= 0)
+        size_t i;
+        bool exist = node->GetKeyIndex(KeyToDelete, i);
+        trace(BtreeLL, "node 0x%p get key index %lu", node.Get(), (exist) ? i : -1);
+        if (exist)
         {
             if (node->IsLeaf())
             {
@@ -97,32 +98,40 @@ restart:
             }
             else
             {
-                panic(i < 0);
                 BtreeNodePtr preChild = node->GetChild(i);
                 BtreeNodePtr sucChild = node->GetChild(i + 1);
-                panic(preChild.Get() == nullptr);
-                panic(sucChild.Get() == nullptr);
+                if (panic(preChild.Get() == nullptr))
+                    return false;
+
+                if (panic(sucChild.Get() == nullptr))
+                    return false;
 
                 if (preChild->GetKeyCount() >= T)
                 {
-                    int preIndex;
+                    size_t preIndex;
                     auto preNode = preChild->FindLeftMost(preChild, preIndex);
-                    panic(preNode.Get() == nullptr);
+
+                    if (panic(preNode.Get() == nullptr))
+                        return false;
+
                     node->CopyKey(i, preNode, preIndex);
                     node = preNode;
                     KeyToDelete = preNode->GetKey(preIndex);
-                    trace(BtreeLL, "node 0x%p new key %d %llu", node.Get(), preIndex, KeyToDelete);
+                    trace(BtreeLL, "node 0x%p new key %lu", node.Get(), preIndex);
                     goto restart;
                 }
                 else if (sucChild->GetKeyCount() >= T)
                 {
-                    int sucIndex;
+                    size_t sucIndex;
                     auto sucNode = sucChild->FindRightMost(sucChild, sucIndex);
-                    panic(sucNode.Get() == nullptr);
+
+                    if (panic(sucNode.Get() == nullptr))
+                        return false;
+
                     node->CopyKey(i, sucNode, sucIndex);
                     node = sucNode;
                     KeyToDelete = sucNode->GetKey(sucIndex);
-                    trace(BtreeLL, "node 0x%p new key %d %llu", node.Get(), sucIndex, KeyToDelete);
+                    trace(BtreeLL, "node 0x%p new key %lu", node.Get(), sucIndex);
                     goto restart;
                 }
                 else
@@ -130,9 +139,9 @@ restart:
                     /* merge key and all of sucChild into preChild
                     * node loses key and pointer to sucChild
                     */
-                    int keyIndex = preChild->GetKeyCount();
+                    size_t keyIndex = preChild->GetKeyCount();
 
-                    trace(BtreeLL, "node 0x%p pre child 0x%p merge keyIndex %d",
+                    trace(BtreeLL, "node 0x%p pre child 0x%p merge keyIndex %lu",
                         node.Get(), preChild.Get(), keyIndex);
 
                     preChild->Merge(sucChild,
@@ -153,7 +162,7 @@ restart:
                     }
 
                     KeyToDelete = node->GetKey(keyIndex);
-                    trace(BtreeLL, "node 0x%p new key %d %llu", node.Get(), keyIndex, KeyToDelete);
+                    trace(BtreeLL, "node 0x%p new key %lu", node.Get(), keyIndex);
                     goto restart;
                 }
             }
@@ -168,9 +177,12 @@ restart:
             else
             {
                 i = node->FindKeyIndex(KeyToDelete);
-                trace(BtreeLL, "node 0x%p find key index %d %llu", node.Get(), i, KeyToDelete);
+                trace(BtreeLL, "node 0x%p find key index %lu", node.Get(), i);
                 node = node->ChildBalance(node, i);
-                panic(node.Get() == nullptr);
+
+                if (panic(node.Get() == nullptr))
+                    return false;
+
                 goto restart;
             }
         }
@@ -200,7 +212,7 @@ restart:
             return;
 
         BtreeNodePtr curr, parent;
-        int childIndex;
+        size_t childIndex;
 
 restart:
         curr = Root;
@@ -227,13 +239,15 @@ restart:
                 }
                 else
                 {
-                    panic(curr.Get() != Root.Get());
+                    if (panic(curr.Get() != Root.Get()))
+                        return;
+
                     goto finish;
                 }
             }
             else
             {
-                for (int i = 0; i < (curr->GetKeyCount() + 1); i++)
+                for (size_t i = 0; i < (curr->GetKeyCount() + 1); i++)
                 {
                     parent = curr;
                     curr = curr->GetChild(i);
@@ -244,12 +258,13 @@ restart:
         }
 
 finish:
-        panic(Root->GetChildCount() != 0);
+        if (panic(Root->GetChildCount() != 0))
+            return;
 
         Root.Reset();
     }
 
-    int MinDepth()
+    size_t MinDepth()
     {
         SharedAutoLock lock(Lock);
         if (Root.Get() == nullptr)
@@ -259,7 +274,7 @@ finish:
         return MinDepth(Root);
     }
 
-    int MaxDepth()
+    size_t MaxDepth()
     {
         SharedAutoLock lock(Lock);
         if (Root.Get() == nullptr)
@@ -278,39 +293,41 @@ private:
     class BtreeNode;
     using BtreeNodePtr = SharedPtr<BtreeNode>;
 
-    int MinDepth(const BtreeNodePtr& node)
+    size_t MinDepth(const BtreeNodePtr& node)
     {
-        panic(node.Get() == nullptr);
+        if (panic(node.Get() == nullptr))
+            return 0;
 
         if (node->IsLeaf())
         {
             return 1;
         }
 
-        int depth = MinDepth(node->GetChild(0));
+        size_t depth = MinDepth(node->GetChild(0));
 
-        for (int i = 1; i < (node->GetKeyCount() + 1); i++)
+        for (size_t i = 1; i < (node->GetKeyCount() + 1); i++)
         {
-            depth = Memory::Min<int>(depth, MinDepth(node->GetChild(i)));
+            depth = Memory::Min<size_t>(depth, MinDepth(node->GetChild(i)));
         }
 
         return 1 + depth;
     }
 
-    int MaxDepth(const BtreeNodePtr& node)
+    size_t MaxDepth(const BtreeNodePtr& node)
     {
-        panic(node.Get() == nullptr);
+        if (panic(node.Get() == nullptr))
+            return 0;
 
         if (node->IsLeaf())
         {
             return 1;
         }
 
-        int depth = MaxDepth(node->GetChild(0));
+        size_t depth = MaxDepth(node->GetChild(0));
 
-        for (int i = 1; i < (node->GetKeyCount() + 1); i++)
+        for (size_t i = 1; i < (node->GetKeyCount() + 1); i++)
         {
-            depth = Memory::Max<int>(depth, MaxDepth(node->GetChild(i)));
+            depth = Memory::Max<size_t>(depth, MaxDepth(node->GetChild(i)));
         }
 
         return 1 + depth;
@@ -330,7 +347,7 @@ private:
             if (node->GetKeyCount() == 0)
                 return EmptyValue;
 
-            int i = node->FindKeyIndex(key);
+            size_t i = node->FindKeyIndex(key);
             if (i < node->GetKeyCount() && key == node->GetKey(i))
             {
                 exist = true;
@@ -343,7 +360,8 @@ private:
             else
             {
                 node = node->GetChild(i);
-                panic(node.Get() == nullptr);
+                if (panic(node.Get() == nullptr))
+                    return EmptyValue;
             }
         }
     }
@@ -361,9 +379,11 @@ private:
         {
             trace(BtreeLL, "node 0x%p dtor", this);
 
-            for (int i = 0; i < 2 * T; i++)
+            for (size_t i = 0; i < 2 * T; i++)
             {
-                panic(Child[i].Get() != nullptr);
+                if (panic(Child[i].Get() != nullptr))
+                    return;
+
                 Child[i].Reset();
             }
 
@@ -373,39 +393,46 @@ private:
         bool IsFull()
         {
             bool result = ((2 * T - 1) == KeyCount) ? true : false;
-            trace(BtreeLL, "node 0x%p full %d keyCount %d", this, result, KeyCount);
+            trace(BtreeLL, "node 0x%p full %d keyCount %lu", this, result, KeyCount);
             return result;
         }
 
-        void CopyKey(int index, const BtreeNodePtr& src, int srcIndex)
+        void CopyKey(size_t index, const BtreeNodePtr& src, size_t srcIndex)
         {
-            panic(index < 0 || index >= (2 * T - 1));
-            panic(srcIndex < 0 || srcIndex >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
-            trace(BtreeLL, "node 0x%p copy key %d", this, index);
+            if (panic(srcIndex < 0 || srcIndex >= (2 * T - 1)))
+                return;
+
+            trace(BtreeLL, "node 0x%p copy key %lu", this, index);
 
             SetKey(index, Memory::Move(src->GetKey(srcIndex)));
             SetValue(index, Memory::Move(src->GetValue(srcIndex)));
         }
 
-        void CopyChild(int index, const BtreeNodePtr& src, int srcIndex)
+        void CopyChild(size_t index, const BtreeNodePtr& src, size_t srcIndex)
         {
-            panic(index < 0 || index >= 2 * T);
-            panic(srcIndex < 0 || srcIndex >= 2 * T);
+            if (panic(index < 0 || index >= 2 * T))
+                return;
 
-            trace(BtreeLL, "node 0x%p copy child %d", this, index);
+            if (panic(srcIndex < 0 || srcIndex >= 2 * T))
+                return;
+
+            trace(BtreeLL, "node 0x%p copy child %lu", this, index);
 
             SetChild(index, Memory::Move(src->Child[srcIndex]));
         }
 
-        void PutKey(int index, const K& key, const V& value)
+        void PutKey(size_t index, const K& key, const V& value)
         {
-            panic(index < 0 || index >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
-            trace(BtreeLL, "node 0x%p put key %d", this, index);
+            trace(BtreeLL, "node 0x%p put key %lu", this, index);
 
             /* free space */
-            for (int i = KeyCount - 1; i >= index; i--)
+            for (ssize_t i = KeyCount - 1; i >= static_cast<ssize_t>(index); i--)
             {
                 SetKey(i + 1, Memory::Move(GetKey(i)));
                 SetValue(i + 1, Memory::Move(GetValue(i)));
@@ -415,15 +442,18 @@ private:
             SetValue(index, value);
         }
 
-        void PutKey(int index, const BtreeNodePtr& src, int srcIndex)
+        void PutKey(size_t index, const BtreeNodePtr& src, size_t srcIndex)
         {
-            panic(index < 0 || index >= (2 * T - 1));
-            panic(srcIndex < 0 || srcIndex >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
-            trace(BtreeLL, "node 0x%p put key %d", this, index);
+            if (panic(srcIndex < 0 || srcIndex >= (2 * T - 1)))
+                return;
+
+            trace(BtreeLL, "node 0x%p put key %lu", this, index);
 
             /* free space */
-            for (int i = KeyCount - 1; i >= index; i--)
+            for (ssize_t i = KeyCount - 1; i >= static_cast<ssize_t>(index); i--)
             {
                 SetKey(i + 1, Memory::Move(GetKey(i)));
                 SetValue(i + 1, Memory::Move(GetValue(i)));
@@ -433,78 +463,84 @@ private:
             SetValue(index, Memory::Move(src->GetValue(srcIndex)));
         }
 
-        void SetValue(int index, const V& value)
+        void SetValue(size_t index, const V& value)
         {
-            panic(index < 0 || index >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
             Value[index] = value;
-            trace(BtreeLL, "node 0x%p set value %d", this, index);
+            trace(BtreeLL, "node 0x%p set value %lu", this, index);
         }
 
-        void SetValue(int index, V&& value)
+        void SetValue(size_t index, V&& value)
         {
-            panic(index < 0 || index >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
             Value[index] = Memory::Move(value);
-            trace(BtreeLL, "node 0x%p set value %d", this, index);
+            trace(BtreeLL, "node 0x%p set value %lu", this, index);
         }
 
-        void SetKeyCheck(int index)
+        void SetKeyCheck(size_t index)
         {
             K* prevKey = nullptr;
-            for (int i = 0; i <= index; i++)
+            for (size_t i = 0; i <= index; i++)
             {
                 if (prevKey != nullptr && *prevKey >= Key[i])
                 {
-                    trace(BtreeLL, "node 0x%p prev key %llu bigger %d %llu",
-                        this, *prevKey, i, Key[i]);
+                    trace(BtreeLL, "node 0x%p prev key bigger %lu", this, i);
                 }
                 prevKey = &Key[i];
             }
         }
 
-        void SetKey(int index, K&& key)
+        void SetKey(size_t index, K&& key)
         {
-            panic(index < 0 || index >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
             Key[index] = Memory::Move(key);
-            trace(BtreeLL, "node 0x%p set key %d %llu", this, index, Key[index]);
+            trace(BtreeLL, "node 0x%p set key %lu", this, index);
             SetKeyCheck(index);
         }
 
-        void SetKey(int index, const K& key)
+        void SetKey(size_t index, const K& key)
         {
-            panic(index < 0 || index >= (2 * T - 1));
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
 
             Key[index] = key;
-            trace(BtreeLL, "node 0x%p set key %d %llu", this, index, Key[index]);
+            trace(BtreeLL, "node 0x%p set key %lu", this, index);
             SetKeyCheck(index);
         }
 
-        void SetChild(int index, const BtreeNodePtr& child)
+        void SetChild(size_t index, const BtreeNodePtr& child)
         {
-            panic(index < 0 || index >= 2 * T);
+            if (panic(index < 0 || index >= 2 * T))
+                return;
 
             Child[index] = child;
-            trace(BtreeLL, "node 0x%p set child %d 0x%p", this, index, Child[index].Get());
+            trace(BtreeLL, "node 0x%p set child %lu 0x%p", this, index, Child[index].Get());
         }
 
-        void SetChild(int index, BtreeNodePtr&& child)
+        void SetChild(size_t index, BtreeNodePtr&& child)
         {
-            panic(index < 0 || index >= 2 * T);
+            if (panic(index < 0 || index >= 2 * T))
+                return;
 
             Child[index] = Memory::Move(child);
-            trace(BtreeLL, "node 0x%p set child %d 0x%p", this, index, Child[index].Get());
+            trace(BtreeLL, "node 0x%p set child %lu 0x%p", this, index, Child[index].Get());
         }
 
-        void PutChild(int index, const BtreeNodePtr& child)
+        void PutChild(size_t index, const BtreeNodePtr& child)
         {
-            panic(index < 0 || index >= 2 * T);
+            if (panic(index < 0 || index >= 2 * T))
+                return;
 
-            trace(BtreeLL, "node 0x%p put child %d", this, index);
+            trace(BtreeLL, "node 0x%p put child %lu", this, index);
 
             /* free space */
-            for (int i = KeyCount; i >= index; i--)
+            for (ssize_t i = KeyCount; i >= static_cast<ssize_t>(index); i--)
             {
                 SetChild(i + 1, Memory::Move(Child[i]));
             }
@@ -512,10 +548,12 @@ private:
             SetChild(index, child);
         }
 
-        void PutChild(int index, const BtreeNodePtr& src, int srcIndex)
+        void PutChild(size_t index, const BtreeNodePtr& src, size_t srcIndex)
         {
-            panic(index < 0 || index >= 2 * T);
-            panic(srcIndex < 0 || srcIndex >= 2 * T);
+            if (panic(index < 0 || index >= 2 * T))
+                return;
+            if (panic(srcIndex < 0 || srcIndex >= 2 * T))
+                return;
 
             PutChild(index, Memory::Move(src->Child[srcIndex]));
         }
@@ -531,15 +569,19 @@ private:
             trace(BtreeLL, "node 0x%p set leaf %d", this, leaf);
         }
 
-        void SetKeyCount(int keyCount)
+        void SetKeyCount(size_t keyCount)
         {
-            panic(keyCount < 0 || keyCount > (2 * T - 1));
-            int oldKeyCount = KeyCount;
+            if (panic(keyCount < 0 || keyCount > (2 * T - 1)))
+                return;
+
+#if defined (__DEBUG__)
+            size_t oldKeyCount = KeyCount;
+#endif
             KeyCount = keyCount;
-            trace(BtreeLL, "node 0x%p set keyCount %d old %d", this, keyCount, oldKeyCount);
+            trace(BtreeLL, "node 0x%p set keyCount %lu old %lu", this, keyCount, oldKeyCount);
         }
 
-        void IncKeyCount(int delta = 1)
+        void IncKeyCount(size_t delta = 1)
         {
             SetKeyCount(KeyCount + delta);
         }
@@ -549,52 +591,59 @@ private:
             SetKeyCount(KeyCount - 1);
         }
 
-        void DeleteChild(int index)
+        void DeleteChild(size_t index)
         {
-            panic(index < 0 || index >= 2 * T);
-            panic(index >= (KeyCount + 1));
+            if (panic(index < 0 || index >= 2 * T))
+                return;
 
-            trace(BtreeLL, "node 0x%p delete child %d 0x%p", this, index, Child[index].Get());
+            if (panic(index >= (KeyCount + 1)))
+                return;
+
+            trace(BtreeLL, "node 0x%p delete child %lu 0x%p", this, index, Child[index].Get());
 
             Child[index].Reset();
 
-            for (int i = (index + 1); i < (KeyCount + 1); i++)
+            for (size_t i = (index + 1); i < (KeyCount + 1); i++)
             {
                 SetChild(i - 1, Memory::Move(Child[i]));
             }
         }
 
-        void DeleteKey(int index)
+        void DeleteKey(size_t index)
         {
-            panic(index < 0 || index >= (2 * T - 1));
-            panic(index >= KeyCount);
+            if (panic(index < 0 || index >= (2 * T - 1)))
+                return;
+            if (panic(index >= KeyCount))
+                return;
 
-            trace(BtreeLL, "node 0x%p delete key %d %llu",
-                this, index, Key[index]);
+            trace(BtreeLL, "node 0x%p delete key %lu", this, index);
 
             SetKey(index, EmptyKey);
             SetValue(index, EmptyValue);
 
-            for (int i = (index + 1); i < KeyCount; i++)
+            for (size_t i = (index + 1); i < KeyCount; i++)
             {
                 SetKey(i - 1, Memory::Move(GetKey(i)));
                 SetValue(i - 1, Memory::Move(GetValue(i)));
             }
         }
 
-        void SplitChild(int childIndex, const BtreeNodePtr& sibling)
+        void SplitChild(size_t childIndex, const BtreeNodePtr& sibling)
         {
-            trace(BtreeLL, "node 0x%p split child %d sibling 0x%p",
+            trace(BtreeLL, "node 0x%p split child %lu sibling 0x%p",
                 this, childIndex, sibling.Get());
 
             auto child = GetChild(childIndex);
 
-            panic(child.Get() == nullptr);
-            panic(sibling.Get() == nullptr);
+            if (panic(child.Get() == nullptr))
+                return;
+
+            if (panic(sibling.Get() == nullptr))
+                return;
 
             sibling->SetLeaf(child->IsLeaf());
             /* copy T-1 keys from child to sibling */
-            for (int i = 0; i < (T - 1); i++)
+            for (size_t i = 0; i < (T - 1); i++)
             {
                 sibling->CopyKey(i,  child, i + T);
             }
@@ -602,7 +651,7 @@ private:
             /* copy T childs from child to new */
             if (!child->IsLeaf())
             {
-                for (int i = 0; i < T; i++)
+                for (size_t i = 0; i < T; i++)
                 {
                     sibling->CopyChild(i, child, i + T);
                 }
@@ -616,13 +665,13 @@ private:
             IncKeyCount();
         }
 
-        int FindKeyIndex(const K& key)
+        size_t FindKeyIndex(const K& key)
         {
             if (KeyCount == 0)
                 return 0;
 
-            int start = 0;
-            int end = KeyCount;
+            size_t start = 0;
+            size_t end = KeyCount;
             if (key > Key[end - 1])
                 return end;
             else if (key < Key[start])
@@ -630,7 +679,7 @@ private:
 
             while (start < end)
             {
-                int mid = (start + end) / 2;
+                size_t mid = (start + end) / 2;
                 if (key == Key[mid])
                     return mid;
                 else if (key < Key[mid])
@@ -652,23 +701,24 @@ private:
             return true;
         }
 
-        int GetKeyIndex(const K& key)
+        bool GetKeyIndex(const K& key, size_t& index)
         {
             if (!IsKeyProbablyInside(key))
             {
-                trace(BtreeLL, "node 0x%p key %llu not inside", this, key);
-                return -1;
+                trace(BtreeLL, "node 0x%p key not inside", this);
+                return false;
             }
 
-            int start = 0;
-            int end = KeyCount;
+            size_t start = 0;
+            size_t end = KeyCount;
             while (start < end)
             {
-                int mid = (start + end) / 2;
+                size_t mid = (start + end) / 2;
                 if (key == Key[mid])
                 {
-                    trace(BtreeLL, "node 0x%p get key %llu at %d", this, key, mid);
-                    return mid;
+                    trace(BtreeLL, "node 0x%p get key at %lu", this, mid);
+                    index = mid;
+                    return true;
                 }
                 else if (key < Key[mid])
                     end = mid;
@@ -676,20 +726,22 @@ private:
                     start = mid + 1;
             }
 
-            trace(BtreeLL, "node 0x%p key %llu not found", this, key);
-            return -1;
+            trace(BtreeLL, "node 0x%p key not found", this);
+            return false;
         }
 
         bool InsertNonFull(const BtreeNodePtr& self, const K& key, const V& value)
         {
-            panic(self.Get() != this);
+            if (panic(self.Get() != this))
+                return false;
 
             BtreeNodePtr node = self;
 
             for (;;)
             {
-                auto i = node->GetKeyIndex(key);
-                if (i >= 0)
+                size_t i;
+                bool exist = node->GetKeyIndex(key, i);
+                if (exist)
                 {
                     return false;
                 }
@@ -704,7 +756,9 @@ private:
                 else
                 {
                     auto child = node->GetChild(i);
-                    panic(child.Get() == nullptr);
+                    if (panic(child.Get() == nullptr))
+                        return false;
+
                     if (child->IsFull())
                     {
                         auto newNode = MakeShared<BtreeNode, Memory::PoolType::Kernel>();
@@ -720,9 +774,10 @@ private:
             }
         }
 
-        BtreeNodePtr FindLeftMost(const BtreeNodePtr& self, int& index)
+        BtreeNodePtr FindLeftMost(const BtreeNodePtr& self, size_t& index)
         {
-            panic(self.Get() != this);
+            if (panic(self.Get() != this))
+                return BtreeNodePtr();
 
             trace(BtreeLL, "node 0x%p find left most", this);
 
@@ -740,9 +795,10 @@ private:
             }
         }
 
-        BtreeNodePtr FindRightMost(const BtreeNodePtr& self, int& index)
+        BtreeNodePtr FindRightMost(const BtreeNodePtr& self, size_t& index)
         {
-            panic(self.Get() != this);
+            if (panic(self.Get() != this))
+                return BtreeNodePtr();
 
             trace(BtreeLL, "node 0x%p find right most", this);
 
@@ -750,7 +806,9 @@ private:
 
             for (;;)
             {
-                panic(curr->KeyCount == 0);
+                if (panic(curr->KeyCount == 0))
+                    return BtreeNodePtr();
+
                 if (curr->Leaf)
                 {
                     index = 0;
@@ -765,7 +823,7 @@ private:
             SetKey(KeyCount, Memory::Move(key));
             SetValue(KeyCount, Memory::Move(value));
 
-            int pos = KeyCount + 1, i;
+            size_t pos = KeyCount + 1, i;
             for (i = 0; i < src->KeyCount; i++, pos++)
             {
                 SetKey(pos, Memory::Move(src->GetKey(i)));
@@ -779,7 +837,7 @@ private:
 
         void Copy(const BtreeNodePtr& src)
         {
-            int i;
+            size_t i;
 
             for (i = 0; i < src->GetKeyCount(); i++)
             {
@@ -797,7 +855,7 @@ private:
             SetKeyCount(src->GetKeyCount());
         }
 
-        void ChildGiveKey(const BtreeNodePtr& self, int childIndex, bool left)
+        void ChildGiveKey(const BtreeNodePtr& self, size_t childIndex, bool left)
         {
             /* give child an extra key by moving a key from node
              * down into child, moving a key from child's
@@ -806,19 +864,28 @@ private:
              * sibling into child
              */
 
-            panic(self.Get() != this);
-            panic(childIndex < 0 || childIndex >= 2*T);
+            if (panic(self.Get() != this))
+                return;
 
-            int sibIndex = (left) ? (childIndex - 1) : (childIndex + 1);
+            if (panic(childIndex < 0 || childIndex >= 2*T))
+                return;
 
-            panic(sibIndex < 0 || sibIndex >= 2 *T);
+            size_t sibIndex = (left) ? (childIndex - 1) : (childIndex + 1);
+
+            if (panic(sibIndex < 0 || sibIndex >= 2 *T))
+                return;
 
             auto child = GetChild(childIndex);
             auto sib = GetChild(sibIndex);
 
-            panic(child.Get() == nullptr);
-            panic(sib.Get() == nullptr);
-            panic(child.Get() == sib.Get());
+            if (panic(child.Get() == nullptr))
+                return;
+
+            if (panic(sib.Get() == nullptr))
+                return;
+
+            if (panic(child.Get() == sib.Get()))
+                return;
 
             if (!left)
             {
@@ -832,8 +899,11 @@ private:
             }
             else
             {
-                panic(childIndex == 0);
-                panic(sib->GetKeyCount() == 0);
+                if (panic(childIndex == 0))
+                    return;
+
+                if (panic(sib->GetKeyCount() == 0))
+                    return;
 
                 child->PutKey(0, self, childIndex - 1);
 
@@ -847,28 +917,39 @@ private:
             sib->DecKeyCount();
         }
 
-        BtreeNodePtr ChildMerge(const BtreeNodePtr& self, int childIndex, bool left)
+        BtreeNodePtr ChildMerge(const BtreeNodePtr& self, size_t childIndex, bool left)
         {
-            panic(self.Get() != this);
-            panic(childIndex < 0 || childIndex >= 2*T);
+            if (panic(self.Get() != this))
+                return BtreeNodePtr();
 
-            int sibIndex = (left) ? (childIndex - 1) : (childIndex + 1);
+            if (panic(childIndex < 0 || childIndex >= 2*T))
+                return BtreeNodePtr();
 
-            panic(sibIndex < 0 || sibIndex >= 2 *T);
+            size_t sibIndex = (left) ? (childIndex - 1) : (childIndex + 1);
+
+            if (panic(sibIndex < 0 || sibIndex >= 2 *T))
+                return BtreeNodePtr();
 
             auto child = GetChild(childIndex);
             auto sib = GetChild(sibIndex);
 
-            panic(child.Get() == nullptr);
-            panic(sib.Get() == nullptr);
-            panic(child.Get() == sib.Get());
+            if (panic(child.Get() == nullptr))
+                return BtreeNodePtr();
 
-            trace(BtreeLL, "node 0x%p child %d 0x%p merge sib %d 0x%p",
+            if (panic(sib.Get() == nullptr))
+                return BtreeNodePtr();
+
+            if (panic(child.Get() == sib.Get()))
+                return BtreeNodePtr();
+
+            trace(BtreeLL, "node 0x%p child %lu 0x%p merge sib %lu 0x%p",
                 this, childIndex, child.Get(), sibIndex, sib.Get());
 
             if (left)
             {
-                panic(childIndex == 0);
+                if (panic(childIndex == 0))
+                    return BtreeNodePtr();
+
                 sib->Merge(child,
                         Memory::Move(GetKey(childIndex-1)),
                         Memory::Move(GetValue(childIndex - 1)));
@@ -904,23 +985,29 @@ private:
             }
         }
 
-        BtreeNodePtr ChildBalance(const BtreeNodePtr& self, int childIndex)
+        BtreeNodePtr ChildBalance(const BtreeNodePtr& self, size_t childIndex)
         {
-            trace(BtreeLL, "node 0x%p child %d balance", this, childIndex);
+            trace(BtreeLL, "node 0x%p child %lu balance", this, childIndex);
 
-            panic(self.Get() != this);
-            panic(Leaf);
-            panic(childIndex < 0 || childIndex >= 2*T);
+            if (panic(self.Get() != this))
+                return BtreeNodePtr();
+
+            if (panic(Leaf))
+                return BtreeNodePtr();
+
+            if (panic(childIndex < 0 || childIndex >= 2*T))
+                return BtreeNodePtr();
 
             auto child = GetChild(childIndex);
-            panic(child.Get() == nullptr);
+            if (panic(child.Get() == nullptr))
+                return BtreeNodePtr();
 
             if (child->KeyCount < T)
             {
                 auto left = (childIndex > 0) ?
-                    GetChild(childIndex - 1) : EmptyNode;
+                    GetChild(childIndex - 1) : BtreeNodePtr();
                 auto right = (childIndex < KeyCount) ?
-                    GetChild(childIndex + 1) : EmptyNode;
+                    GetChild(childIndex + 1) : BtreeNodePtr();
 
                 if (left.Get() != nullptr && left->KeyCount >= T)
                 {
@@ -940,18 +1027,17 @@ private:
                 }
                 else
                 {
-                    panic(true);
-                    return EmptyNode;
+                    if (panic(true))
+                        return BtreeNodePtr();
                 }
             }
 
             return child;
         }
 
-        int GetChildCount()
+        size_t GetChildCount()
         {
-            int i;
-            int childCount;
+            size_t i, childCount;
 
             for (i = 0; i < 2 * T; i++)
             {
@@ -962,39 +1048,50 @@ private:
             childCount = i;
             for (; i < 2 * T; i++)
             {
-                panic(Child[i].Get() != nullptr);
+                if (panic(Child[i].Get() != nullptr))
+                    return 0;
             }
 
             return childCount;
         }
 
-        BtreeNodePtr GetChild(int childIndex)
+        BtreeNodePtr GetChild(size_t childIndex)
         {
-            trace(BtreeLL, "node 0x%p get child %d", this, childIndex);
+            trace(BtreeLL, "node 0x%p get child %lu", this, childIndex);
 
-            panic(childIndex < 0 || childIndex >= 2*T);
+            if (panic(childIndex < 0 || childIndex >= 2*T))
+                return BtreeNodePtr();
+
             return Child[childIndex];
         }
 
-        K& GetKey(int keyIndex)
+        K& GetKey(size_t keyIndex)
         {
-            trace(BtreeLL, "node 0x%p get key %d", this, keyIndex);
+            trace(BtreeLL, "node 0x%p get key %lu", this, keyIndex);
 
-            panic(keyIndex < 0 || keyIndex >= (2*T - 1));
-            panic(keyIndex >= KeyCount);
+            if (panic(keyIndex < 0 || keyIndex >= (2*T - 1)))
+                return EmptyKey;
+
+            if (panic(keyIndex >= KeyCount))
+                return EmptyKey;
+
             return Key[keyIndex];
         }
 
-        V& GetValue(int keyIndex)
+        V& GetValue(size_t keyIndex)
         {
-            trace(BtreeLL, "node 0x%p get value %d", this, keyIndex);
+            trace(BtreeLL, "node 0x%p get value %lu", this, keyIndex);
 
-            panic(keyIndex < 0 || keyIndex >= (2*T - 1));
-            panic(keyIndex >= KeyCount);
+            if (panic(keyIndex < 0 || keyIndex >= (2*T - 1)))
+                return EmptyValue;
+
+            if (panic(keyIndex >= KeyCount))
+                return EmptyValue;
+
             return Value[keyIndex];
         }
 
-        int GetKeyCount()
+        size_t GetKeyCount()
         {
             return KeyCount;
         }
@@ -1003,7 +1100,7 @@ private:
         {
             if (KeyCount < 0 || KeyCount > (2 * T - 1))
             {
-                trace(BtreeLL, "node 0x%p key count %d", this, KeyCount);
+                trace(BtreeLL, "node 0x%p key count %lu", this, KeyCount);
                 return false;
             }
 
@@ -1011,18 +1108,17 @@ private:
             {
                 if (KeyCount < (T - 1))
                 {
-                    trace(BtreeLL, "node 0x%p key count %d", this, KeyCount);
+                    trace(BtreeLL, "node 0x%p key count %lu", this, KeyCount);
                     return false;
                 }
             }
 
             K* prevKey = nullptr;
-            for (int i = 0; i < KeyCount; i++)
+            for (size_t i = 0; i < KeyCount; i++)
             {
                 if (prevKey != nullptr && *prevKey >= Key[i])
                 {
-                    trace(BtreeLL, "node 0x%p prev key %llu bigger %d %llu",
-                        this, *prevKey, i, Key[i]);
+                    trace(BtreeLL, "node 0x%p prev key bigger %lu", this, i);
                     return false;
                 }
                 prevKey = &Key[i];
@@ -1030,11 +1126,11 @@ private:
 
             if (!Leaf)
             {
-                for (int i = 0; i < KeyCount + 1; i++)
+                for (size_t i = 0; i < KeyCount + 1; i++)
                 {
                     if (Child[i].Get() == nullptr)
                     {
-                        trace(BtreeLL, "node 0x%p child %d is null", this, i);
+                        trace(BtreeLL, "node 0x%p child %lu is null", this, i);
                         return false;
                     }
 
@@ -1043,22 +1139,22 @@ private:
                         return false;
                 }
 
-                for (int i = KeyCount + 1; i < 2 * T; i++)
+                for (size_t i = KeyCount + 1; i < 2 * T; i++)
                 {
                     if (Child[i].Get() != nullptr)
                     {
-                        trace(BtreeLL, "node 0x%p child %d is NOT null", this, i);
+                        trace(BtreeLL, "node 0x%p child %lu is NOT null", this, i);
                         return false;
                     }
                 }
             }
             else
             {
-                for (int i = 0; i < 2 * T; i++)
+                for (size_t i = 0; i < 2 * T; i++)
                 {
                     if (Child[i].Get() != nullptr)
                     {
-                        trace(BtreeLL, "node 0x%p child %d is NOT null", this, i);
+                        trace(BtreeLL, "node 0x%p child %lu is NOT null", this, i);
                         return false;
                     }
                 }
@@ -1077,16 +1173,14 @@ private:
         V Value[2 * T - 1];
         BtreeNodePtr Child[2 * T];
 
-        int KeyCount;
+        size_t KeyCount;
         bool Leaf;
 
-        BtreeNodePtr EmptyNode;
         K EmptyKey;
         V EmptyValue;
     };
 
     BtreeNodePtr Root;
-    BtreeNodePtr EmptyNode;
     LockType Lock;
     K KeyToDelete;
     K EmptyKey;

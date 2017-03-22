@@ -703,7 +703,7 @@ Core::Error Journal::Replay()
     Core::LinkedList<JournalTxBlockPtr> blockList;
     for (;;)
     {
-        size_t index;
+        size_t index = -1;
 
         err = LogRb.PopFront(index);
         if (err == Core::Error::NotFound)
@@ -1054,7 +1054,7 @@ Core::Error Journal::Unload()
 
 Core::Error Journal::GetNextIndex(size_t& index)
 {
-    size_t localIndex;
+    size_t localIndex = -1;
 
     Core::AutoLock lock(LogRbLock);
     auto err = LogRb.PushBack(localIndex);

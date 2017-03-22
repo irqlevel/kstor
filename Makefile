@@ -7,11 +7,20 @@ BUILD_DIRS = bin lib obj
 SOURCE_DIRS_CLEAN = $(addsuffix .clean,$(SOURCE_DIRS))
 BUILD_DIRS_CLEAN = $(addsuffix .clean,$(BUILD_DIRS))
 
-.PHONY: all clean $(BUILD_DIRS) $(BUILD_DIRS_CLEAN) $(SOURCE_DIRS) $(SOURCE_DIRS_CLEAN)
+.PHONY: all check debug clean $(BUILD_DIRS) $(BUILD_DIRS_CLEAN) $(SOURCE_DIRS) $(SOURCE_DIRS_CLEAN)
 
-all: $(BUILD_DIRS) $(SOURCE_DIRS)
+all: export EXTRA_CFLAGS = -D__RELEASE__ -O2
+all: export DEBUG = OFF
+all: check $(BUILD_DIRS) $(SOURCE_DIRS)
+
+debug: export EXTRA_CFLAGS = -D__DEBUG__ -O1 -g3 -ggdb3 -fno-inline
+debug: export DEBUG = ON
+debug: check $(BUILD_DIRS) $(SOURCE_DIRS)
 
 clean: $(BUILD_DIRS_CLEAN) $(SOURCE_DIRS_CLEAN)
+
+check:
+	cppcheck --error-exitcode=22 -q . || exit 1
 
 $(SOURCE_DIRS):
 	$(MAKE) -C $@

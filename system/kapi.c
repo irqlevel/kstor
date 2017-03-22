@@ -71,7 +71,7 @@ static gfp_t kapi_get_gfp_flags(unsigned long pool_type)
 
 void *kapi_kmalloc_gfp(size_t size, gfp_t flags)
 {
-#ifdef __MALLOC_CHECKER__
+#if defined(__DEBUG__) && defined(__MALLOC_CHECKER__)
     return malloc_checker_kmalloc(size, flags);
 #else
     return kmalloc(size, flags);
@@ -85,7 +85,7 @@ static void *kapi_kmalloc(size_t size, unsigned long pool_type)
 
 void kapi_kfree(void *ptr)
 {
-#ifdef __MALLOC_CHECKER__
+#if defined(__DEBUG__) && defined(__MALLOC_CHECKER__)
     malloc_checker_kfree(ptr);
 #else
     kfree(ptr);
@@ -393,7 +393,7 @@ static void *kapi_alloc_page(unsigned long pool_type)
 {
     struct page *page;
 
-#ifdef __PAGE_CHECKER__
+#if defined(__DEBUG__) && defined(__PAGE_CHECKER__)
     page = page_checker_alloc_page(kapi_get_gfp_flags(pool_type));
 #else
     page = alloc_page(kapi_get_gfp_flags(pool_type));
@@ -428,7 +428,7 @@ static void kapi_unmap_page_atomic(void* va)
 
 static void kapi_free_page(void *page)
 {
-#ifdef __PAGE_CHECKER__
+#if defined(__DEBUG__) && defined(__PAGE_CHECKER__)
     page_checker_free_page((struct page *)page);
 #else
     put_page((struct page *)page);
@@ -1202,7 +1202,7 @@ static size_t kapi_vsnprintf(char *buf, size_t size, const char *fmt, va_list ar
 
 static int kapi_unique_key_register(void *key, void *value, unsigned long pool_type)
 {
-#ifdef __UNIQUE_KEY__
+#if defined(__DEBUG__) && defined(__UNIQUE_KEY__)
     return unique_key_register(key, value, kapi_get_gfp_flags(pool_type));
 #else
     return 0;
@@ -1211,7 +1211,7 @@ static int kapi_unique_key_register(void *key, void *value, unsigned long pool_t
 
 static int kapi_unique_key_unregister(void *key, void *value)
 {
-#ifdef __UNIQUE_KEY__
+#if defined(__DEBUG__) && defined(__UNIQUE_KEY__)
     return unique_key_unregister(key, value);
 #else
     return 0;
@@ -1354,7 +1354,7 @@ int kapi_init(void)
 {
     int r;
 
-#ifdef __MALLOC_CHECKER__
+#if defined(__DEBUG__) && defined(__MALLOC_CHECKER__)
     r = malloc_checker_init();
 #else
     r = 0;
@@ -1362,7 +1362,7 @@ int kapi_init(void)
     if (r)
         return r;
 
-#ifdef __PAGE_CHECKER__
+#if defined(__DEBUG__) && defined(__PAGE_CHECKER__)
     r = page_checker_init();
 #else
     r = 0;
@@ -1370,14 +1370,14 @@ int kapi_init(void)
     if (r)
         goto deinit_malloc_checker;
 
-#ifdef __UNIQUE_KEY__
+#if defined(__DEBUG__) && defined(__UNIQUE_KEY__)
     unique_key_init();
 #endif
 
     return 0;
 
 deinit_malloc_checker:
-#ifdef __MALLOC_CHECKER__
+#if defined(__DEBUG__) && defined(__MALLOC_CHECKER__)
     malloc_checker_deinit();
 #endif
     return r;
@@ -1385,14 +1385,15 @@ deinit_malloc_checker:
 
 void kapi_deinit(void)
 {
-#ifdef __UNIQUE_KEY__
+#if defined(__DEBUG__) && defined(__UNIQUE_KEY__)
     unique_key_deinit();
 #endif
 
-#ifdef __PAGE_CHECKER__
+#if defined(__DEBUG__) && defined(__PAGE_CHECKER__)
     page_checker_deinit();
 #endif
-#ifdef __MALLOC_CHECKER__
+
+#if defined(__DEBUG__) && defined(__MALLOC_CHECKER__)
     malloc_checker_deinit();
 #endif
 }
