@@ -6,23 +6,39 @@
 namespace Core
 {
 
-class Bitmap
+class BitmapInterface
 {
 public:
-    Bitmap(long bitCount, Memory::PoolType poolType, Error& err);
-    void SetBit(long bitNumber);
-    void ClearBit(long bitNumber);
-    bool TestAndSetBit(long bitNumber);
-    bool TestAndClearBit(long bitNumber);
+    virtual Error SetBit(size_t bit) = 0;
+    virtual Error ClearBit(size_t bit) = 0;
+    virtual Error TestAndSetBit(size_t bit, bool& oldValue) = 0;
+    virtual Error TestAndClearBit(size_t bit, bool& oldValue) = 0;
+    virtual Error FindZeroBit(size_t& bit) = 0;
+};
+
+class Bitmap : public BitmapInterface
+{
+public:
+    Bitmap(void *buf, size_t size);
     virtual ~Bitmap();
 
-private:
-    unsigned long* GetBits();
+    virtual Error SetBit(size_t bit) override;
+    virtual Error ClearBit(size_t bit) override;
+    virtual Error TestAndSetBit(size_t bit, bool& oldValue) override;
+    virtual Error TestAndClearBit(size_t bit, bool& oldValue) override;
+    virtual Error FindZeroBit(size_t& bit) override;
+
+    void* GetBuf();
 
 private:
+    Bitmap(const Bitmap& other) = delete;
+    Bitmap(Bitmap&& other) = delete;
+    Bitmap& operator=(const Bitmap& other) = delete;
+    Bitmap& operator=(Bitmap&& other) = delete;
 
-    char *Bits;
-    long BitCount;
+    void *Buf;
+    size_t Size;
+    size_t BitSize;
 };
 
 }

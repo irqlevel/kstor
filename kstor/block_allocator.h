@@ -8,17 +8,29 @@
 #include <core/btree.h>
 #include <core/rwsem.h>
 #include <core/noplock.h>
+#include <core/bitmap.h>
 
 namespace KStor
 {
 
-class BitmapBlock
+class BitmapBlock : public Core::BitmapInterface
 {
 public:
     using Ptr = Core::SharedPtr<BitmapBlock>;
 
     BitmapBlock(uint64_t index, Core::Error& err);
     virtual ~BitmapBlock();
+
+    virtual Core::Error SetBit(size_t bit) override;
+
+    virtual Core::Error ClearBit(size_t bit) override;
+
+    virtual Core::Error TestAndSetBit(size_t bit, bool& oldValue) override;
+
+    virtual Core::Error TestAndClearBit(size_t bit, bool& oldValue) override;
+
+    virtual Core::Error FindZeroBit(size_t& bit) override;
+
 private:
     BitmapBlock(const BitmapBlock& other) = delete;
     BitmapBlock(BitmapBlock&& other) = delete;

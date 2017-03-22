@@ -6,11 +6,12 @@
 #include "random_file.h"
 #include "shared_ptr.h"
 #include "hex.h"
+#include "bitmap.h"
 
 namespace Core
 {
 
-class PageInterface
+class PageInterface : public BitmapInterface
 {
 public:
     virtual void* Map() = 0;
@@ -173,6 +174,46 @@ public:
         result = Hex::Encode(static_cast<const unsigned char *>(va), len);
         ConstUnmapAtomic(va);
         return result;
+    }
+
+    virtual Error SetBit(size_t bit) override
+    {
+        Bitmap bitmap(MapAtomic(), GetSize());
+        auto err = bitmap.SetBit(bit);
+        UnmapAtomic(bitmap.GetBuf());
+        return err;
+    }
+
+    virtual Error ClearBit(size_t bit) override
+    {
+        Bitmap bitmap(MapAtomic(), GetSize());
+        auto err = bitmap.ClearBit(bit);
+        UnmapAtomic(bitmap.GetBuf());
+        return err;
+    }
+
+    virtual Error TestAndSetBit(size_t bit, bool& oldValue) override
+    {
+        Bitmap bitmap(MapAtomic(), GetSize());
+        auto err = bitmap.TestAndSetBit(bit, oldValue);
+        UnmapAtomic(bitmap.GetBuf());
+        return err;
+    }
+
+    virtual Error TestAndClearBit(size_t bit, bool& oldValue) override
+    {
+        Bitmap bitmap(MapAtomic(), GetSize());
+        auto err = bitmap.TestAndClearBit(bit, oldValue);
+        UnmapAtomic(bitmap.GetBuf());
+        return err;
+    }
+
+    virtual Error FindZeroBit(size_t& bit) override
+    {
+        Bitmap bitmap(MapAtomic(), GetSize());
+        auto err = bitmap.FindZeroBit(bit);
+        UnmapAtomic(bitmap.GetBuf());
+        return err;
     }
 
 private:

@@ -6,73 +6,61 @@
 namespace Core
 {
 
-Bitmap::Bitmap(long bitCount, Memory::PoolType poolType, Error& err)
-    : Bits(nullptr)
-    , BitCount(0)
+Bitmap::Bitmap(void *buf, size_t size)
+    : Buf(buf)
+    , Size(size)
 {
-    if (bitCount <= 0)
-    {
-        err.SetInvalidValue();
-        return;
-    }
-
-    if (bitCount % 8)
-    {
-        err.SetInvalidValue();
-        return;
-    }
-
-    BitCount = bitCount;
-    Bits = new (poolType) char[BitCount / 8];
-}
-
-unsigned long* Bitmap::GetBits()
-{
-    return reinterpret_cast<unsigned long *>(Bits);
-}
-
-void Bitmap::SetBit(long bitNumber)
-{
-    if (bitNumber >= 0 && bitNumber < BitCount)
-    {
-        BitOps::SetBit(bitNumber, GetBits());
-    }
-}
-
-void Bitmap::ClearBit(long bitNumber)
-{
-    if (bitNumber >= 0 && bitNumber < BitCount)
-    {
-        BitOps::ClearBit(bitNumber, GetBits());
-    }    
-}
-
-bool Bitmap::TestAndSetBit(long bitNumber)
-{
-    if (bitNumber >= 0 && bitNumber < BitCount)
-    {
-        return BitOps::TestAndClearBit(bitNumber, GetBits());
-    }
-
-    return false;
-}
-
-bool Bitmap::TestAndClearBit(long bitNumber)
-{
-    if (bitNumber >= 0 && bitNumber < BitCount)
-    {
-        return BitOps::TestAndClearBit(bitNumber, GetBits());
-    }
-
-    return false;
+    BitSize = 8 * size;
 }
 
 Bitmap::~Bitmap()
 {
-    if (Bits != nullptr)
-    {
-        delete [] Bits;
-    }
+}
+
+Error Bitmap::SetBit(size_t bit)
+{
+    if (bit >= BitSize)
+        return Error::Overflow;
+
+    BitOps::SetBit(bit, static_cast<unsigned long *>(Buf));
+    return Error::Success;
+}
+
+Error Bitmap::ClearBit(size_t bit)
+{
+    if (bit >= BitSize)
+        return Error::Overflow;
+
+    BitOps::ClearBit(bit, static_cast<unsigned long *>(Buf));
+    return Error::Success;
+}
+
+Error Bitmap::TestAndSetBit(size_t bit, bool& oldValue)
+{
+    if (bit >= BitSize)
+        return Error::Overflow;
+
+    oldValue = BitOps::TestAndSetBit(bit, static_cast<unsigned long *>(Buf));
+    return Error::Success;
+}
+
+Error Bitmap::TestAndClearBit(size_t bit, bool& oldValue)
+{
+    if (bit >= BitSize)
+        return Error::Overflow;
+
+    oldValue = BitOps::TestAndClearBit(bit, static_cast<unsigned long *>(Buf));
+    return Error::Success;
+}
+
+Error Bitmap::FindZeroBit(size_t& bit)
+{
+    return Error::NotImplemented;
+}
+
+void* Bitmap::GetBuf()
+{
+    return Buf;
 }
 
 }

@@ -19,6 +19,46 @@ BitmapBlock::~BitmapBlock()
 {
 }
 
+Core::Error BitmapBlock::SetBit(size_t bit)
+{
+    if (Page.Get() == nullptr)
+        return Core::Error::InvalidState;
+
+    return Page->SetBit(bit);
+}
+
+Core::Error BitmapBlock::ClearBit(size_t bit)
+{
+    if (Page.Get() == nullptr)
+        return Core::Error::InvalidState;
+
+    return Page->ClearBit(bit);
+}
+
+Core::Error BitmapBlock::TestAndSetBit(size_t bit, bool& oldValue)
+{
+    if (Page.Get() == nullptr)
+        return Core::Error::InvalidState;
+
+    return Page->TestAndSetBit(bit, oldValue);
+}
+
+Core::Error BitmapBlock::TestAndClearBit(size_t bit, bool& oldValue)
+{
+    if (Page.Get() == nullptr)
+        return Core::Error::InvalidState;
+
+    return Page->TestAndClearBit(bit, oldValue);
+}
+
+Core::Error BitmapBlock::FindZeroBit(size_t& bit)
+{
+    if (Page.Get() == nullptr)
+        return Core::Error::InvalidState;
+
+    return Page->FindZeroBit(bit);
+}
+
 BlockAllocator::BlockAllocator(Volume& volume)
     : VolumeRef(volume)
 {
