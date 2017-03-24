@@ -52,22 +52,22 @@ public:
     Error PushBack(size_t &position)
     {
         if (Size == Capacity)
-            return Error::NoMemory;
+            return MakeError(Error::NoMemory);
 
         position = EndIndex;
         EndIndex = (EndIndex + 1) % Capacity;
         Size++;
-        return Error::Success;
+        return MakeError(Error::Success);
     }
 
     Error PopFront(size_t &position)
     {
         if (Size == 0)
-            return Error::NotFound;
+            return MakeError(Error::NotFound);
         position = StartIndex;
         StartIndex = (StartIndex + 1) % Capacity;
         Size--;
-        return Error::Success;
+        return MakeError(Error::Success);
     }
 
     size_t GetStartIndex() const

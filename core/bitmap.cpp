@@ -20,57 +20,57 @@ Bitmap::~Bitmap()
 Error Bitmap::SetBit(size_t bit)
 {
     if (bit >= BitSize)
-        return Error::Overflow;
+        return MakeError(Error::Overflow);
 
     BitOps::SetBit(bit, static_cast<unsigned long *>(Buf));
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Error Bitmap::ClearBit(size_t bit)
 {
     if (bit >= BitSize)
-        return Error::Overflow;
+        return MakeError(Error::Overflow);
 
     BitOps::ClearBit(bit, static_cast<unsigned long *>(Buf));
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Error Bitmap::TestAndSetBit(size_t bit, bool& oldValue)
 {
     if (bit >= BitSize)
-        return Error::Overflow;
+        return MakeError(Error::Overflow);
 
     oldValue = BitOps::TestAndSetBit(bit, static_cast<unsigned long *>(Buf));
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Error Bitmap::TestAndClearBit(size_t bit, bool& oldValue)
 {
     if (bit >= BitSize)
-        return Error::Overflow;
+        return MakeError(Error::Overflow);
 
     oldValue = BitOps::TestAndClearBit(bit, static_cast<unsigned long *>(Buf));
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Error Bitmap::FindSetZeroBit(unsigned long* value, size_t maxBits, size_t& bit)
 {
     if (maxBits > Memory::SizeOfInBits<unsigned long>())
-        return Error::Overflow;
+        return MakeError(Error::Overflow);
 
     if (*value == ~(static_cast<unsigned long>(0)))
-        return Error::NotFound;
+        return MakeError(Error::NotFound);
 
     for (size_t i = 0; i < maxBits; i++)
     {
         if (BitOps::TestAndSetBit(i, value) == false)
         {
             bit = i;
-            return Error::Success;
+            return MakeError(Error::Success);
         }
     }
 
-    return Error::NotFound;
+    return MakeError(Error::NotFound);
 }
 
 Error Bitmap::FindSetZeroBit(size_t& bit)
@@ -90,7 +90,7 @@ Error Bitmap::FindSetZeroBit(size_t& bit)
             return err;
 
         bit = i * Memory::SizeOfInBits<unsigned long>() + foundBit;
-        return Error::Success;
+        return MakeError(Error::Success);
     }
 
     auto err = FindSetZeroBit(ulongPtr, restBits, foundBit);
@@ -98,7 +98,7 @@ Error Bitmap::FindSetZeroBit(size_t& bit)
         return err;
 
     bit = i * Memory::SizeOfInBits<unsigned long>() + foundBit;
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 void* Bitmap::GetBuf()

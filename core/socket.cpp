@@ -87,7 +87,7 @@ Error Socket::Recv(void *buf, unsigned long len, unsigned long& recv)
         return MakeError(Error::InvalidState);
 
     if (len > Memory::MaxInt)
-        return Error::BufToBig;
+        return MakeError(Error::BufToBig);
 
     int r = get_kapi()->sock_recv(Sockp, buf, static_cast<int>(len));
     if (r < 0)

@@ -212,7 +212,7 @@ Core::Error Volume::ChunkCreate(const Guid& chunkId)
 {
     Core::SharedAutoLock lock(Lock);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     trace(1, "Chunk %s create", chunkId.ToString().GetConstBuf());
 

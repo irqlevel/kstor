@@ -59,7 +59,7 @@ Error Worker::Run(const Threadable& thread)
     }
 
     trace(255, "Stopping");
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Worker::Worker(const AString& name, Error& err)

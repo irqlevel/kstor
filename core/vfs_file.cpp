@@ -13,7 +13,7 @@ Error VfsFile::Open(const AString& path, bool read, bool create)
 {
     if (FilePtr != nullptr)
     {
-        return Error::InvalidState;
+        return MakeError(Error::InvalidState);
     }
 
     int flags = 0;
