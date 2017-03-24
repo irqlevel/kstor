@@ -145,7 +145,7 @@ public:
         T* Arr = new (PoolType) T[other.Capacity];
         if (!Arr)
         {
-            err.SetNoMemory();
+            err = MakeError(Error::NoMemory);
             return;
         }
 

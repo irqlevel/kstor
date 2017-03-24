@@ -84,7 +84,7 @@ public:
         KeyToDelete = key;
 
 restart:
-        size_t i;
+        size_t i = -1;
         bool exist = node->GetKeyIndex(KeyToDelete, i);
         trace(BtreeLL, "node 0x%p get key index %lu", node.Get(), (exist) ? i : -1);
         if (exist)
@@ -574,9 +574,7 @@ private:
             if (panic(keyCount < 0 || keyCount > (2 * T - 1)))
                 return;
 
-#if defined (__DEBUG__)
             size_t oldKeyCount = KeyCount;
-#endif
             KeyCount = keyCount;
             trace(BtreeLL, "node 0x%p set keyCount %lu old %lu", this, keyCount, oldKeyCount);
         }

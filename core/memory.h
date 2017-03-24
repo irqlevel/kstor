@@ -92,7 +92,7 @@ namespace Memory
     static const unsigned int LongBitCount = 8 * sizeof(unsigned long);
     static const unsigned int MaxInt = (static_cast<unsigned int>(1) << (IntBitCount - 1)) - 1;
 
-    static inline void *Malloc(size_t size, Core::Memory::PoolType poolType)
+    static inline void *Malloc(size_t size, Memory::PoolType poolType)
     {
         return get_kapi()->kmalloc(size, get_kapi_pool_type(poolType));
     }
@@ -157,6 +157,13 @@ namespace Memory
 
         return len;
     }
+
+    template <typename T>
+    size_t SizeOfInBits()
+    {
+        return 8 * sizeof(T);
+    }
+
 }
 
 }

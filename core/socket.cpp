@@ -16,7 +16,7 @@ Socket::Socket(void *sockp)
 Error Socket::Connect(const AString& host, unsigned short port)
 {
     if (Sockp != nullptr)
-        return Error::InvalidState;
+        return MakeError(Error::InvalidState);
 
     return get_kapi()->sock_connect(&Sockp, const_cast<char *>(host.GetConstBuf()), port);
 }
@@ -24,7 +24,7 @@ Error Socket::Connect(const AString& host, unsigned short port)
 Error Socket::Listen(const AString& host, unsigned short port, int backlog)
 {
     if (Sockp != nullptr)
-        return Error::InvalidState;
+        return MakeError(Error::InvalidState);
 
     return get_kapi()->sock_listen(&Sockp, const_cast<char *>(host.GetConstBuf()), port, backlog);
 }
@@ -32,7 +32,7 @@ Error Socket::Listen(const AString& host, unsigned short port, int backlog)
 Socket* Socket::Accept(Error &err)
 {
     if (Sockp == nullptr) {
-        err.SetInvalidState();
+        err = MakeError(Error::InvalidState);
         return nullptr;
     }
 
@@ -43,8 +43,9 @@ Socket* Socket::Accept(Error &err)
 
     Socket* newSock = new (Memory::PoolType::Kernel) Socket(newSockp);
     if (newSock == nullptr)
-        err.SetNoMemory();
-
+    {
+        err = MakeError(Error::NoMemory);
+    }
     return newSock;
 }
 
@@ -66,35 +67,35 @@ Error Socket::Send(const void *buf, unsigned long len, unsigned long& sent)
 {
     sent = 0;
     if (Sockp == nullptr)
-        return Error::InvalidState;
+        return MakeError(Error::InvalidState);
 
     if (len > Memory::MaxInt)
-        return Error::BufToBig;
+        return MakeError(Error::BufToBig);
 
     int r = get_kapi()->sock_send(Sockp, buf, static_cast<int>(len));
     if (r < 0)
-        return Error(r);
+        return MakeError(r);
 
     sent = static_cast<unsigned long>(r);
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Error Socket::Recv(void *buf, unsigned long len, unsigned long& recv)
 {
     recv = 0;
     if (Sockp == nullptr)
-        return Error::InvalidState;
+        return MakeError(Error::InvalidState);
 
     if (len > Memory::MaxInt)
         return Error::BufToBig;
 
     int r = get_kapi()->sock_recv(Sockp, buf, static_cast<int>(len));
     if (r < 0)
-        return Error(r);
+        return MakeError(r);
 
     recv = static_cast<unsigned long>(r);
 
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 Error Socket::SendAll(const void *buf, unsigned long len, unsigned long& sent)
@@ -109,14 +110,14 @@ Error Socket::SendAll(const void *buf, unsigned long len, unsigned long& sent)
         sent += lsent;
         if (!err.Ok())
         {
-            if (err == Core::Error::Again)
+            if (err == Error::Again)
                 continue;
 
             break;
         }
 
         if (lsent == 0) {
-            err.SetEOF();
+            err = MakeError(Error::EOF);
             break;
         }
     }
@@ -135,14 +136,14 @@ Error Socket::RecvAll(void *buf, unsigned long len, unsigned long& recv)
         recv += lrecv;
         if (!err.Ok())
         {
-            if (err == Core::Error::Again)
+            if (err == Error::Again)
                 continue;
 
             break;
         }
 
         if (lrecv == 0) {
-            err.SetEOF();
+            err = MakeError(Error::EOF);
             break;
         }
     }

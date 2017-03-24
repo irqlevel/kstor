@@ -37,7 +37,7 @@ Core::Error Packet::Parse(const Api::PacketHeader &header)
         Core::Hex::Encode(hash, Core::Memory::ArraySize(hash)).GetConstBuf());
 
     if (!Core::Memory::ArrayEqual(header.Hash, hash))
-        return Core::Error::HeaderCorrupt;
+        return MakeError(Core::Error::HeaderCorrupt);
 
     unsigned int magic = Core::BitOps::Le32ToCpu(header.Magic);
     unsigned int type = Core::BitOps::Le32ToCpu(header.Type);
@@ -45,19 +45,19 @@ Core::Error Packet::Parse(const Api::PacketHeader &header)
     unsigned int dataSize = Core::BitOps::Le32ToCpu(header.DataSize);
 
     if (magic != Api::PacketMagic)
-        return Core::Error::InvalidValue;
+        return MakeError(Core::Error::InvalidValue);
     if (dataSize > Api::PacketMaxDataSize)
-        return Core::Error::InvalidValue;
+        return MakeError(Core::Error::InvalidValue);
 
     Body.Clear();
     if (!Body.ReserveAndUse(dataSize + sizeof(Api::PacketHeader)))
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
 
     Type = type;
     Result = result;
     DataSize = dataSize;
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 size_t Packet::GetDataSize() const
@@ -98,17 +98,17 @@ void* Packet::GetBody()
 Core::Error Packet::Create(unsigned int type, unsigned int result, unsigned int dataSize)
 {
     if (dataSize > Api::PacketMaxDataSize)
-        return Core::Error::BufToBig;
+        return MakeError(Core::Error::BufToBig);
 
     Body.Clear();
     if (!Body.ReserveAndUse(dataSize + sizeof(Api::PacketHeader)))
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
 
     Type = type;
     Result = result;
     DataSize = dataSize;
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 void Packet::PrepareSend()
@@ -143,7 +143,7 @@ Core::Error Server::Connection::Start()
     Core::AutoLock lock(StateLock);
     if (ConnThread.Get() != nullptr || Sock.Get() == nullptr)
     {
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
     }
 
     Core::Error err;
@@ -154,7 +154,7 @@ Core::Error Server::Connection::Start()
     ConnThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(name, this, err);
     if (ConnThread.Get() == nullptr)
     {
-        err.SetNoMemory();
+        err = MakeError(Core::Error::NoMemory);
         return err;
     }
     if (!err.Ok())
@@ -209,7 +209,7 @@ Packet::Ptr Server::Connection::RecvPacket(Core::Error& err)
     packet = Core::MakeShared<Packet, Core::Memory::PoolType::Kernel>(header, err);
     if (packet.Get() == nullptr)
     {
-        err.SetNoMemory();
+        err = MakeError(Core::Error::NoMemory);
         trace(0, "Connection 0x%p can't allocate packet err %d", this, err.GetCode());
         packet.Reset();
         return packet;
@@ -234,7 +234,7 @@ Packet::Ptr Server::Connection::RecvPacket(Core::Error& err)
     Core::XXHash::Sum(packet->GetData(), packet->GetDataSize(), hash);
     if (!Core::Memory::ArrayEqual(header.DataHash, hash))
     {
-        err = Core::Error::DataCorrupt;
+        err = MakeError(Core::Error::DataCorrupt);
         trace(0, "Connection 0x%p packet body corrupt err %d", this, err.GetCode());
         packet.Reset();
         return packet;
@@ -306,7 +306,7 @@ Core::Error Server::Connection::Run(const Core::Threadable& thread)
 
     trace(3, "Connection 0x%p thread exiting", this);
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error Server::Run(const Core::Threadable &thread)
@@ -354,7 +354,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
         auto conn = Core::MakeShared<Connection, Core::Memory::PoolType::Kernel>(*this, Core::Memory::Move(socket));
         if (conn.Get() == nullptr)
         {
-            err.SetNoMemory();
+            err = MakeError(Core::Error::NoMemory);
         }
 
         if (!err.Ok())
@@ -369,7 +369,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
             {
                 if (!ConnList.AddTail(conn))
                 {
-                    err.SetNoMemory();
+                    err = MakeError(Core::Error::NoMemory);
                     trace(0, "Server 0x%p can't insert connection err %d", this, err.GetCode());
                     continue;
                 }
@@ -386,7 +386,7 @@ Core::Error Server::Run(const Core::Threadable &thread)
 
     trace(3, "Server 0x%p thread exiting", this);
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error Server::Start(const Core::AString& host, unsigned short port)
@@ -396,11 +396,11 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
     Core::AutoLock lock(StateLock);
 
     if (ListenSocket.Get() != nullptr || AcceptThread.Get() != nullptr)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     ListenSocket = Core::MakeUnique<Core::Socket, Core::Memory::PoolType::Kernel>();
     if (ListenSocket.Get() == nullptr)
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
 
     Core::Error err = ListenSocket->Listen(host, port, 65536);
     if (!err.Ok())
@@ -419,7 +419,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
     AcceptThread = Core::MakeUnique<Core::Thread, Core::Memory::PoolType::Kernel>(name, this, err);
     if (AcceptThread.Get() == nullptr) {
         ListenSocket.Reset();
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
     }
 
     if (!err.Ok()) {
@@ -430,7 +430,7 @@ Core::Error Server::Start(const Core::AString& host, unsigned short port)
 
     trace(3, "Server 0x%p started", this);
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 void Server::Stop()
@@ -519,7 +519,7 @@ Core::Error Server::HandleChunkCreate(Packet::Ptr& request, Packet::Ptr& respons
     err = ControlDevice::Get()->ChunkCreate(req->ChunkId);
     if (!err.Ok())
     {
-        err.Clear();
+        err.Reset();
         response->SetResult(Api::ResultNotFound);
     }
 
@@ -543,7 +543,7 @@ Core::Error Server::HandleChunkWrite(Packet::Ptr& request, Packet::Ptr& response
     err = ControlDevice::Get()->ChunkWrite(req->ChunkId, req->Data);
     if (!err.Ok())
     {
-        err.Clear();
+        err.Reset();
         response->SetResult(Api::ResultNotFound);
     }
 
@@ -567,7 +567,7 @@ Core::Error Server::HandleChunkRead(Packet::Ptr& request, Packet::Ptr& response)
     err = ControlDevice::Get()->ChunkRead(req->ChunkId, resp->Data);
     if (!err.Ok())
     {
-        err.Clear();
+        err.Reset();
         response->SetResult(Api::ResultNotFound);
     }
 
@@ -591,7 +591,7 @@ Core::Error Server::HandleChunkDelete(Packet::Ptr& request, Packet::Ptr& respons
     err = ControlDevice::Get()->ChunkDelete(req->ChunkId);
     if (!err.Ok())
     {
-        err.Clear();
+        err.Reset();
         response->SetResult(Api::ResultNotFound);
     }
 
@@ -603,11 +603,10 @@ Packet::Ptr Server::HandleRequest(Packet::Ptr& request, Core::Error& err)
     Packet::Ptr response(new Packet());
     if (response.Get() == nullptr)
     {
-        err = Core::Error::NoMemory;
+        err = MakeError(Core::Error::NoMemory);
         return response;
     }
 
-    err = Core::Error::Success;
     switch (request->GetType())
     {
     case Api::PacketTypePing:

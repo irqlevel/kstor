@@ -43,7 +43,7 @@ public:
         PagePtr = get_kapi()->alloc_page(get_kapi_pool_type(PoolType));
         if (PagePtr == nullptr)
         {
-            err.SetNoMemory();
+            err = MakeError(Error::NoMemory);
             return;
         }
     }
@@ -130,8 +130,8 @@ public:
             return 0;
 
         void* va = ConstMapAtomic();
-        size_t size = Core::Memory::Min<size_t>(len, GetSize() - off);
-        Core::Memory::MemCpy(buf, Core::Memory::MemAdd(va, off), size);
+        size_t size = Memory::Min<size_t>(len, GetSize() - off);
+        Memory::MemCpy(buf, Memory::MemAdd(va, off), size);
         ConstUnmapAtomic(va);
         return size;
     }
@@ -142,8 +142,8 @@ public:
             return 0;
 
         void* va = MapAtomic();
-        size_t size = Core::Memory::Min<size_t>(len, GetSize() - off);
-        Core::Memory::MemCpy(Core::Memory::MemAdd(va, off), buf, size);
+        size_t size = Memory::Min<size_t>(len, GetSize() - off);
+        Memory::MemCpy(Memory::MemAdd(va, off), buf, size);
         UnmapAtomic(va);
         return size;
     }
@@ -153,7 +153,7 @@ public:
         SharedPtr<Page<PoolType>, PoolType> page = MakeShared<Page<PoolType>, PoolType>(err);
         if (page.Get() == nullptr)
         {
-            err = Error::NoMemory;
+            err = MakeError(Error::NoMemory);
             return page;
         }
 
@@ -163,9 +163,9 @@ public:
         return page;
     }
 
-    virtual Core::AString ToHex(size_t len) const override
+    virtual AString ToHex(size_t len) const override
     {
-        Core::AString result;
+        AString result;
 
         auto size = GetSize();
         void* va = ConstMapAtomic();
@@ -208,10 +208,10 @@ public:
         return err;
     }
 
-    virtual Error FindZeroBit(size_t& bit) override
+    virtual Error FindSetZeroBit(size_t& bit) override
     {
         Bitmap bitmap(MapAtomic(), GetSize());
-        auto err = bitmap.FindZeroBit(bit);
+        auto err = bitmap.FindSetZeroBit(bit);
         UnmapAtomic(bitmap.GetBuf());
         return err;
     }

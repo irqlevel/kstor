@@ -4,13 +4,26 @@ namespace Core
 {
 
 Error::Error()
-    : Code(Success)
+    : Func(nullptr)
+    , File(nullptr)
+    , Line(0)
+    , Code(Success)
 {
 }
 
 Error::Error(int code)
-    : Code(code)
+    : Error()
 {
+    Code = code;
+}
+
+Error::Error(int code, const char *func, const char *file, int line)
+    : Error()
+{
+    Code = code;
+    Func = func;
+    File = file;
+    Line = line;
 }
 
 Error::~Error()
@@ -52,6 +65,74 @@ bool Error::operator!= (const Error& other) const
 bool Error::operator== (const Error& other) const
 {
     return GetCode() == other.GetCode();
+}
+
+void Error::Reset()
+{
+    Code = Success;
+}
+
+bool Error::Ok() const
+{
+    return (Code == Success) ? true : false;
+}
+
+int Error::GetLine() const
+{
+    return Line;
+}
+
+const char* Error::GetFile() const
+{
+    return File;
+}
+
+const char* Error::GetFunc() const
+{
+    return Func;
+}
+
+Error::Error(const Error& other)
+    : Error()
+{
+    Code = other.Code;
+    Func = other.Func;
+    File = other.File;
+    Line = other.Line;
+}
+
+Error::Error(Error&& other)
+{
+    Code = other.Code;
+    Func = other.Func;
+    File = other.File;
+    Line = other.Line;
+    other.Reset();
+}
+
+Error& Error::operator=(const Error& other)
+{
+    if (this != &other)
+    {
+        Code = other.Code;
+        Func = other.Func;
+        File = other.File;
+        Line = other.Line;
+    }
+    return *this;
+}
+
+Error& Error::operator=(Error&& other)
+{
+    if (this != &other)
+    {
+        Code = other.Code;
+        Func = other.Func;
+        File = other.File;
+        Line = other.Line;
+        other.Reset();
+    }
+    return *this;
 }
 
 }

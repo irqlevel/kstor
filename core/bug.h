@@ -2,6 +2,7 @@
 
 #include "kapi.h"
 #include "format.h"
+#include "type.h"
 
 namespace Core
 {
@@ -34,7 +35,9 @@ namespace Core
         return false;
     }
 
-#define panic(condition)    \
-    Core::Panic((condition) ? true : false, __MODULE_NAME__, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__)
-
 }
+
+#define panic(condition)    \
+    (unlikely(condition)) ? \
+        Core::Panic((condition) ? true : false, __MODULE_NAME__, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__) : \
+        false

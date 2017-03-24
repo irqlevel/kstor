@@ -10,6 +10,8 @@ public:
 
     Error(int code);
 
+    Error(int code, const char *func, const char *file, int line);
+
     virtual ~Error();
 
     int GetCode() const;
@@ -68,43 +70,32 @@ public:
 
     bool operator== (const Error& other) const;
 
-    bool Ok() const
-    {
-        return (Code == Success) ? true : false;
-    }
+    bool Ok() const;
 
-    void SetNoMemory()
-    {
-        Code = NoMemory;
-    }
+    void Reset();
 
-    void SetEOF()
-    {
-        Code = EOF;
-    }
+    const char* GetFile() const;
 
-    void SetInvalidState()
-    {
-        Code = InvalidState;
-    }
+    const char* GetFunc() const;
 
-    void SetInvalidValue()
-    {
-        Code = InvalidValue;
-    }
+    int GetLine() const;
 
-    void SetNotImplemented()
-    {
-        Code = NotImplemented;
-    }
+    Error(const Error& other);
 
-    void Clear()
-    {
-        Code = Success;
-    }
+    Error(Error&& other);
+
+    Error& operator=(const Error& other);
+
+    Error& operator=(Error&& other);
 
 private:
+    const char* Func;
+    const char* File;
+    int Line;
     int Code;
 };
 
 }
+
+#define MakeError(code) \
+    Core::Error(code, __FUNCTION__, Core::Format::TruncateFileName(__FILE__), __LINE__)

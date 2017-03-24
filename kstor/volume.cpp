@@ -37,11 +37,11 @@ Core::Error Volume::Format()
     Core::AutoLock lock(Lock);
 
     if (State != VolumeStateNew)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     uint64_t size = Device.GetSize();
     if (size == 0 || size % BlockSize)
-        return Core::Error::InvalidValue;
+        return MakeError(Core::Error::InvalidValue);
 
     Size = size;
 
@@ -75,7 +75,7 @@ Core::Error Volume::Load()
 {
     Core::AutoLock lock(Lock);
     if (State != VolumeStateNew)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     Core::Error err;
     auto page = Core::Page<>::Create(err);
@@ -94,7 +94,7 @@ Core::Error Volume::Load()
     if (Core::BitOps::Le32ToCpu(header->Magic) != Api::VolumeMagic)
     {
         trace(0, "Volume 0x%p bad header magic 0x%x", this, Core::BitOps::Le32ToCpu(header->Magic));
-        return Core::Error::BadMagic;
+        return MakeError(Core::Error::BadMagic);
     }
 
     unsigned char hash[Api::HashSize];
@@ -103,20 +103,20 @@ Core::Error Volume::Load()
     if (!Core::Memory::ArrayEqual(header->Hash, hash))
     {
         trace(0, "Volume 0x%p bad header hash", this);
-        return Core::Error::DataCorrupt;
+        return MakeError(Core::Error::DataCorrupt);
     }
 
     uint64_t size = Core::BitOps::Le64ToCpu(header->Size);
     if (size % BlockSize)
     {
         trace(0, "Volume 0x%p bad size %llu", this, size);
-        return Core::Error::BadSize;
+        return MakeError(Core::Error::BadSize);
     }
 
     if (size == 0 || size != Device.GetSize())
     {
         trace(0, "Volume 0x%p bad size %llu", this, size);
-        return Core::Error::BadSize;
+        return MakeError(Core::Error::BadSize);
     }
     Size = size;
 
@@ -132,7 +132,7 @@ Core::Error Volume::Load()
     {
         trace(0, "Volume 0x%p bad journal size %llu vs. %llu",
             this, TxJournal.GetSize(), journalSize);
-        return Core::Error::BadSize;
+        return MakeError(Core::Error::BadSize);
     }
 
     VolumeId.SetContent(header->VolumeId);
@@ -150,9 +150,9 @@ Core::Error Volume::Unload()
 
     Core::AutoLock lock(Lock);
     if (State == VolumeStateStopped)
-        return Core::Error::Success;
+        return MakeError(Core::Error::Success);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     State = VolumeStateStopping;
     auto err = TxJournal.Unload();
@@ -220,24 +220,24 @@ Core::Error Volume::ChunkCreate(const Guid& chunkId)
     auto chunk = ChunkTable.Lookup(chunkId, exist);
     if (exist)
     {
-        return Core::Error::AlreadyExists;
+        return MakeError(Core::Error::AlreadyExists);
     }
 
     chunk = Core::MakeShared<Chunk, Core::Memory::PoolType::Kernel>(chunkId);
     if (chunk.Get() == nullptr)
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
 
     if (!ChunkTable.Insert(chunk->ChunkId, chunk))
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::ChunkSize])
 {
     Core::SharedAutoLock lock(Lock);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     trace(1, "Chunk %s write", chunkId.ToString().GetConstBuf());
 
@@ -245,7 +245,7 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
     auto chunk = ChunkTable.Lookup(chunkId, exist);
     if (!exist)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     Core::Memory::MemCpy(chunk->Data, data, sizeof(chunk->Data));
@@ -253,14 +253,14 @@ Core::Error Volume::ChunkWrite(const Guid& chunkId, unsigned char data[Api::Chun
     trace(3, "Chunk %s write %s size %lu", chunkId.ToString().GetConstBuf(),
         Core::Hex::Encode(chunk->Data, 10).GetConstBuf(), sizeof(chunk->Data));
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::ChunkSize])
 {
     Core::SharedAutoLock lock(Lock);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     trace(1, "Chunk %s read", chunkId.ToString().GetConstBuf());
 
@@ -268,7 +268,7 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
     auto chunk = ChunkTable.Lookup(chunkId, exist);
     if (!exist)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     Core::Memory::MemCpy(data, chunk->Data, sizeof(chunk->Data));
@@ -276,48 +276,48 @@ Core::Error Volume::ChunkRead(const Guid& chunkId, unsigned char data[Api::Chunk
     trace(3, "Chunk %s read %s size %lu", chunkId.ToString().GetConstBuf(),
         Core::Hex::Encode(data, 10).GetConstBuf(), sizeof(chunk->Data));
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error Volume::ChunkDelete(const Guid& chunkId)
 {
     Core::SharedAutoLock lock(Lock);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     trace(1, "Chunk %s delete", chunkId.ToString().GetConstBuf());
 
     if (ChunkTable.Delete(chunkId))
-        return Core::Error::Success;
+        return MakeError(Core::Error::Success);
 
-    return Core::Error::NotFound;
+    return MakeError(Core::Error::NotFound);
 }
 
 Core::Error Volume::ChunkLookup(const Guid& chunkId)
 {
     Core::SharedAutoLock lock(Lock);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     trace(1, "Chunk %s lookup", chunkId.ToString().GetConstBuf());
 
     if (!ChunkTable.CheckExist(chunkId))
-        return Core::Error::NotFound;
-    return Core::Error::Success;
+        return MakeError(Core::Error::NotFound);
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error Volume::TestJournal()
 {
     Core::SharedAutoLock lock(Lock);
     if (State != VolumeStateRunning)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     trace(1, "Test journal");
 
     auto tx = TxJournal.BeginTx();
     if (tx.Get() == nullptr)
     {
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
     }
 
     trace(1, "Test journal, tx created %s", tx->GetTxId().ToString().GetConstBuf());

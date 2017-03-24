@@ -90,7 +90,7 @@ public:
         return Capacity;
     }
 
-    bool Erase(Core::LinkedList<size_t>& indexList)
+    bool Erase(LinkedList<size_t>& indexList)
     {
         size_t startIndex = StartIndex;
         size_t size = Size;

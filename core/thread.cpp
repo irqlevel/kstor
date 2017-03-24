@@ -31,13 +31,13 @@ Error Thread::ExecuteRoutine()
     return err;
 }
 
-Core::Error Thread::Start(const AString &name, Runnable* routine)
+Error Thread::Start(const AString &name, Runnable* routine)
 {
-    Core::Error err;
+    Error err;
 
     if (routine == nullptr)
     {
-        err.SetInvalidValue();
+        err = MakeError(Error::InvalidValue);
         return err;
     }
 
@@ -52,7 +52,7 @@ Core::Error Thread::Start(const AString &name, Runnable* routine)
     Task = get_kapi()->task_create(&Thread::StartRoutine, this, Name.GetConstBuf());
     if (!Task)
     {
-        err.SetNoMemory();
+        err = MakeError(Error::NoMemory);
         return err;
     }
     Running = true;

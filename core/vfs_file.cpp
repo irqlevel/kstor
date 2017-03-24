@@ -34,10 +34,10 @@ Error VfsFile::Open(const AString& path, bool read, bool create)
     if (rc)
     {
         trace(0, "Can't open file %s, rc %d", path.GetConstBuf(), rc);
-        return Error(rc);
+        return MakeError(rc);
     }
 
-    return Error::Success;
+    return MakeError(Error::Success);
 }
 
 VfsFile::VfsFile(const AString& path, Error& err, bool read, bool create)

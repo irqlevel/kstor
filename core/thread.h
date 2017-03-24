@@ -14,7 +14,7 @@ class Thread : public Threadable
 public:
     Thread();
     Thread(const AString& name, Runnable *routine, Error& err);
-    Core::Error Start(const AString& name, Runnable *routine);
+    Error Start(const AString& name, Runnable *routine);
     void Stop();
     void Wait();
     void StopAndWait();

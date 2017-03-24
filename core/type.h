@@ -12,3 +12,7 @@ using int64_t = long long;
 using uint64_t = unsigned long long;
 
 using byte_t = unsigned char;
+
+
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)

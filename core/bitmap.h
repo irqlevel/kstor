@@ -13,7 +13,7 @@ public:
     virtual Error ClearBit(size_t bit) = 0;
     virtual Error TestAndSetBit(size_t bit, bool& oldValue) = 0;
     virtual Error TestAndClearBit(size_t bit, bool& oldValue) = 0;
-    virtual Error FindZeroBit(size_t& bit) = 0;
+    virtual Error FindSetZeroBit(size_t& bit) = 0;
 };
 
 class Bitmap : public BitmapInterface
@@ -26,11 +26,13 @@ public:
     virtual Error ClearBit(size_t bit) override;
     virtual Error TestAndSetBit(size_t bit, bool& oldValue) override;
     virtual Error TestAndClearBit(size_t bit, bool& oldValue) override;
-    virtual Error FindZeroBit(size_t& bit) override;
+    virtual Error FindSetZeroBit(size_t& bit) override;
 
     void* GetBuf();
 
 private:
+    Error FindSetZeroBit(unsigned long* value, size_t maxBits, size_t& bit);
+
     Bitmap(const Bitmap& other) = delete;
     Bitmap(Bitmap&& other) = delete;
     Bitmap& operator=(const Bitmap& other) = delete;

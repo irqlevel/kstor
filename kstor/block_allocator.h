@@ -29,7 +29,7 @@ public:
 
     virtual Core::Error TestAndClearBit(size_t bit, bool& oldValue) override;
 
-    virtual Core::Error FindZeroBit(size_t& bit) override;
+    virtual Core::Error FindSetZeroBit(size_t& bit) override;
 
 private:
     BitmapBlock(const BitmapBlock& other) = delete;
@@ -38,6 +38,7 @@ private:
     BitmapBlock& operator=(BitmapBlock&& other) = delete;
 
     Core::Page<>::Ptr Page;
+    Core::RWSem Lock;
     uint64_t Index;
 };
 

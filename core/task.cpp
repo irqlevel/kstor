@@ -13,7 +13,7 @@ Task::Task(int pid, Error& err)
     TaskPtr = get_kapi()->task_lookup(pid);
     if (TaskPtr == nullptr)
     {
-        err = Error::NotFound;
+        err = MakeError(Error::NotFound);
         return;
     }
 }
@@ -22,9 +22,9 @@ Error Task::DumpStack(AString& result)
 {
     Vector<byte_t> stackBuf;
     if (!stackBuf.ReserveAndUse(4 * 4096))
-        return Core::Error::NoMemory;
+        return MakeError(Error::NoMemory);
 
-    Core::Error err;
+    Error err;
     AString endLine("\n", err);
     if (!err.Ok())
         return err;
@@ -33,11 +33,11 @@ Error Task::DumpStack(AString& result)
     size_t stackSize = get_kapi()->task_stack_read(TaskPtr, stackBuf.GetBuf(), stackBuf.GetSize(), &sp_delta);
     if (stackSize == 0) 
     {
-        return Core::Error::InvalidValue;
+        return MakeError(Error::InvalidValue);
     }
 
     if (!stackBuf.Truncate(stackSize))
-        return Core::Error::InvalidState;
+        return MakeError(Error::InvalidState);
 
     unsigned long *stackPos = reinterpret_cast<unsigned long *>(stackBuf.GetBuf());
     for (size_t i = 0, off = 0;
@@ -50,11 +50,11 @@ Error Task::DumpStack(AString& result)
         AString symbol;
 
         if (!symbol.ReserveAndUse(4096))
-            return Core::Error::NoMemory;
+            return MakeError(Error::NoMemory);
 
         size_t len = get_kapi()->sprint_symbol(symbol.GetBuf(), *stackPos);
         if (!symbol.Truncate(len))
-            return Core::Error::InvalidState;
+            return MakeError(Error::InvalidState);
 
         err = result.Append(symbol);
         if (!err.Ok())
@@ -65,7 +65,7 @@ Error Task::DumpStack(AString& result)
             return err;
     }
 
-    return Core::Error::Success;
+    return MakeError(Error::Success);
 }
 
 Task::~Task()

@@ -197,11 +197,11 @@ void Sha256::Update(const void *buf, unsigned int len)
 
 void Sha256::Clear()
 {
-    Core::Memory::MemSet(Total, 0, sizeof(Total));
-    Core::Memory::MemSet(State, 0, sizeof(State));
-    Core::Memory::MemSet(Buffer, 0, sizeof(Buffer));
-    Core::Memory::MemSet(Ipad, 0, sizeof(Ipad));
-    Core::Memory::MemSet(Opad, 0, sizeof(Opad));
+    Memory::MemSet(Total, 0, sizeof(Total));
+    Memory::MemSet(State, 0, sizeof(State));
+    Memory::MemSet(Buffer, 0, sizeof(Buffer));
+    Memory::MemSet(Ipad, 0, sizeof(Ipad));
+    Memory::MemSet(Opad, 0, sizeof(Opad));
 }
 
 Sha256::Sha256()

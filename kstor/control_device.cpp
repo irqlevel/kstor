@@ -30,7 +30,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, G
     Core::AutoLock lock(VolumeLock);
     if (VolumeRef.Get() != nullptr)
     {
-        return Core::Error::AlreadyExists;
+        return MakeError(Core::Error::AlreadyExists);
     }
 
     Core::Error err;
@@ -38,7 +38,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, G
     if (VolumeRef.Get() == nullptr)
     {
         trace(0, "CtrlDev 0x%p can't allocate device", this);
-        err.SetNoMemory();
+        err = MakeError(Core::Error::NoMemory);
         return err;
     }
 
@@ -66,7 +66,7 @@ Core::Error ControlDevice::Mount(const Core::AString& deviceName, bool format, G
     }
 
     volumeId = VolumeRef->GetVolumeId();
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error ControlDevice::Unmount(const Guid& volumeId)
@@ -74,7 +74,7 @@ Core::Error ControlDevice::Unmount(const Guid& volumeId)
     Core::AutoLock lock(VolumeLock);
     if (VolumeRef.Get() == nullptr)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     if (VolumeRef->GetVolumeId() == volumeId)
@@ -84,7 +84,7 @@ Core::Error ControlDevice::Unmount(const Guid& volumeId)
         return err;
     }
 
-    return Core::Error::NotFound;
+    return MakeError(Core::Error::NotFound);
 }
 
 Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
@@ -92,7 +92,7 @@ Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
     Core::AutoLock lock(VolumeLock);
     if (VolumeRef.Get() == nullptr)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     if (VolumeRef->GetDeviceName().Compare(deviceName) == 0)
@@ -102,7 +102,7 @@ Core::Error ControlDevice::Unmount(const Core::AString& deviceName)
         return err;
     }
 
-    return Core::Error::NotFound;
+    return MakeError(Core::Error::NotFound);
 }
 
 Core::Error ControlDevice::StartServer(const Core::AString& host, unsigned short port)
@@ -113,7 +113,7 @@ Core::Error ControlDevice::StartServer(const Core::AString& host, unsigned short
 Core::Error ControlDevice::StopServer()
 {
     Srv.Stop();
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error ControlDevice::TestBtree()
@@ -126,7 +126,7 @@ Core::Error ControlDevice::TestBtree()
 
     Core::Vector<size_t> pos;
     if (!pos.ReserveAndUse(keyCount))
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
 
     for (size_t i = 0; i < keyCount; i++)
     {
@@ -135,13 +135,13 @@ Core::Error ControlDevice::TestBtree()
 
     Core::Vector<uint64_t> key;
     if (!key.ReserveAndUse(keyCount))
-        return Core::Error::NoMemory;
+        return MakeError(Core::Error::NoMemory);
     for (size_t i = 0; i < keyCount; i++)
         key[i] = Core::Random::GetUint64();
 
     Core::Vector<uint64_t> value;
     if (!value.ReserveAndUse(keyCount))
-        return Core::Error::NoMemory;;
+        return MakeError(Core::Error::NoMemory);
     for (size_t i = 0; i < keyCount; i++)
         value[i] = Core::Random::GetUint64();
 
@@ -150,7 +150,7 @@ Core::Error ControlDevice::TestBtree()
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     pos.Shuffle();
@@ -159,13 +159,13 @@ Core::Error ControlDevice::TestBtree()
         if (!tree.Insert(key[pos[i]], value[pos[i]]))
         {
             trace(0, "Test btree: cant insert key %llu", key[pos[i]]);
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     pos.Shuffle();
@@ -176,19 +176,19 @@ Core::Error ControlDevice::TestBtree()
         if (!exist)
         {
             trace(0, "Test btree: cant find key");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
 
         if (foundValue != value[pos[i]])
         {
             trace(0, "Test btree: unexpected found value");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     pos.Shuffle();
@@ -197,13 +197,13 @@ Core::Error ControlDevice::TestBtree()
         if (!tree.Delete(key[pos[i]]))
         {
             trace(0, "Test btree: cant delete key[%lu][%lu]=%llu", i, pos[i], key[pos[i]]);
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     for (size_t i = keyCount / 2; i < keyCount; i++)
@@ -213,19 +213,19 @@ Core::Error ControlDevice::TestBtree()
         if (!exist)
         {
             trace(0, "Test btree: cant find key");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
 
         if (foundValue != value[pos[i]])
         {
             trace(0, "Test btree: unexpected found value");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     for (size_t i = keyCount / 2; i < keyCount; i++)
@@ -233,13 +233,13 @@ Core::Error ControlDevice::TestBtree()
         if (!tree.Delete(key[pos[i]]))
         {
             trace(0, "Test btree: cant delete key");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     pos.Shuffle();
@@ -250,13 +250,13 @@ Core::Error ControlDevice::TestBtree()
         if (exist)
         {
             trace(0, "Test btree: key still exist");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     pos.Shuffle();
@@ -265,13 +265,13 @@ Core::Error ControlDevice::TestBtree()
         if (!tree.Insert(key[pos[i]], value[pos[i]]))
         {
             trace(0, "Test btree: can't insert key'");
-            return Core::Error::Unsuccessful;
+            return MakeError(Core::Error::Unsuccessful);
         }
     }
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     trace(1, "Test btree: min depth %d max depth %d", tree.MinDepth(), tree.MaxDepth());
@@ -280,12 +280,12 @@ Core::Error ControlDevice::TestBtree()
     if (!tree.Check())
     {
         trace(0, "Test btree: check failed");
-        return Core::Error::Unsuccessful;
+        return MakeError(Core::Error::Unsuccessful);
     }
 
     trace(1, "Test btree: complete");
 
-    return Core::Error::Success;
+    return MakeError(Core::Error::Success);
 }
 
 Core::Error ControlDevice::RunTest(unsigned int testId)
@@ -302,7 +302,7 @@ Core::Error ControlDevice::RunTest(unsigned int testId)
 
         if (VolumeRef.Get() == nullptr)
         {
-            err =  Core::Error::NotFound;
+            err =  MakeError(Core::Error::NotFound);
             break;
         }
 
@@ -315,7 +315,7 @@ Core::Error ControlDevice::RunTest(unsigned int testId)
         break;
     }
     default:
-        err = Core::Error::InvalidValue;
+        err = MakeError(Core::Error::InvalidValue);
         break;
     }
 
@@ -383,7 +383,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         auto& params = cmd->Union.Mount;
         if (params.DeviceName[Core::Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
-            err.SetInvalidValue();
+            err = MakeError(Core::Error::InvalidValue);
             break;
         }
 
@@ -408,7 +408,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         auto& params = cmd->Union.UnmountByName;
         if (params.DeviceName[Core::Memory::ArraySize(params.DeviceName) - 1] != '\0')
         {
-            err.SetInvalidValue();
+            err = MakeError(Core::Error::InvalidValue);
             break;
         }
 
@@ -426,7 +426,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
         auto& params = cmd->Union.StartServer;
         if (params.Host[Core::Memory::ArraySize(params.Host) - 1] != '\0')
         {
-            err.SetInvalidValue();
+            err = MakeError(Core::Error::InvalidValue);
             break;
         }
 
@@ -456,7 +456,7 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     }
     default:
         trace(0, "Unknown ioctl 0x%x", code);
-        err = Core::Error::UnknownCode;
+        err = MakeError(Core::Error::UnknownCode);
         break;
     }
 
@@ -473,8 +473,15 @@ Core::Error ControlDevice::Ioctl(unsigned int code, unsigned long arg)
     }
 
 cleanup:
-
-    trace(1, "Ioctl 0x%x result %d", code, err.GetCode());
+    if (!err.Ok())
+    {
+        trace(0, "Ioctl 0x%x result %d (%s():%s,%d)",
+            code, err.GetCode(), err.GetFunc(), err.GetFile(), err.GetLine());
+    }
+    else
+    {
+        trace(1, "Ioctl 0x%x result %d", code, err.GetCode());
+    }
     return err;
 }
 
@@ -487,7 +494,7 @@ Core::Error ControlDevice::ChunkCreate(const Guid& chunkId)
     Core::SharedAutoLock lock(VolumeLock);
     if (VolumeRef.Get() == nullptr)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     return VolumeRef->ChunkCreate(chunkId);
@@ -498,7 +505,7 @@ Core::Error ControlDevice::ChunkWrite(const Guid& chunkId, unsigned char data[Ap
     Core::SharedAutoLock lock(VolumeLock);
     if (VolumeRef.Get() == nullptr)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     return VolumeRef->ChunkWrite(chunkId, data);
@@ -509,7 +516,7 @@ Core::Error ControlDevice::ChunkRead(const Guid& chunkId, unsigned char data[Api
     Core::SharedAutoLock lock(VolumeLock);
     if (VolumeRef.Get() == nullptr)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     return VolumeRef->ChunkRead(chunkId, data);
@@ -520,7 +527,7 @@ Core::Error ControlDevice::ChunkDelete(const Guid& chunkId)
     Core::SharedAutoLock lock(VolumeLock);
     if (VolumeRef.Get() == nullptr)
     {
-        return Core::Error::NotFound;
+        return MakeError(Core::Error::NotFound);
     }
 
     return VolumeRef->ChunkDelete(chunkId);
@@ -536,12 +543,12 @@ Core::Error ControlDevice::Create()
     Core::Error err;
 
     if (Device != nullptr)
-        return Core::Error::InvalidState;
+        return MakeError(Core::Error::InvalidState);
 
     Device = new (Core::Memory::PoolType::Kernel) ControlDevice(err);
     if (Device == nullptr)
     {
-        err.SetNoMemory();
+        err = MakeError(Core::Error::NoMemory);
         return err;
     }
 

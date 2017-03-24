@@ -77,7 +77,7 @@ long MiscDevice::Ioctl(void* context, unsigned int code, unsigned long arg)
 
 Error MiscDevice::Ioctl(unsigned int code, unsigned long arg)
 {
-    return Error::NotImplemented;
+    return MakeError(Error::NotImplemented);
 }
 
 }

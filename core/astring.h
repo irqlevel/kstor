@@ -25,7 +25,7 @@ public:
 
         if (!Buf.Reserve(len + 1))
         {
-            err.SetNoMemory();
+            err = MakeError(Error::NoMemory);
             return;
         }
 
@@ -37,7 +37,7 @@ public:
 
             if (!Buf.PushBack(c))
             {
-                err.SetNoMemory();
+                err = MakeError(Error::NoMemory);
                 Buf.Clear();
                 return;
             }
@@ -45,12 +45,12 @@ public:
 
         if (!Buf.PushBack('\0'))
         {
-            err.SetNoMemory();
+            err = MakeError(Error::NoMemory);
             Buf.Clear();
             return;
         }
 
-        err = Error::Success;
+        err = MakeError(Error::Success);
     }
 
     AStringBase(const char* s, Error& err)
@@ -180,7 +180,7 @@ public:
         size_t newLen = oldLen + otherLen;
 
         if (!ReserveAndUse(newLen))
-            return Core::Error::NoMemory;
+            return MakeError(Error::NoMemory);
 
         char* dst = Buf.GetBuf();
         const char* src = other.Buf.GetConstBuf();
@@ -190,7 +190,7 @@ public:
         }
 
         dst[newLen] = '\0';
-        return Error::Success;
+        return MakeError(Error::Success);
     }
 
 private:

@@ -39,7 +39,7 @@ public:
 
         if (pageCount == 0)
         {
-            err.SetInvalidValue();
+            err = MakeError(Error::InvalidValue);
             return;
         }
 
@@ -47,7 +47,7 @@ public:
         if (!BioPtr)
         {
             trace(0, "Can't allocate bio");
-            err.SetNoMemory();
+            err = MakeError(Error::NoMemory);
             return;
         }
 
@@ -57,7 +57,7 @@ public:
             trace(0, "Can't set bio private");
             get_kapi()->free_bio(BioPtr);
             BioPtr = nullptr;
-            err = Error(rc);
+            err = MakeError(rc);
             return;
         }
 
@@ -142,7 +142,7 @@ public:
     Error SetPage(int pageIndex, const typename Page<PoolType>::Ptr& page, size_t offset, size_t len)
     {
         if (!PageList.AddTail(page))
-            return Error::NoMemory;
+            return MakeError(Error::NoMemory);
 
         int rc = get_kapi()->set_bio_page(BioPtr, pageIndex, page->GetPagePtr(), offset, len);
         if (rc)
@@ -209,7 +209,7 @@ public:
                                                 write, len, offset, preflush, fua, sync);
         if (bio.Get() == nullptr)
         {
-            err = Error::NoMemory;
+            err = MakeError(Error::NoMemory);
             return bio;
         }
 
@@ -287,11 +287,11 @@ public:
             return err;
 
         if (dataSize > page->GetSize())
-            return Core::Error::Overflow;
+            return MakeError(Error::Overflow);
 
         auto size = page->Write(data, dataSize, 0);
         if (size != dataSize)
-            return Core::Error::UnexpectedEOF;
+            return MakeError(Error::UnexpectedEOF);
 
         return AddIo(page, position, write, dataSize);
     }
@@ -300,7 +300,7 @@ public:
         size_t len = 0)
     {
         if (position & 511)
-            return Error::InvalidValue;
+            return MakeError(Error::InvalidValue);
 
         Error err;
         auto bio = Bio<PoolType>::Create(BlockDev, page, position / 512, err, write, len);
@@ -311,10 +311,10 @@ public:
 
         if (!ReqList.AddTail(bio))
         {
-            return Error::NoMemory;
+            return MakeError(Error::NoMemory);
         }
 
-        return Error::Success;
+        return MakeError(Error::Success);
     }
 
     void SubmitWait(bool preflushFua = false)
@@ -438,6 +438,6 @@ private:
     Error Result;
 };
 
-using NoIOBioList = Core::BioList<Core::Memory::PoolType::NoIO>;
+using NoIOBioList = BioList<Memory::PoolType::NoIO>;
 
 }
